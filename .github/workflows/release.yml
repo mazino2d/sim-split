@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'  # e.g. v1.0.0
+
+jobs:
+  validate-version:
+    name: Validate tag matches pubspec version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"          # strip 'v' prefix
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          echo "Tag version: $TAG_VERSION"
+          echo "pubspec version: $PUBSPEC_VERSION"
+          if [ "$TAG_VERSION" != "$PUBSPEC_VERSION" ]; then
+            echo "❌ Version mismatch: tag=$TAG_VERSION pubspec=$PUBSPEC_VERSION"
+            exit 1
+          fi
+
+  build-android:
+    name: Android Production Build
+    needs: validate-version
+    uses: ./.github/workflows/build_android.yml
+    with:
+      track: production
+    secrets: inherit
+
+  build-ios:
+    name: iOS App Store Build
+    needs: validate-version
+    uses: ./.github/workflows/build_ios.yml
+    with:
+      destination: appstore
+    secrets: inherit
+
+  create-github-release:
+    name: Create GitHub Release
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download AAB artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: simsplit-release.aab
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app-release.aab
+          generate_release_notes: true
+          name: 'SimSplit ${{ github.ref_name }}'

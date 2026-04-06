@@ -1,0 +1,75 @@
+{
+  "@@locale": "vi",
+  "appTitle": "SimSplit",
+
+  "groupsTitle": "Nhóm",
+  "noGroups": "Chưa có nhóm nào",
+  "noGroupsHint": "Nhấn + để tạo nhóm đầu tiên",
+  "createGroup": "Tạo nhóm",
+  "editGroup": "Sửa nhóm",
+  "groupName": "Tên nhóm",
+  "groupNameHint": "vd. Du lịch Đà Nẵng",
+  "groupCurrency": "Đơn vị tiền tệ",
+  "archiveGroup": "Lưu trữ nhóm",
+  "deleteGroup": "Xóa nhóm",
+  "groupArchived": "Đã lưu trữ nhóm",
+
+  "members": "Thành viên",
+  "addMember": "Thêm thành viên",
+  "memberName": "Tên thành viên",
+  "memberNameHint": "vd. Khôi",
+  "markAsMe": "Đây là tôi",
+  "removeMember": "Xóa",
+  "cannotRemoveMemberWithDebts": "Không thể xóa thành viên còn nợ chưa thanh toán",
+
+  "expenses": "Chi tiêu",
+  "noExpenses": "Chưa có chi tiêu nào",
+  "addExpense": "Thêm chi tiêu",
+  "editExpense": "Sửa chi tiêu",
+  "expenseTitle": "Mô tả",
+  "expenseTitleHint": "vd. Ăn tối tại Nhà Hàng Ngon",
+  "amount": "Số tiền",
+  "paidBy": "Người trả",
+  "date": "Ngày",
+  "category": "Danh mục",
+  "note": "Ghi chú (không bắt buộc)",
+  "splitType": "Kiểu chia",
+  "splitEqual": "Chia đều",
+  "splitPercentage": "Theo %",
+  "splitExact": "Số tiền cụ thể",
+  "splitShares": "Theo tỉ lệ",
+  "percentageMustSum100": "Tổng phần trăm phải bằng 100%",
+  "exactMustSumTotal": "Tổng số tiền phải bằng tổng chi tiêu",
+  "deleteExpense": "Xóa chi tiêu",
+  "expenseDeleted": "Đã xóa chi tiêu",
+
+  "balances": "Số dư",
+  "settledUp": "Đã thanh toán xong!",
+  "suggestedSettlements": "Gợi ý thanh toán",
+  "owes": "{from} nợ {to}",
+  "@owes": {
+    "placeholders": {
+      "from": { "type": "String" },
+      "to": { "type": "String" }
+    }
+  },
+
+  "recordSettlement": "Ghi nhận thanh toán",
+  "markAsPaid": "Đánh dấu đã trả",
+  "settlementRecorded": "Đã ghi nhận thanh toán",
+  "settlementHistory": "Lịch sử thanh toán",
+  "noSettlements": "Chưa có thanh toán nào",
+
+  "exportGroup": "Xuất tóm tắt",
+
+  "cancel": "Hủy",
+  "save": "Lưu",
+  "delete": "Xóa",
+  "confirm": "Xác nhận",
+  "deleteConfirmTitle": "Xóa?",
+  "deleteConfirmMessage": "Hành động này không thể hoàn tác.",
+
+  "errorUnexpected": "Đã xảy ra lỗi không mong muốn",
+  "errorNotFound": "Không tìm thấy",
+  "retry": "Thử lại"
+}

@@ -1,0 +1,70 @@
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Generated files (produced by build_runner, flutter gen-l10n)
+*.g.dart
+*.freezed.dart
+lib/core/l10n/generated/
+
+# Flutter obfuscation / symbolication artifacts
+app.*.symbols
+app.*.map.json
+
+# Android signing (NEVER commit)
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/.gradle/
+
+# iOS
+ios/fastlane/AuthKey_*.p8
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework/
+ios/Flutter/Flutter.podspec
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/.last_build_id
+*.xcuserstate
+
+# Certificates (NEVER commit)
+*.p12
+*.mobileprovision
+*.keychain
+
+# Fastlane run artifacts
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Environment files
+.env
+.env.*
+
+# VSCode — settings.json and extensions.json are committed; ignore personal files only
+.vscode/*.code-workspace
+.vscode/launch.json
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+/coverage/
+
+# pubspec.lock is intentionally committed for apps (reproducible builds)

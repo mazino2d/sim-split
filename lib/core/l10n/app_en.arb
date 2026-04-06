@@ -1,0 +1,76 @@
+{
+  "@@locale": "en",
+  "appTitle": "SimSplit",
+  "@appTitle": { "description": "App name" },
+
+  "groupsTitle": "Groups",
+  "noGroups": "No groups yet",
+  "noGroupsHint": "Tap + to create your first group",
+  "createGroup": "Create Group",
+  "editGroup": "Edit Group",
+  "groupName": "Group name",
+  "groupNameHint": "e.g. Vietnam Trip",
+  "groupCurrency": "Currency",
+  "archiveGroup": "Archive group",
+  "deleteGroup": "Delete group",
+  "groupArchived": "Group archived",
+
+  "members": "Members",
+  "addMember": "Add member",
+  "memberName": "Member name",
+  "memberNameHint": "e.g. Khoi",
+  "markAsMe": "Mark as me",
+  "removeMember": "Remove",
+  "cannotRemoveMemberWithDebts": "Cannot remove a member with unsettled debts",
+
+  "expenses": "Expenses",
+  "noExpenses": "No expenses yet",
+  "addExpense": "Add expense",
+  "editExpense": "Edit expense",
+  "expenseTitle": "Description",
+  "expenseTitleHint": "e.g. Dinner at Nhà Hàng Ngon",
+  "amount": "Amount",
+  "paidBy": "Paid by",
+  "date": "Date",
+  "category": "Category",
+  "note": "Note (optional)",
+  "splitType": "Split type",
+  "splitEqual": "Equal",
+  "splitPercentage": "Percentage",
+  "splitExact": "Exact amount",
+  "splitShares": "Shares",
+  "percentageMustSum100": "Percentages must sum to 100%",
+  "exactMustSumTotal": "Amounts must sum to the total",
+  "deleteExpense": "Delete expense",
+  "expenseDeleted": "Expense deleted",
+
+  "balances": "Balances",
+  "settledUp": "All settled up!",
+  "suggestedSettlements": "Suggested settlements",
+  "owes": "{from} owes {to}",
+  "@owes": {
+    "placeholders": {
+      "from": { "type": "String" },
+      "to": { "type": "String" }
+    }
+  },
+
+  "recordSettlement": "Record settlement",
+  "markAsPaid": "Mark as paid",
+  "settlementRecorded": "Settlement recorded",
+  "settlementHistory": "Settlement history",
+  "noSettlements": "No settlements yet",
+
+  "exportGroup": "Export summary",
+
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "confirm": "Confirm",
+  "deleteConfirmTitle": "Delete?",
+  "deleteConfirmMessage": "This action cannot be undone.",
+
+  "errorUnexpected": "An unexpected error occurred",
+  "errorNotFound": "Not found",
+  "retry": "Retry"
+}

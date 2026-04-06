@@ -1,0 +1,26 @@
+default_platform(:android)
+
+platform :android do
+  desc "Upload to Play Store internal test track"
+  lane :beta do
+    upload_to_play_store(
+      track: 'internal',
+      aab: '../build/app/outputs/bundle/release/app-release.aab',
+      json_key_data: ENV['GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'],
+      package_name: 'com.simsplit.app',
+      skip_upload_apk: true,
+      metadata_path: './metadata/android',
+    )
+  end
+
+  desc "Promote internal track to production"
+  lane :production do
+    upload_to_play_store(
+      track: 'production',
+      aab: '../build/app/outputs/bundle/release/app-release.aab',
+      json_key_data: ENV['GOOGLE_PLAY_SERVICE_ACCOUNT_JSON'],
+      package_name: 'com.simsplit.app',
+      skip_upload_apk: true,
+    )
+  end
+end

@@ -1,0 +1,88 @@
+name: simsplit
+description: "Ứng dụng ghi chú và chia chi tiêu nhóm, hoạt động offline."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Navigation
+  go_router: ^14.2.7
+
+  # Local database
+  drift: ^2.18.0
+  drift_flutter: ^0.2.1
+  sqlite3_flutter_libs: ^0.5.0
+
+  # Code generation / immutable models
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+
+  # Functional programming (Either, Option)
+  fpdart: ^1.1.0
+
+  # Unique ID generation
+  uuid: ^4.4.0
+
+  # UI extras
+  flutter_slidable: ^3.1.0
+  intl: ^0.20.2
+
+  # Icons & splash screen (dev tools, kept here for generator commands)
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code generation
+  build_runner: ^2.4.11
+  drift_dev: ^2.18.0
+  riverpod_generator: ^2.4.3
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
+
+  # Linting
+  flutter_lints: ^4.0.0
+
+  # Testing
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icons/
+    - assets/images/
+
+  generate: true  # enables flutter gen-l10n for .arb files
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/splash_logo.png
+  android_12:
+    image: assets/images/splash_logo.png
+    color: "#FFFFFF"
+    icon_background_color: "#FFFFFF"
+  ios: true
+  fullscreen: false

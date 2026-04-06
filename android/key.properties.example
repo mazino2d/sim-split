@@ -1,0 +1,8 @@
+# TEMPLATE — Copy to key.properties (never commit key.properties)
+# Generate keystore: keytool -genkey -v -keystore simsplit.jks -keyalg RSA -keysize 2048 -validity 10000 -alias simsplit
+# Then base64-encode: base64 -i simsplit.jks | pbcopy → paste as ANDROID_KEYSTORE_BASE64 in GitHub Secrets
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=simsplit
+storeFile=simsplit.jks

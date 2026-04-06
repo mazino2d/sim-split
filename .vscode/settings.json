@@ -1,0 +1,25 @@
+{
+  // Hide all gitignored files from the Explorer sidebar
+  "explorer.excludeGitIgnore": true,
+
+  // Dart / Flutter
+  "dart.flutterSdkPath": null,
+  "dart.lineLength": 100,
+  "editor.formatOnSave": true,
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code",
+    "editor.formatOnSave": true,
+    "editor.selectionHighlight": false,
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "editor.suggestSelection": "first",
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off"
+  },
+
+  // Hide generated files from Explorer (they are also gitignored,
+  // but this provides an extra layer inside lib/)
+  "files.exclude": {
+    "**/.dart_tool": true,
+    "**/build": true
+  }
+}

@@ -1,0 +1,19 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Use TEXT for IDs (UUID strings) instead of INTEGER auto-increment
+          sql:
+            dialect: sqlite
+      freezed:
+        generate_for:
+          include:
+            - lib/domain/**
+            - lib/core/**
+      riverpod_generator:
+        generate_for:
+          include:
+            - lib/core/di/**
+            - lib/presentation/providers/**
+            - lib/presentation/notifiers/**
