@@ -30,17 +30,17 @@ jobs:
       track: production
     secrets: inherit
 
-  build-ios:
-    name: iOS App Store Build
-    needs: validate-version
-    uses: ./.github/workflows/build_ios.yml
-    with:
-      destination: appstore
-    secrets: inherit
+  # build-ios:                         # disabled — Apple Developer account not yet active
+  #   name: iOS App Store Build
+  #   needs: validate-version
+  #   uses: ./.github/workflows/build_ios.yml
+  #   with:
+  #     destination: appstore
+  #   secrets: inherit
 
   create-github-release:
     name: Create GitHub Release
-    needs: [build-android, build-ios]
+    needs: [build-android]            # removed build-ios until Apple account is ready
     runs-on: ubuntu-latest
     permissions:
       contents: write
