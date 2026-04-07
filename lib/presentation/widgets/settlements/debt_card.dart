@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/money_formatter.dart';
 import '../../../domain/entities/debt.dart';
 
 class DebtCard extends StatelessWidget {
@@ -16,14 +17,12 @@ class DebtCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final amount =
-        (debt.amountCents / 100).toStringAsFixed(0);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         title: Text('${debt.from.name} nợ ${debt.to.name}'),
         subtitle: Text(
-          '$amount $currencyCode',
+          formatMoney(debt.amountCents, currencyCode),
           style: const TextStyle(
               fontWeight: FontWeight.bold, fontSize: 16),
         ),

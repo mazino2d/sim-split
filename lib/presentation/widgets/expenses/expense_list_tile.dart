@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/money_formatter.dart';
 import '../../../domain/entities/expense.dart';
 import '../../../domain/entities/member.dart';
 
@@ -18,8 +19,7 @@ class ExpenseListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final paidBy = members.where((m) => m.id == expense.paidByMemberId).firstOrNull;
-    final amountDisplay =
-        (expense.amountCents / 100).toStringAsFixed(0);
+    final amountDisplay = formatMoney(expense.amountCents, expense.currencyCode);
 
     return ListTile(
       leading: CircleAvatar(
@@ -35,7 +35,7 @@ class ExpenseListTile extends StatelessWidget {
         style: const TextStyle(color: Colors.grey),
       ),
       trailing: Text(
-        '$amountDisplay ${expense.currencyCode}',
+        amountDisplay,
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       onTap: onTap,

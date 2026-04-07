@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../domain/entities/member.dart';
 import '../screens/expenses/expense_form_screen.dart';
 import '../screens/groups/group_detail_screen.dart';
 import '../screens/groups/group_form_screen.dart';
@@ -55,6 +56,14 @@ final appRouter = GoRouter(
           builder: (context, state) {
             final groupId = state.pathParameters['groupId']!;
             return MemberFormScreen(groupId: groupId);
+          },
+        ),
+        GoRoute(
+          path: 'members/:memberId/edit',
+          builder: (context, state) {
+            final groupId = state.pathParameters['groupId']!;
+            final member = state.extra as Member?;
+            return MemberFormScreen(groupId: groupId, editMember: member);
           },
         ),
         GoRoute(

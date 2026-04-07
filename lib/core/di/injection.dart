@@ -32,6 +32,7 @@ import '../../domain/use_cases/groups/update_group.dart';
 import '../../domain/use_cases/members/add_member.dart';
 import '../../domain/use_cases/members/list_members.dart';
 import '../../domain/use_cases/members/remove_member.dart';
+import '../../domain/use_cases/members/update_member.dart';
 import '../../domain/use_cases/settlements/calculate_debts.dart';
 import '../../domain/use_cases/settlements/list_settlements.dart';
 import '../../domain/use_cases/settlements/settle_debt.dart';
@@ -125,6 +126,10 @@ RemoveMember removeMember(Ref ref) => RemoveMember(
       expenseRepository: ref.watch(expenseRepositoryProvider),
       settlementRepository: ref.watch(settlementRepositoryProvider),
     );
+
+@riverpod
+UpdateMember updateMember(Ref ref) =>
+    UpdateMember(memberRepository: ref.watch(memberRepositoryProvider));
 
 @riverpod
 CalculateSplits calculateSplits(Ref ref) => const CalculateSplits();

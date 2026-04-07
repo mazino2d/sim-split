@@ -3,17 +3,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../domain/entities/member.dart';
 import '../../../domain/use_cases/members/add_member.dart';
+import '../../notifiers/member_notifier.dart';
 
 const _avatarColors = [
-  0xFF6200EE, 0xFF03DAC6, 0xFFFF6B6B, 0xFF4CAF50,
-  0xFF2196F3, 0xFFFF9800, 0xFF9C27B0, 0xFF795548,
+  0xFF1976D2, 0xFF03DAC6, 0xFFFF6B6B, 0xFF4CAF50,
+  0xFF43A047, 0xFFFF9800, 0xFF9C27B0, 0xFF795548,
 ];
 
 class MemberFormScreen extends ConsumerStatefulWidget {
-  const MemberFormScreen({super.key, required this.groupId});
+  const MemberFormScreen({
+    super.key,
+    required this.groupId,
+    this.editMember,
+  });
 
   final String groupId;
+  /// When set, the form is in edit mode and pre-fills from this member.
+  final Member? editMember;
 
   @override
   ConsumerState<MemberFormScreen> createState() => _MemberFormScreenState();
@@ -21,10 +29,21 @@ class MemberFormScreen extends ConsumerStatefulWidget {
 
 class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  int _selectedColor = _avatarColors[0];
-  bool _isMe = false;
+  late final TextEditingController _nameController;
+  late int _selectedColor;
+  late bool _isMe;
   bool _isLoading = false;
+
+  bool get _isEdit => widget.editMember != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final m = widget.editMember;
+    _nameController = TextEditingController(text: m?.name ?? '');
+    _selectedColor = m?.avatarColorValue ?? _avatarColors[0];
+    _isMe = m?.isMe ?? false;
+  }
 
   @override
   void dispose() {
@@ -36,28 +55,47 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
-    final useCase = ref.read(addMemberProvider);
-    final result = await useCase(AddMemberParams(
-      groupId: widget.groupId,
-      name: _nameController.text.trim(),
-      avatarColorValue: _selectedColor,
-      isMe: _isMe,
-    ));
+    bool success;
+    if (_isEdit) {
+      final m = widget.editMember!;
+      success = await ref.read(memberNotifierProvider.notifier).updateMember(
+            id: m.id,
+            groupId: m.groupId,
+            name: _nameController.text.trim(),
+            avatarColorValue: _selectedColor,
+            isMe: _isMe,
+            createdAt: m.createdAt,
+          );
+    } else {
+      final useCase = ref.read(addMemberProvider);
+      final result = await useCase(AddMemberParams(
+        groupId: widget.groupId,
+        name: _nameController.text.trim(),
+        avatarColorValue: _selectedColor,
+        isMe: _isMe,
+      ));
+      success = result.isRight();
+      if (!success && mounted) {
+        result.fold(
+          (failure) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(failure.toString())),
+          ),
+          (_) {},
+        );
+      }
+    }
 
     if (!mounted) return;
     setState(() => _isLoading = false);
-    result.fold(
-      (failure) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(failure.toString())),
-      ),
-      (_) => context.pop(),
-    );
+    if (success) context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Thêm thành viên')),
+      appBar: AppBar(
+        title: Text(_isEdit ? 'Sửa thành viên' : 'Thêm thành viên'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -107,7 +145,7 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
 
             FilledButton(
               onPressed: _isLoading ? null : _save,
-              child: const Text('Thêm'),
+              child: Text(_isEdit ? 'Lưu' : 'Thêm'),
             ),
           ],
         ),

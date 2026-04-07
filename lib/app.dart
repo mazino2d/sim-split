@@ -14,12 +14,12 @@ class SimSplitApp extends StatelessWidget {
       routerConfig: appRouter,
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF6200EE),
+        colorSchemeSeed: const Color(0xFF1976D2),
         brightness: Brightness.light,
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF6200EE),
+        colorSchemeSeed: const Color(0xFF1976D2),
         brightness: Brightness.dark,
       ),
       localizationsDelegates: const [

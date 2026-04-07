@@ -16,7 +16,7 @@ class GroupNotifier extends _$GroupNotifier {
     required String name,
     required String currencyCode,
     String? emoji,
-    int colorValue = 0xFF6200EE,
+    int colorValue = 0xFF1976D2,
   }) async {
     state = const AsyncLoading();
     final useCase = ref.read(createGroupProvider);

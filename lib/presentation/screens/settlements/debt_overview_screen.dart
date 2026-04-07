@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/utils/money_formatter.dart';
 import '../../providers/group_providers.dart';
 import '../../providers/settlement_providers.dart';
 import '../../widgets/common/error_widget.dart';
@@ -71,9 +72,8 @@ class DebtOverviewScreen extends ConsumerWidget {
                               ),
                               title: Text(balance.member.name),
                               trailing: Text(
-                                '${balance.netAmountCents >= 0 ? '+' : ''}'
-                                '${(balance.netAmountCents / 100).toStringAsFixed(0)} '
-                                '${group.currencyCode}',
+                                '${balance.netAmountCents >= 0 ? '+' : '-'}'
+                                '${formatMoney(balance.netAmountCents.abs(), group.currencyCode)}',
                                 style: TextStyle(
                                   color: balance.netAmountCents >= 0
                                       ? Colors.green

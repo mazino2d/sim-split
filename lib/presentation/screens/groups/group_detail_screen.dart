@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../domain/entities/expense.dart';
 import '../../../domain/entities/group.dart';
+import '../../../domain/entities/member.dart';
+import '../../notifiers/expense_notifier.dart';
+import '../../notifiers/group_notifier.dart';
+import '../../notifiers/member_notifier.dart';
 import '../../providers/expense_providers.dart';
 import '../../providers/group_providers.dart';
-import '../../providers/settlement_providers.dart';
 import '../../widgets/common/error_widget.dart';
 import '../../widgets/common/loading_widget.dart';
 import '../../widgets/expenses/expense_list_tile.dart';
-import '../../widgets/settlements/debt_card.dart';
 
 class GroupDetailScreen extends ConsumerWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -39,6 +40,31 @@ class _GroupDetailBody extends ConsumerWidget {
 
   final Group group;
 
+  Future<void> _confirmDeleteGroup(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xoá nhóm?'),
+        content: Text('Nhóm "${group.name}" và toàn bộ dữ liệu sẽ bị xoá vĩnh viễn.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Huỷ'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xoá'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final success =
+        await ref.read(groupNotifierProvider.notifier).deleteGroup(group.id);
+    if (success && context.mounted) context.go('/');
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
@@ -49,13 +75,17 @@ class _GroupDetailBody extends ConsumerWidget {
           actions: [
             IconButton(
               icon: const Icon(Icons.edit_outlined),
-              onPressed: () =>
-                  context.push('/groups/${group.id}/edit'),
+              onPressed: () => context.push('/groups/${group.id}/edit'),
             ),
             IconButton(
               icon: const Icon(Icons.account_balance_wallet_outlined),
               onPressed: () => context.push('/groups/${group.id}/debts'),
               tooltip: 'Xem số dư',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Xoá nhóm',
+              onPressed: () => _confirmDeleteGroup(context, ref),
             ),
           ],
           bottom: const TabBar(
@@ -98,13 +128,57 @@ class _ExpensesTab extends ConsumerWidget {
         }
         return ListView.builder(
           itemCount: expenses.length,
-          itemBuilder: (ctx, i) => ExpenseListTile(
-            expense: expenses[i],
-            members: members,
-            onTap: () => context.push(
-              '/groups/${group.id}/expenses/${expenses[i].id}/edit',
-            ),
-          ),
+          itemBuilder: (ctx, i) {
+            final expense = expenses[i];
+            return Dismissible(
+              key: ValueKey(expense.id),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 20),
+                color: Colors.red,
+                child: const Icon(Icons.delete, color: Colors.white),
+              ),
+              confirmDismiss: (_) async {
+                return await showDialog<bool>(
+                  context: ctx,
+                  builder: (dCtx) => AlertDialog(
+                    title: const Text('Xoá chi tiêu?'),
+                    content: Text('"${expense.title}" sẽ bị xoá.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dCtx, false),
+                        child: const Text('Huỷ'),
+                      ),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                            backgroundColor: Colors.red),
+                        onPressed: () => Navigator.pop(dCtx, true),
+                        child: const Text('Xoá'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              onDismissed: (_) async {
+                await ref
+                    .read(expenseNotifierProvider.notifier)
+                    .deleteExpense(expense.id);
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(content: Text('Đã xoá "${expense.title}"')),
+                  );
+                }
+              },
+              child: ExpenseListTile(
+                expense: expense,
+                members: members,
+                onTap: () => context.push(
+                  '/groups/${group.id}/expenses/${expense.id}/edit',
+                ),
+              ),
+            );
+          },
         );
       },
       loading: () => const AppLoadingWidget(),
@@ -117,6 +191,48 @@ class _MembersTab extends ConsumerWidget {
   const _MembersTab({required this.group});
 
   final Group group;
+
+  Future<void> _confirmRemoveMember(
+    BuildContext context,
+    WidgetRef ref,
+    Member member,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xoá thành viên?'),
+        content: Text('"${member.name}" sẽ bị xoá khỏi nhóm.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Huỷ'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xoá'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final success = await ref
+        .read(memberNotifierProvider.notifier)
+        .removeMember(member.id, group.id);
+
+    if (!success && context.mounted) {
+      final error = ref.read(memberNotifierProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error?.toString() ??
+                'Không thể xoá: thành viên còn chi tiêu chưa thanh toán.',
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -163,9 +279,26 @@ class _MembersTab extends ConsumerWidget {
                 ),
               ),
               title: Text(member.name),
-              trailing: member.isMe
-                  ? const Chip(label: Text('Tôi'))
-                  : null,
+              subtitle: member.isMe ? const Text('Tôi') : null,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: 'Sửa',
+                    onPressed: () => context.push(
+                      '/groups/${group.id}/members/${member.id}/edit',
+                      extra: member,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.person_remove_outlined),
+                    tooltip: 'Xoá',
+                    onPressed: () =>
+                        _confirmRemoveMember(context, ref, member),
+                  ),
+                ],
+              ),
             );
           },
         );
