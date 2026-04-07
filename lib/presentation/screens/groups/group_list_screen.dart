@@ -18,12 +18,6 @@ class GroupListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('SimSplit'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {/* TODO: settings */},
-          ),
-        ],
       ),
       body: groupsAsync.when(
         data: (groups) => _GroupListBody(groups: groups),

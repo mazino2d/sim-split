@@ -3,7 +3,9 @@ import 'package:fpdart/fpdart.dart' hide Group;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../domain/entities/group.dart';
+import '../../domain/entities/member.dart';
 import '../../domain/use_cases/groups/get_group.dart';
+import '../../domain/use_cases/members/list_members.dart';
 import '../../domain/use_cases/use_case.dart';
 import '../../core/di/injection.dart';
 
@@ -29,6 +31,18 @@ Future<Group> groupDetail(Ref ref, String groupId) {
     (either) => either.fold(
       (failure) => throw Exception(failure.toString()),
       (group) => group,
+    ),
+  );
+}
+
+/// Reactive stream of members for a group.
+@riverpod
+Stream<List<Member>> memberList(Ref ref, String groupId) {
+  final useCase = ref.watch(listMembersProvider);
+  return useCase(ListMembersParams(groupId: groupId)).map(
+    (either) => either.fold(
+      (failure) => throw Exception(failure.toString()),
+      (members) => members,
     ),
   );
 }

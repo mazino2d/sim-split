@@ -88,6 +88,8 @@ class _ExpensesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expensesAsync = ref.watch(expenseListProvider(group.id));
+    final membersAsync = ref.watch(memberListProvider(group.id));
+    final members = membersAsync.valueOrNull ?? [];
 
     return expensesAsync.when(
       data: (expenses) {
@@ -98,7 +100,7 @@ class _ExpensesTab extends ConsumerWidget {
           itemCount: expenses.length,
           itemBuilder: (ctx, i) => ExpenseListTile(
             expense: expenses[i],
-            members: group.members,
+            members: members,
             onTap: () => context.push(
               '/groups/${group.id}/expenses/${expenses[i].id}/edit',
             ),
@@ -111,57 +113,65 @@ class _ExpensesTab extends ConsumerWidget {
   }
 }
 
-class _MembersTab extends StatelessWidget {
+class _MembersTab extends ConsumerWidget {
   const _MembersTab({required this.group});
 
   final Group group;
 
   @override
-  Widget build(BuildContext context) {
-    if (group.members.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Chưa có thành viên nào'),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: () =>
-                  context.push('/groups/${group.id}/members/add'),
-              icon: const Icon(Icons.person_add),
-              label: const Text('Thêm thành viên'),
-            ),
-          ],
-        ),
-      );
-    }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final membersAsync = ref.watch(memberListProvider(group.id));
 
-    return ListView.builder(
-      itemCount: group.members.length + 1,
-      itemBuilder: (ctx, i) {
-        if (i == group.members.length) {
-          return ListTile(
-            leading: const Icon(Icons.person_add_outlined),
-            title: const Text('Thêm thành viên'),
-            onTap: () =>
-                context.push('/groups/${group.id}/members/add'),
+    return membersAsync.when(
+      data: (members) {
+        if (members.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Chưa có thành viên nào'),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () =>
+                      context.push('/groups/${group.id}/members/add'),
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Thêm thành viên'),
+                ),
+              ],
+            ),
           );
         }
-        final member = group.members[i];
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: Color(member.avatarColorValue),
-            child: Text(
-              member.name.substring(0, 1).toUpperCase(),
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-          title: Text(member.name),
-          trailing: member.isMe
-              ? const Chip(label: Text('Tôi'))
-              : null,
+
+        return ListView.builder(
+          itemCount: members.length + 1,
+          itemBuilder: (ctx, i) {
+            if (i == members.length) {
+              return ListTile(
+                leading: const Icon(Icons.person_add_outlined),
+                title: const Text('Thêm thành viên'),
+                onTap: () =>
+                    context.push('/groups/${group.id}/members/add'),
+              );
+            }
+            final member = members[i];
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Color(member.avatarColorValue),
+                child: Text(
+                  member.name.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              title: Text(member.name),
+              trailing: member.isMe
+                  ? const Chip(label: Text('Tôi'))
+                  : null,
+            );
+          },
         );
       },
+      loading: () => const AppLoadingWidget(),
+      error: (e, _) => AppErrorWidget(message: e.toString()),
     );
   }
 }
