@@ -108,133 +108,138 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   @override
   Widget build(BuildContext context) {
     final groupAsync = ref.watch(groupDetailProvider(widget.groupId));
+    final membersAsync = ref.watch(memberListProvider(widget.groupId));
 
-    return groupAsync.when(
-      data: (group) {
-        _initSplitControllers(group.members);
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(isEdit ? 'Sửa chi tiêu' : 'Thêm chi tiêu'),
-          ),
-          body: Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Title
-                TextFormField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Mô tả',
-                    hintText: 'vd. Ăn tối',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Vui lòng nhập mô tả'
-                      : null,
-                ),
-                const SizedBox(height: 12),
+    if (groupAsync.isLoading || membersAsync.isLoading) {
+      return const Scaffold(body: AppLoadingWidget());
+    }
+    if (groupAsync.hasError) {
+      return Scaffold(body: Center(child: Text(groupAsync.error.toString())));
+    }
 
-                // Amount
-                TextFormField(
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Số tiền (${group.currencyCode})',
-                    border: const OutlineInputBorder(),
-                  ),
-                  validator: (v) {
-                    final n = int.tryParse(
-                        v?.replaceAll(',', '').replaceAll('.', '') ?? '');
-                    if (n == null || n <= 0) return 'Nhập số tiền hợp lệ';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
+    final group = groupAsync.requireValue;
+    final members = membersAsync.valueOrNull ?? [];
+    _initSplitControllers(members);
 
-                // Paid by
-                DropdownButtonFormField<String>(
-                  value: _paidByMemberId,
-                  decoration: const InputDecoration(
-                    labelText: 'Người trả',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: group.members
-                      .map((m) => DropdownMenuItem(
-                            value: m.id,
-                            child: Text(m.name),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(() => _paidByMemberId = v),
-                ),
-                const SizedBox(height: 16),
-
-                // Split type selector
-                const Text('Kiểu chia',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                SegmentedButton<SplitType>(
-                  segments: const [
-                    ButtonSegment(
-                        value: SplitType.equal, label: Text('Đều')),
-                    ButtonSegment(
-                        value: SplitType.percentage, label: Text('%')),
-                    ButtonSegment(
-                        value: SplitType.exact, label: Text('Số tiền')),
-                    ButtonSegment(
-                        value: SplitType.shares, label: Text('Tỉ lệ')),
-                  ],
-                  selected: {_splitType},
-                  onSelectionChanged: (s) =>
-                      setState(() => _splitType = s.first),
-                ),
-                const SizedBox(height: 16),
-
-                // Per-member split inputs (shown for non-equal)
-                if (_splitType != SplitType.equal) ...[
-                  const Text('Chi tiết chia:',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  for (final member in group.members)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                              flex: 2, child: Text(member.name)),
-                          Expanded(
-                            flex: 3,
-                            child: TextFormField(
-                              controller: _splitControllers[member.id],
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                hintText: _splitType == SplitType.percentage
-                                    ? '0–100 (%×100)'
-                                    : _splitType == SplitType.exact
-                                        ? 'Cents'
-                                        : 'Số phần',
-                                border: const OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-                const SizedBox(height: 24),
-
-                FilledButton(
-                  onPressed: _save,
-                  child: Text(isEdit ? 'Lưu' : 'Thêm chi tiêu'),
-                ),
-              ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEdit ? 'Sửa chi tiêu' : 'Thêm chi tiêu'),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Title
+            TextFormField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: 'Mô tả',
+                hintText: 'vd. Ăn tối',
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Vui lòng nhập mô tả'
+                  : null,
             ),
-          ),
-        );
-      },
-      loading: () => const Scaffold(body: AppLoadingWidget()),
-      error: (e, _) => Scaffold(body: Center(child: Text(e.toString()))),
+            const SizedBox(height: 12),
+
+            // Amount
+            TextFormField(
+              controller: _amountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Số tiền (${group.currencyCode})',
+                border: const OutlineInputBorder(),
+              ),
+              validator: (v) {
+                final n = int.tryParse(
+                    v?.replaceAll(',', '').replaceAll('.', '') ?? '');
+                if (n == null || n <= 0) return 'Nhập số tiền hợp lệ';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Paid by
+            DropdownButtonFormField<String>(
+              value: _paidByMemberId,
+              decoration: const InputDecoration(
+                labelText: 'Người trả',
+                border: OutlineInputBorder(),
+              ),
+              items: members
+                  .map((m) => DropdownMenuItem(
+                        value: m.id,
+                        child: Text(m.name),
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(() => _paidByMemberId = v),
+            ),
+            const SizedBox(height: 16),
+
+            // Split type selector
+            const Text('Kiểu chia',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            SegmentedButton<SplitType>(
+              segments: const [
+                ButtonSegment(
+                    value: SplitType.equal, label: Text('Đều')),
+                ButtonSegment(
+                    value: SplitType.percentage, label: Text('%')),
+                ButtonSegment(
+                    value: SplitType.exact, label: Text('Số tiền')),
+                ButtonSegment(
+                    value: SplitType.shares, label: Text('Tỉ lệ')),
+              ],
+              selected: {_splitType},
+              onSelectionChanged: (s) =>
+                  setState(() => _splitType = s.first),
+            ),
+            const SizedBox(height: 16),
+
+            // Per-member split inputs (shown for non-equal)
+            if (_splitType != SplitType.equal) ...[
+              const Text('Chi tiết chia:',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              for (final member in members)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                          flex: 2, child: Text(member.name)),
+                      Expanded(
+                        flex: 3,
+                        child: TextFormField(
+                          controller: _splitControllers[member.id],
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: _splitType == SplitType.percentage
+                                ? '0–100 (%×100)'
+                                : _splitType == SplitType.exact
+                                    ? 'Cents'
+                                    : 'Số phần',
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            const SizedBox(height: 24),
+
+            FilledButton(
+              onPressed: _save,
+              child: Text(isEdit ? 'Lưu' : 'Thêm chi tiêu'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

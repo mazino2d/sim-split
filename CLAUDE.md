@@ -46,3 +46,4 @@ flutter run
 3. **Generated files (`*.g.dart`, `*.freezed.dart`) không sửa tay**
 4. **Không commit `android/key.properties`, `*.jks`, `AuthKey_*.p8`**
 5. **Test với Mocktail mock cho domain, in-memory Drift DB cho data layer**
+6. **`group.members` luôn rỗng — dùng `memberListProvider(groupId)` thay thế** (xem [copilot-instructions.md § Known Pitfalls](.github/copilot-instructions.md))

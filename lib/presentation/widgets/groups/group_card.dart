@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../domain/entities/group.dart';
+import '../../providers/group_providers.dart';
 
-class GroupCard extends StatelessWidget {
+class GroupCard extends ConsumerWidget {
   const GroupCard({super.key, required this.group});
 
   final Group group;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final memberCount =
+        ref.watch(memberListProvider(group.id)).valueOrNull?.length ?? 0;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
@@ -23,7 +28,7 @@ class GroupCard extends StatelessWidget {
         title: Text(group.name,
             style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(
-          '${group.members.length} thành viên · ${group.currencyCode}',
+          '$memberCount thành viên · ${group.currencyCode}',
           style: const TextStyle(color: Colors.grey),
         ),
         trailing: const Icon(Icons.chevron_right),

@@ -157,6 +157,28 @@ Generated files (`*.g.dart`, `*.freezed.dart`) are excluded from git — never e
 
 ---
 
+## Known Pitfalls
+
+### `group.members` is always empty — use `memberListProvider` instead
+
+`GroupMapper.toEntity()` maps only the `groups` table row and does **not** join the members table.
+As a result, `group.members` is always `[]` regardless of what is in the database.
+
+**Never** access `group.members` in the presentation layer.
+**Always** use `memberListProvider(groupId)` — a live Drift stream — to read member data:
+
+```dart
+// CORRECT — reactive, always up-to-date
+final members = ref.watch(memberListProvider(groupId)).valueOrNull ?? [];
+
+// WRONG — always empty list
+final members = group.members;
+```
+
+This applies everywhere: member count badges, expense form dropdowns, split input rows, etc.
+
+---
+
 ## CI/CD
 
 | Workflow | Trigger | Result |
