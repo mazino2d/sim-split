@@ -66,6 +66,9 @@ bash scripts/generate.sh
 # Build Android release AAB
 flutter build appbundle --release
 
+# Build Android release APK (for testing)
+flutter build apk --release
+
 # Build iOS release IPA
 flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 ```
