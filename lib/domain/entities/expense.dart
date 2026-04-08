@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'expense_split.dart';
+import 'package:simsplit/domain/entities/expense_split.dart';
 
 part 'expense.freezed.dart';
 
@@ -20,6 +20,7 @@ class Expense with _$Expense {
     required String id,
     required String groupId,
     required String title,
+
     /// Total amount in cents (integer to avoid floating-point errors).
     required int amountCents,
     required String currencyCode,

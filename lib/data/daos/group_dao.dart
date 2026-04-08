@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-import '../database/app_database.dart';
-import '../models/group_table.dart';
+import 'package:simsplit/data/database/app_database.dart';
+import 'package:simsplit/data/models/group_table.dart';
 
 part 'group_dao.g.dart';
 
@@ -9,7 +9,8 @@ class GroupDao extends DatabaseAccessor<AppDatabase> with _$GroupDaoMixin {
   GroupDao(super.db);
 
   Stream<List<Group>> watchAllGroups() =>
-      (select(groups)..orderBy([(g) => OrderingTerm.desc(g.createdAt)])).watch();
+      (select(groups)..orderBy([(g) => OrderingTerm.desc(g.createdAt)]))
+          .watch();
 
   Future<Group?> getGroupById(String id) =>
       (select(groups)..where((g) => g.id.equals(id))).getSingleOrNull();

@@ -1,4 +1,4 @@
-import 'core_failure.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
 
 sealed class GroupFailure extends Failure {
   const GroupFailure() : super();

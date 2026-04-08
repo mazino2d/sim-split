@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/utils/money_formatter.dart';
-import '../../providers/group_providers.dart';
-import '../../providers/settlement_providers.dart';
-import '../../widgets/common/error_widget.dart';
-import '../../widgets/common/loading_widget.dart';
-import '../../widgets/settlements/debt_card.dart';
+import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/core/utils/money_formatter.dart';
+import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/providers/settlement_providers.dart';
+import 'package:simsplit/presentation/widgets/common/error_widget.dart';
+import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
+import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
 
 class DebtOverviewScreen extends ConsumerWidget {
   const DebtOverviewScreen({super.key, required this.groupId});
@@ -16,6 +17,7 @@ class DebtOverviewScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final groupAsync = ref.watch(groupDetailProvider(groupId));
 
     return groupAsync.when(
@@ -24,19 +26,19 @@ class DebtOverviewScreen extends ConsumerWidget {
           debtSummaryProvider(groupId, group.currencyCode),
         );
         return Scaffold(
-          appBar: AppBar(title: const Text('Số dư nhóm')),
+          appBar: AppBar(title: Text(l10n.groupBalancesTitle)),
           body: debtAsync.when(
             data: (summary) {
               if (summary.suggestions.isEmpty) {
-                return const Center(
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_circle_outline,
+                      const Icon(Icons.check_circle_outline,
                           size: 80, color: Colors.green),
-                      SizedBox(height: 16),
-                      Text('Đã thanh toán xong!',
-                          style: TextStyle(fontSize: 20)),
+                      const SizedBox(height: 16),
+                      Text(l10n.settledUp,
+                          style: const TextStyle(fontSize: 20)),
                     ],
                   ),
                 );
@@ -51,12 +53,11 @@ class DebtOverviewScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                            child: Text('Số dư từng người',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16)),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                            child: Text(l10n.balances,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16)),
                           ),
                           for (final balance in summary.balances)
                             ListTile(
@@ -88,12 +89,12 @@ class DebtOverviewScreen extends ConsumerWidget {
                   ),
 
                   // Settlement suggestions
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('Gợi ý thanh toán',
-                          style: TextStyle(
+                      child: Text(l10n.suggestedSettlements,
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                   ),
@@ -121,8 +122,8 @@ class DebtOverviewScreen extends ConsumerWidget {
             loading: () => const AppLoadingWidget(),
             error: (e, _) => AppErrorWidget(
               message: e.toString(),
-              onRetry: () => ref.invalidate(
-                  debtSummaryProvider(groupId, group.currencyCode)),
+              onRetry: () => ref
+                  .invalidate(debtSummaryProvider(groupId, group.currencyCode)),
             ),
           ),
         );

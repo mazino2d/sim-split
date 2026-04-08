@@ -1,41 +1,41 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../data/database/app_database.dart';
-import '../../data/daos/expense_dao.dart';
-import '../../data/daos/expense_split_dao.dart';
-import '../../data/daos/group_dao.dart';
-import '../../data/daos/member_dao.dart';
-import '../../data/daos/settlement_dao.dart';
-import '../../data/mappers/expense_mapper.dart';
-import '../../data/mappers/group_mapper.dart';
-import '../../data/mappers/member_mapper.dart';
-import '../../data/mappers/settlement_mapper.dart';
-import '../../data/repositories/drift_expense_repository.dart';
-import '../../data/repositories/drift_group_repository.dart';
-import '../../data/repositories/drift_member_repository.dart';
-import '../../data/repositories/drift_settlement_repository.dart';
-import '../../domain/repositories/expense_repository.dart';
-import '../../domain/repositories/group_repository.dart';
-import '../../domain/repositories/member_repository.dart';
-import '../../domain/repositories/settlement_repository.dart';
-import '../../domain/use_cases/expenses/add_expense.dart';
-import '../../domain/use_cases/expenses/calculate_splits.dart';
-import '../../domain/use_cases/expenses/delete_expense.dart';
-import '../../domain/use_cases/expenses/edit_expense.dart';
-import '../../domain/use_cases/expenses/list_expenses.dart';
-import '../../domain/use_cases/groups/create_group.dart';
-import '../../domain/use_cases/groups/delete_group.dart';
-import '../../domain/use_cases/groups/get_group.dart';
-import '../../domain/use_cases/groups/list_groups.dart';
-import '../../domain/use_cases/groups/update_group.dart';
-import '../../domain/use_cases/members/add_member.dart';
-import '../../domain/use_cases/members/list_members.dart';
-import '../../domain/use_cases/members/remove_member.dart';
-import '../../domain/use_cases/members/update_member.dart';
-import '../../domain/use_cases/settlements/calculate_debts.dart';
-import '../../domain/use_cases/settlements/list_settlements.dart';
-import '../../domain/use_cases/settlements/settle_debt.dart';
+import 'package:simsplit/data/database/app_database.dart';
+import 'package:simsplit/data/daos/expense_dao.dart';
+import 'package:simsplit/data/daos/expense_split_dao.dart';
+import 'package:simsplit/data/daos/group_dao.dart';
+import 'package:simsplit/data/daos/member_dao.dart';
+import 'package:simsplit/data/daos/settlement_dao.dart';
+import 'package:simsplit/data/mappers/expense_mapper.dart';
+import 'package:simsplit/data/mappers/group_mapper.dart';
+import 'package:simsplit/data/mappers/member_mapper.dart';
+import 'package:simsplit/data/mappers/settlement_mapper.dart';
+import 'package:simsplit/data/repositories/drift_expense_repository.dart';
+import 'package:simsplit/data/repositories/drift_group_repository.dart';
+import 'package:simsplit/data/repositories/drift_member_repository.dart';
+import 'package:simsplit/data/repositories/drift_settlement_repository.dart';
+import 'package:simsplit/domain/repositories/expense_repository.dart';
+import 'package:simsplit/domain/repositories/group_repository.dart';
+import 'package:simsplit/domain/repositories/member_repository.dart';
+import 'package:simsplit/domain/repositories/settlement_repository.dart';
+import 'package:simsplit/domain/use_cases/expenses/add_expense.dart';
+import 'package:simsplit/domain/use_cases/expenses/calculate_splits.dart';
+import 'package:simsplit/domain/use_cases/expenses/delete_expense.dart';
+import 'package:simsplit/domain/use_cases/expenses/edit_expense.dart';
+import 'package:simsplit/domain/use_cases/expenses/list_expenses.dart';
+import 'package:simsplit/domain/use_cases/groups/create_group.dart';
+import 'package:simsplit/domain/use_cases/groups/delete_group.dart';
+import 'package:simsplit/domain/use_cases/groups/get_group.dart';
+import 'package:simsplit/domain/use_cases/groups/list_groups.dart';
+import 'package:simsplit/domain/use_cases/groups/update_group.dart';
+import 'package:simsplit/domain/use_cases/members/add_member.dart';
+import 'package:simsplit/domain/use_cases/members/list_members.dart';
+import 'package:simsplit/domain/use_cases/members/remove_member.dart';
+import 'package:simsplit/domain/use_cases/members/update_member.dart';
+import 'package:simsplit/domain/use_cases/settlements/calculate_debts.dart';
+import 'package:simsplit/domain/use_cases/settlements/list_settlements.dart';
+import 'package:simsplit/domain/use_cases/settlements/settle_debt.dart';
 
 part 'injection.g.dart';
 
@@ -124,7 +124,6 @@ AddMember addMember(Ref ref) =>
 RemoveMember removeMember(Ref ref) => RemoveMember(
       memberRepository: ref.watch(memberRepositoryProvider),
       expenseRepository: ref.watch(expenseRepositoryProvider),
-      settlementRepository: ref.watch(settlementRepositoryProvider),
     );
 
 @riverpod
@@ -167,5 +166,5 @@ SettleDebt settleDebt(Ref ref) =>
     SettleDebt(settlementRepository: ref.watch(settlementRepositoryProvider));
 
 @riverpod
-ListSettlements listSettlements(Ref ref) =>
-    ListSettlements(settlementRepository: ref.watch(settlementRepositoryProvider));
+ListSettlements listSettlements(Ref ref) => ListSettlements(
+    settlementRepository: ref.watch(settlementRepositoryProvider));

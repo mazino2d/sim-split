@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../domain/entities/expense.dart';
-import '../../domain/use_cases/expenses/list_expenses.dart';
-import '../../core/di/injection.dart';
+import 'package:simsplit/domain/entities/expense.dart';
+import 'package:simsplit/domain/use_cases/expenses/list_expenses.dart';
+import 'package:simsplit/core/di/injection.dart';
 
 part 'expense_providers.g.dart';
 

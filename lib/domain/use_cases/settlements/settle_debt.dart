@@ -1,9 +1,9 @@
 import 'package:fpdart/fpdart.dart';
-import '../../entities/settlement.dart';
-import '../../failures/core_failure.dart';
-import '../../repositories/settlement_repository.dart';
-import '../../value_objects/unique_id.dart';
-import '../use_case.dart';
+import 'package:simsplit/domain/entities/settlement.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/repositories/settlement_repository.dart';
+import 'package:simsplit/domain/value_objects/unique_id.dart';
+import 'package:simsplit/domain/use_cases/use_case.dart';
 
 class SettleDebtParams {
   const SettleDebtParams({
@@ -13,8 +13,8 @@ class SettleDebtParams {
     required this.amountCents,
     required this.currencyCode,
     this.note,
-    DateTime? settledAt,
-  }) : settledAt = settledAt ?? null;
+    this.settledAt,
+  });
 
   final String groupId;
   final String fromMemberId;

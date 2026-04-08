@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/utils/money_formatter.dart';
-import '../../../domain/entities/expense.dart';
-import '../../../domain/entities/expense_split.dart';
-import '../../../domain/entities/member.dart';
-import '../../../domain/use_cases/expenses/calculate_splits.dart';
-import '../../notifiers/expense_notifier.dart';
-import '../../providers/expense_providers.dart';
-import '../../providers/group_providers.dart';
-import '../../widgets/common/loading_widget.dart';
+import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/core/utils/money_formatter.dart';
+import 'package:simsplit/domain/entities/expense.dart';
+import 'package:simsplit/domain/entities/expense_split.dart';
+import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/domain/use_cases/expenses/calculate_splits.dart';
+import 'package:simsplit/presentation/notifiers/expense_notifier.dart';
+import 'package:simsplit/presentation/providers/expense_providers.dart';
+import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 
 class ExpenseFormScreen extends ConsumerStatefulWidget {
   const ExpenseFormScreen({
@@ -50,8 +51,12 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   void dispose() {
     _titleController.dispose();
     _amountController.dispose();
-    for (final c in _splitControllers.values) c.dispose();
-    for (final f in _splitFocusNodes.values) f.dispose();
+    for (final c in _splitControllers.values) {
+      c.dispose();
+    }
+    for (final f in _splitFocusNodes.values) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -91,8 +96,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         });
       }
       // Redistribute remaining to other members
-      if (_splitType == SplitType.percentage ||
-          _splitType == SplitType.exact) {
+      if (_splitType == SplitType.percentage || _splitType == SplitType.exact) {
         _redistributeAfterBlur(memberId);
       }
     }
@@ -166,15 +170,12 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     _isRedistributing = true;
 
     try {
-      final others =
-          _members.where((m) => m.id != changedMemberId).toList();
+      final others = _members.where((m) => m.id != changedMemberId).toList();
       final M = others.length;
 
       if (_splitType == SplitType.percentage) {
-        final changedText =
-            _splitControllers[changedMemberId]?.text ?? '0.00';
-        final changedVal =
-            ((double.tryParse(changedText) ?? 0) * 100).round();
+        final changedText = _splitControllers[changedMemberId]?.text ?? '0.00';
+        final changedVal = ((double.tryParse(changedText) ?? 0) * 100).round();
         final remaining = 10000 - changedVal;
         final base = remaining ~/ M;
         setState(() {
@@ -187,9 +188,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         });
       } else if (_splitType == SplitType.exact) {
         final changedText = _splitControllers[changedMemberId]?.text ?? '0';
-        final changedVal = int.tryParse(
-                changedText.replaceAll(',', '').replaceAll('.', '')) ??
-            0;
+        final changedVal =
+            int.tryParse(changedText.replaceAll(',', '').replaceAll('.', '')) ??
+                0;
         final displayAmt = _parseDisplayAmount();
         final remaining = displayAmt - changedVal;
         final base = remaining ~/ M;
@@ -207,8 +208,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   }
 
   int _parseDisplayAmount() {
-    final text =
-        _amountController.text.replaceAll(',', '').replaceAll('.', '');
+    final text = _amountController.text.replaceAll(',', '').replaceAll('.', '');
     return int.tryParse(text) ?? 0;
   }
 
@@ -224,8 +224,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           val = ((double.tryParse(text) ?? 0) * 100).round();
         case SplitType.exact:
           // User enters display amount (VND) → cents (* 100)
-          val = (int.tryParse(
-                      text.replaceAll(',', '').replaceAll('.', '')) ??
+          val = (int.tryParse(text.replaceAll(',', '').replaceAll('.', '')) ??
                   0) *
               100;
         case SplitType.shares:
@@ -237,12 +236,44 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     }).toList();
   }
 
+  // ── Delete ────────────────────────────────────────────────────────────────
+
+  Future<void> _confirmDelete() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: Text(l10n.deleteExpenseConfirmTitle),
+        content: Text(l10n.deleteConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dCtx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final success = await ref
+        .read(expenseNotifierProvider.notifier)
+        .deleteExpense(widget.editExpenseId!);
+    if (!success) return;
+    if (!mounted) return;
+    context.go('/groups/${widget.groupId}');
+  }
+
   // ── Save ──────────────────────────────────────────────────────────────────
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_paidByMemberId == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
     final amountCents = _parseDisplayAmount() * 100;
     final notifier = ref.read(expenseNotifierProvider.notifier);
     final group = await ref.read(groupDetailProvider(widget.groupId).future);
@@ -276,7 +307,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     } else {
       final error = ref.read(expenseNotifierProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error?.toString() ?? 'Lỗi không xác định')),
+        SnackBar(content: Text(error?.toString() ?? l10n.errorUnexpected)),
       );
     }
   }
@@ -285,6 +316,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final groupAsync = ref.watch(groupDetailProvider(widget.groupId));
     final membersAsync = ref.watch(memberListProvider(widget.groupId));
     final expensesAsync =
@@ -294,8 +326,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       return const Scaffold(body: AppLoadingWidget());
     }
     if (groupAsync.hasError) {
-      return Scaffold(
-          body: Center(child: Text(groupAsync.error.toString())));
+      return Scaffold(body: Center(child: Text(groupAsync.error.toString())));
     }
 
     final group = groupAsync.requireValue;
@@ -305,9 +336,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     // Pre-populate when editing
     if (isEdit && expensesAsync != null) {
       final expenses = expensesAsync.valueOrNull ?? [];
-      final existing = expenses
-          .where((e) => e.id == widget.editExpenseId)
-          .firstOrNull;
+      final existing =
+          expenses.where((e) => e.id == widget.editExpenseId).firstOrNull;
       if (existing != null && !_loadedExistingExpense) {
         WidgetsBinding.instance.addPostFrameCallback(
             (_) => setState(() => _loadExistingExpense(existing)));
@@ -316,7 +346,15 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEdit ? 'Sửa chi tiêu' : 'Thêm chi tiêu'),
+        title: Text(isEdit ? l10n.editExpense : l10n.addExpense),
+        actions: [
+          if (isEdit)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: l10n.deleteExpense,
+              onPressed: _confirmDelete,
+            ),
+        ],
       ),
       body: Form(
         key: _formKey,
@@ -326,13 +364,13 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             // ── Title ──────────────────────────────────────────────────────
             TextFormField(
               controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Mô tả',
-                hintText: 'vd. Ăn tối',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.expenseTitle,
+                hintText: l10n.expenseTitleHint,
+                border: const OutlineInputBorder(),
               ),
               validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Vui lòng nhập mô tả'
+                  ? l10n.expenseTitleRequired
                   : null,
             ),
             const SizedBox(height: 12),
@@ -342,13 +380,13 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               controller: _amountController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Số tiền (${group.currencyCode})',
+                labelText: '${l10n.amount} (${group.currencyCode})',
                 border: const OutlineInputBorder(),
               ),
               validator: (v) {
                 final n = int.tryParse(
                     v?.replaceAll(',', '').replaceAll('.', '') ?? '');
-                if (n == null || n <= 0) return 'Nhập số tiền hợp lệ';
+                if (n == null || n <= 0) return l10n.invalidAmount;
                 return null;
               },
             ),
@@ -356,10 +394,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
             // ── Paid by ────────────────────────────────────────────────────
             DropdownButtonFormField<String>(
-              value: _paidByMemberId,
-              decoration: const InputDecoration(
-                labelText: 'Người trả',
-                border: OutlineInputBorder(),
+              initialValue: _paidByMemberId,
+              decoration: InputDecoration(
+                labelText: l10n.paidBy,
+                border: const OutlineInputBorder(),
               ),
               items: members
                   .map((m) => DropdownMenuItem(
@@ -372,17 +410,20 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             const SizedBox(height: 16),
 
             // ── Split type ─────────────────────────────────────────────────
-            const Text('Kiểu chia',
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            Text(l10n.splitType,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             SegmentedButton<SplitType>(
-              segments: const [
-                ButtonSegment(value: SplitType.equal, label: Text('Đều')),
-                ButtonSegment(value: SplitType.percentage, label: Text('%')),
+              segments: [
                 ButtonSegment(
-                    value: SplitType.exact, label: Text('Số tiền')),
+                    value: SplitType.equal, label: Text(l10n.splitEqual)),
                 ButtonSegment(
-                    value: SplitType.shares, label: Text('Tỉ lệ')),
+                    value: SplitType.percentage,
+                    label: Text(l10n.splitPercentage)),
+                ButtonSegment(
+                    value: SplitType.exact, label: Text(l10n.splitExact)),
+                ButtonSegment(
+                    value: SplitType.shares, label: Text(l10n.splitShares)),
               ],
               selected: {_splitType},
               onSelectionChanged: (s) {
@@ -394,7 +435,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
             // ── Per-member inputs ──────────────────────────────────────────
             if (_splitType != SplitType.equal) ...[
-              _buildSplitHeader(group.currencyCode),
+              _buildSplitHeader(l10n, group.currencyCode),
               const SizedBox(height: 8),
               for (final member in members)
                 _buildMemberSplitRow(member, group.currencyCode),
@@ -405,7 +446,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
             FilledButton(
               onPressed: _save,
-              child: Text(isEdit ? 'Lưu' : 'Thêm chi tiêu'),
+              child: Text(isEdit ? l10n.save : l10n.addExpense),
             ),
           ],
         ),
@@ -413,12 +454,12 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
   }
 
-  Widget _buildSplitHeader(String currencyCode) {
+  Widget _buildSplitHeader(AppLocalizations l10n, String currencyCode) {
     return Text(
       switch (_splitType) {
-        SplitType.percentage => 'Phần trăm (tổng = 100%)',
-        SplitType.exact => 'Số tiền mỗi người ($currencyCode)',
-        SplitType.shares => 'Tỉ lệ phần',
+        SplitType.percentage => l10n.percentageMustSum100,
+        SplitType.exact => '${l10n.amount} ($currencyCode)',
+        SplitType.shares => l10n.splitShares,
         SplitType.equal => '',
       },
       style: const TextStyle(fontWeight: FontWeight.w600),
@@ -452,8 +493,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             child: TextFormField(
               controller: ctrl,
               focusNode: focusNode,
-              keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 hintText: switch (_splitType) {
                   SplitType.percentage => '0.00',
@@ -464,7 +505,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 suffixText: switch (_splitType) {
                   SplitType.percentage => '%',
                   SplitType.exact => currencyCode,
-                  SplitType.shares => 'phần',
+                  SplitType.shares => '×',
                   SplitType.equal => '',
                 },
                 border: const OutlineInputBorder(),
@@ -489,8 +530,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Icon(isValid ? Icons.check_circle : Icons.info_outline,
-              size: 16,
-              color: isValid ? Colors.green : Colors.orange),
+              size: 16, color: isValid ? Colors.green : Colors.orange),
           const SizedBox(width: 4),
           Text(
             'Tổng: ${total.toStringAsFixed(2)}%',
@@ -514,8 +554,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Icon(isValid ? Icons.check_circle : Icons.info_outline,
-              size: 16,
-              color: isValid ? Colors.green : Colors.orange),
+              size: 16, color: isValid ? Colors.green : Colors.orange),
           const SizedBox(width: 4),
           Text(
             'Tổng: ${formatMoney(totalEntered * 100, currencyCode)} / ${formatMoney(target * 100, currencyCode)}',

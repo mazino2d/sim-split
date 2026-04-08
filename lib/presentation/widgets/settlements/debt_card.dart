@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/money_formatter.dart';
-import '../../../domain/entities/debt.dart';
+import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/core/utils/money_formatter.dart';
+import 'package:simsplit/domain/entities/debt.dart';
 
 class DebtCard extends StatelessWidget {
   const DebtCard({
@@ -17,18 +18,19 @@ class DebtCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
-        title: Text('${debt.from.name} nợ ${debt.to.name}'),
+        title: Text(l10n.owes(debt.from.name, debt.to.name)),
         subtitle: Text(
           formatMoney(debt.amountCents, currencyCode),
-          style: const TextStyle(
-              fontWeight: FontWeight.bold, fontSize: 16),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         trailing: FilledButton(
           onPressed: onSettle,
-          child: const Text('Trả'),
+          child: Text(l10n.settle),
         ),
       ),
     );

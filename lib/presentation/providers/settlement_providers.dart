@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../core/di/injection.dart';
-import '../../domain/entities/debt.dart';
-import '../../domain/entities/settlement.dart';
-import '../../domain/use_cases/settlements/calculate_debts.dart';
-import '../../domain/use_cases/settlements/list_settlements.dart';
+import 'package:simsplit/core/di/injection.dart';
+import 'package:simsplit/domain/entities/debt.dart';
+import 'package:simsplit/domain/entities/settlement.dart';
+import 'package:simsplit/domain/use_cases/settlements/calculate_debts.dart';
+import 'package:simsplit/domain/use_cases/settlements/list_settlements.dart';
 
 part 'settlement_providers.g.dart';
 

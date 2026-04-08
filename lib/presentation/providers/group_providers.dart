@@ -1,13 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fpdart/fpdart.dart' hide Group;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../domain/entities/group.dart';
-import '../../domain/entities/member.dart';
-import '../../domain/use_cases/groups/get_group.dart';
-import '../../domain/use_cases/members/list_members.dart';
-import '../../domain/use_cases/use_case.dart';
-import '../../core/di/injection.dart';
+import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/domain/use_cases/groups/get_group.dart';
+import 'package:simsplit/domain/use_cases/members/list_members.dart';
+import 'package:simsplit/domain/use_cases/use_case.dart';
+import 'package:simsplit/core/di/injection.dart';
 
 part 'group_providers.g.dart';
 

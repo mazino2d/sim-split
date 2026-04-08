@@ -1,7 +1,7 @@
 import 'package:fpdart/fpdart.dart';
-import '../../failures/core_failure.dart';
-import '../../repositories/group_repository.dart';
-import '../use_case.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/repositories/group_repository.dart';
+import 'package:simsplit/domain/use_cases/use_case.dart';
 
 class DeleteGroupParams {
   const DeleteGroupParams({required this.id});

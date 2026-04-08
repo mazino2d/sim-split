@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../domain/entities/member.dart';
-import '../screens/expenses/expense_form_screen.dart';
-import '../screens/groups/group_detail_screen.dart';
-import '../screens/groups/group_form_screen.dart';
-import '../screens/groups/group_list_screen.dart';
-import '../screens/members/member_form_screen.dart';
-import '../screens/settlements/debt_overview_screen.dart';
-import '../screens/settlements/settlement_form_screen.dart';
+import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/presentation/screens/expenses/expense_form_screen.dart';
+import 'package:simsplit/presentation/screens/groups/group_detail_screen.dart';
+import 'package:simsplit/presentation/screens/groups/group_form_screen.dart';
+import 'package:simsplit/presentation/screens/groups/group_list_screen.dart';
+import 'package:simsplit/presentation/screens/members/member_form_screen.dart';
+import 'package:simsplit/presentation/screens/settings/settings_screen.dart';
+import 'package:simsplit/presentation/screens/settlements/debt_overview_screen.dart';
+import 'package:simsplit/presentation/screens/settlements/settlement_form_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -16,6 +17,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/',
       builder: (context, state) => const GroupListScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
     ),
     GoRoute(
       path: '/groups/form',

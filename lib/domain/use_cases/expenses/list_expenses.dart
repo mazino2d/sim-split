@@ -1,8 +1,8 @@
 import 'package:fpdart/fpdart.dart';
-import '../../entities/expense.dart';
-import '../../failures/core_failure.dart';
-import '../../repositories/expense_repository.dart';
-import '../use_case.dart';
+import 'package:simsplit/domain/entities/expense.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/repositories/expense_repository.dart';
+import 'package:simsplit/domain/use_cases/use_case.dart';
 
 class ListExpensesParams {
   const ListExpensesParams({required this.groupId});

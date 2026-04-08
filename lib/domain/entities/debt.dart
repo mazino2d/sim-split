@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'member.dart';
+import 'package:simsplit/domain/entities/member.dart';
 
 part 'debt.freezed.dart';
 
@@ -19,6 +19,7 @@ class Debt with _$Debt {
 class MemberBalance with _$MemberBalance {
   const factory MemberBalance({
     required Member member,
+
     /// Positive: others owe this member. Negative: this member owes others.
     required int netAmountCents,
   }) = _MemberBalance;
@@ -31,6 +32,7 @@ class DebtSummary with _$DebtSummary {
     required String groupId,
     required String currencyCode,
     required List<MemberBalance> balances,
+
     /// Minimized list of transactions to settle all debts.
     required List<Debt> suggestions,
   }) = _DebtSummary;

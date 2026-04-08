@@ -1,8 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../core/di/injection.dart';
-import '../../domain/use_cases/members/remove_member.dart';
-import '../../domain/use_cases/members/update_member.dart';
+import 'package:simsplit/core/di/injection.dart';
+import 'package:simsplit/domain/use_cases/members/remove_member.dart';
+import 'package:simsplit/domain/use_cases/members/update_member.dart';
 
 part 'member_notifier.g.dart';
 

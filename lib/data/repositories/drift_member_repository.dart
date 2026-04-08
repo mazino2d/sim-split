@@ -1,10 +1,10 @@
 import 'package:fpdart/fpdart.dart';
-import '../../domain/entities/member.dart';
-import '../../domain/failures/core_failure.dart';
-import '../../domain/failures/settlement_failure.dart';
-import '../../domain/repositories/member_repository.dart';
-import '../daos/member_dao.dart';
-import '../mappers/member_mapper.dart';
+import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/failures/settlement_failure.dart';
+import 'package:simsplit/domain/repositories/member_repository.dart';
+import 'package:simsplit/data/daos/member_dao.dart';
+import 'package:simsplit/data/mappers/member_mapper.dart';
 
 class DriftMemberRepository implements MemberRepository {
   const DriftMemberRepository({

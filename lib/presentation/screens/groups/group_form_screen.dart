@@ -2,15 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../notifiers/group_notifier.dart';
-import '../../providers/group_providers.dart';
-import '../../widgets/common/loading_widget.dart';
+import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/presentation/notifiers/group_notifier.dart';
+import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 
 const _currencies = ['VND', 'USD', 'EUR', 'SGD', 'THB'];
 
 const _emojiOptions = [
-  '🍜', '✈️', '🏖️', '🎉', '🏠', '💼', '🎮', '🎵',
-  '🚗', '🛒', '💊', '🏋️', '📚', '🍺', '💰', '🌏',
+  '🍜',
+  '✈️',
+  '🏖️',
+  '🎉',
+  '🏠',
+  '💼',
+  '🎮',
+  '🎵',
+  '🚗',
+  '🛒',
+  '💊',
+  '🏋️',
+  '📚',
+  '🍺',
+  '💰',
+  '🌏',
 ];
 
 class GroupFormScreen extends ConsumerStatefulWidget {
@@ -40,8 +55,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
   }
 
   Future<void> _loadExistingGroup() async {
-    final group = await ref
-        .read(groupDetailProvider(widget.editGroupId!).future);
+    final group =
+        await ref.read(groupDetailProvider(widget.editGroupId!).future);
     if (!mounted) return;
     setState(() {
       _nameController.text = group.name;
@@ -83,14 +98,19 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
 
     if (!mounted) return;
     setState(() => _isLoading = false);
-    if (success) context.pop();
+    if (success) {
+      if (isEdit) ref.invalidate(groupDetailProvider(widget.editGroupId!));
+      context.pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEdit ? 'Sửa nhóm' : 'Tạo nhóm'),
+        title: Text(isEdit ? l10n.editGroup : l10n.createGroup),
       ),
       body: _isLoading
           ? const AppLoadingWidget()
@@ -116,27 +136,26 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                   // Name field
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Tên nhóm',
-                      hintText: 'vd. Du lịch Đà Nẵng',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.groupName,
+                      hintText: l10n.groupNameHint,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Vui lòng nhập tên nhóm'
+                        ? l10n.groupNameRequired
                         : null,
                   ),
                   const SizedBox(height: 16),
 
                   // Currency dropdown
                   DropdownButtonFormField<String>(
-                    value: _currency,
-                    decoration: const InputDecoration(
-                      labelText: 'Đơn vị tiền tệ',
-                      border: OutlineInputBorder(),
+                    initialValue: _currency,
+                    decoration: InputDecoration(
+                      labelText: l10n.groupCurrency,
+                      border: const OutlineInputBorder(),
                     ),
                     items: _currencies
-                        .map((c) =>
-                            DropdownMenuItem(value: c, child: Text(c)))
+                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                         .toList(),
                     onChanged: (v) => setState(() => _currency = v!),
                   ),
@@ -144,7 +163,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
 
                   FilledButton(
                     onPressed: _save,
-                    child: Text(isEdit ? 'Lưu thay đổi' : 'Tạo nhóm'),
+                    child: Text(isEdit ? l10n.saveChanges : l10n.createGroup),
                   ),
                 ],
               ),

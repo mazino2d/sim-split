@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../domain/entities/group.dart';
-import '../../providers/group_providers.dart';
+import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/presentation/providers/group_providers.dart';
 
 class GroupCard extends ConsumerWidget {
   const GroupCard({super.key, required this.group});
@@ -12,6 +13,7 @@ class GroupCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final memberCount =
         ref.watch(memberListProvider(group.id)).valueOrNull?.length ?? 0;
 
@@ -28,7 +30,7 @@ class GroupCard extends ConsumerWidget {
         title: Text(group.name,
             style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(
-          '$memberCount thành viên · ${group.currencyCode}',
+          l10n.memberCountLabel(memberCount, group.currencyCode),
           style: const TextStyle(color: Colors.grey),
         ),
         trailing: const Icon(Icons.chevron_right),

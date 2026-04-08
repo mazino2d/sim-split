@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-import '../../domain/entities/settlement.dart';
-import '../database/app_database.dart' as db;
+import 'package:simsplit/domain/entities/settlement.dart';
+import 'package:simsplit/data/database/app_database.dart' as db;
 
 class SettlementMapper {
   const SettlementMapper();
@@ -17,7 +17,8 @@ class SettlementMapper {
         createdAt: row.createdAt,
       );
 
-  db.SettlementsCompanion toCompanion(Settlement entity) => db.SettlementsCompanion(
+  db.SettlementsCompanion toCompanion(Settlement entity) =>
+      db.SettlementsCompanion(
         id: Value(entity.id),
         groupId: Value(entity.groupId),
         fromMemberId: Value(entity.fromMemberId),

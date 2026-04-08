@@ -1,4 +1,4 @@
-import 'core_failure.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
 
 sealed class ExpenseFailure extends Failure {
   const ExpenseFailure() : super();
@@ -6,7 +6,8 @@ sealed class ExpenseFailure extends Failure {
   const factory ExpenseFailure.notFound() = ExpenseNotFound;
   const factory ExpenseFailure.memberNotFound() = ExpenseMemberNotFound;
   const factory ExpenseFailure.invalidSplitType() = InvalidSplitType;
-  const factory ExpenseFailure.percentageDoesNotSumTo100() = PercentageDoesNotSum;
+  const factory ExpenseFailure.percentageDoesNotSumTo100() =
+      PercentageDoesNotSum;
   const factory ExpenseFailure.exactDoesNotSumToTotal() = ExactDoesNotSum;
   const factory ExpenseFailure.invalidShares() = InvalidShares;
   const factory ExpenseFailure.noParticipants() = NoParticipants;

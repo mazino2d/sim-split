@@ -1,10 +1,11 @@
-import 'core_failure.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
 
 sealed class SettlementFailure extends Failure {
   const SettlementFailure() : super();
 
   const factory SettlementFailure.notFound() = SettlementNotFound;
-  const factory SettlementFailure.memberHasUnsettledDebts() = MemberHasUnsettledDebts;
+  const factory SettlementFailure.memberHasUnsettledDebts() =
+      MemberHasUnsettledDebts;
   const factory SettlementFailure.amountExceedsDebt() = AmountExceedsDebt;
 }
 

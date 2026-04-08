@@ -2,14 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/di/injection.dart';
-import '../../../domain/entities/member.dart';
-import '../../../domain/use_cases/members/add_member.dart';
-import '../../notifiers/member_notifier.dart';
+import 'package:simsplit/core/di/injection.dart';
+import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/domain/use_cases/members/add_member.dart';
+import 'package:simsplit/presentation/notifiers/member_notifier.dart';
 
 const _avatarColors = [
-  0xFF1976D2, 0xFF03DAC6, 0xFFFF6B6B, 0xFF4CAF50,
-  0xFF43A047, 0xFFFF9800, 0xFF9C27B0, 0xFF795548,
+  0xFF1976D2,
+  0xFF03DAC6,
+  0xFFFF6B6B,
+  0xFF4CAF50,
+  0xFF43A047,
+  0xFFFF9800,
+  0xFF9C27B0,
+  0xFF795548,
 ];
 
 class MemberFormScreen extends ConsumerStatefulWidget {
@@ -20,6 +27,7 @@ class MemberFormScreen extends ConsumerStatefulWidget {
   });
 
   final String groupId;
+
   /// When set, the form is in edit mode and pre-fills from this member.
   final Member? editMember;
 
@@ -92,9 +100,11 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEdit ? 'Sửa thành viên' : 'Thêm thành viên'),
+        title: Text(_isEdit ? l10n.editMember : l10n.addMember),
       ),
       body: Form(
         key: _formKey,
@@ -126,18 +136,19 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
 
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Tên thành viên',
-                hintText: 'vd. Khôi',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.memberName,
+                hintText: l10n.memberNameHint,
+                border: const OutlineInputBorder(),
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Vui lòng nhập tên' : null,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? l10n.memberNameRequired
+                  : null,
             ),
             const SizedBox(height: 12),
 
             SwitchListTile(
-              title: const Text('Đây là tôi'),
+              title: Text(l10n.markAsMe),
               value: _isMe,
               onChanged: (v) => setState(() => _isMe = v),
             ),
@@ -145,7 +156,7 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
 
             FilledButton(
               onPressed: _isLoading ? null : _save,
-              child: Text(_isEdit ? 'Lưu' : 'Thêm'),
+              child: Text(_isEdit ? l10n.save : l10n.addMember),
             ),
           ],
         ),

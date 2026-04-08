@@ -1,8 +1,8 @@
 import 'package:fpdart/fpdart.dart' hide Group;
-import '../../entities/group.dart';
-import '../../failures/core_failure.dart';
-import '../../repositories/group_repository.dart';
-import '../use_case.dart';
+import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/repositories/group_repository.dart';
+import 'package:simsplit/domain/use_cases/use_case.dart';
 
 class GetGroupParams {
   const GetGroupParams({required this.id});

@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../core/di/injection.dart';
-import '../../domain/use_cases/settlements/settle_debt.dart';
+import 'package:simsplit/core/di/injection.dart';
+import 'package:simsplit/domain/use_cases/settlements/settle_debt.dart';
 
 part 'settlement_notifier.g.dart';
 

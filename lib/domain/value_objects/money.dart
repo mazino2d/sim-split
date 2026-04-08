@@ -25,12 +25,14 @@ class Money {
 
   Money operator +(Money other) {
     assert(currency == other.currency, 'Cannot add different currencies');
-    return Money(amountCents: amountCents + other.amountCents, currency: currency);
+    return Money(
+        amountCents: amountCents + other.amountCents, currency: currency);
   }
 
   Money operator -(Money other) {
     assert(currency == other.currency, 'Cannot subtract different currencies');
-    return Money(amountCents: amountCents - other.amountCents, currency: currency);
+    return Money(
+        amountCents: amountCents - other.amountCents, currency: currency);
   }
 
   Money abs() => Money(amountCents: amountCents.abs(), currency: currency);

@@ -1,9 +1,9 @@
 import 'package:fpdart/fpdart.dart';
-import '../../domain/entities/settlement.dart';
-import '../../domain/failures/core_failure.dart';
-import '../../domain/repositories/settlement_repository.dart';
-import '../daos/settlement_dao.dart';
-import '../mappers/settlement_mapper.dart';
+import 'package:simsplit/domain/entities/settlement.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/repositories/settlement_repository.dart';
+import 'package:simsplit/data/daos/settlement_dao.dart';
+import 'package:simsplit/data/mappers/settlement_mapper.dart';
 
 class DriftSettlementRepository implements SettlementRepository {
   const DriftSettlementRepository({

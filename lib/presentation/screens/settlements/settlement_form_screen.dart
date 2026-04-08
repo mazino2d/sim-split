@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../notifiers/settlement_notifier.dart';
-import '../../providers/group_providers.dart';
+import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/presentation/notifiers/settlement_notifier.dart';
+import 'package:simsplit/presentation/providers/group_providers.dart';
 
 class SettlementFormScreen extends ConsumerStatefulWidget {
   const SettlementFormScreen({
@@ -33,8 +34,7 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
   void initState() {
     super.initState();
     if (widget.suggestedAmountCents != null) {
-      _amountController.text =
-          (widget.suggestedAmountCents! ~/ 100).toString();
+      _amountController.text = (widget.suggestedAmountCents! ~/ 100).toString();
     }
   }
 
@@ -46,13 +46,11 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
   }
 
   Future<void> _save() async {
-    final amountCents =
-        (int.tryParse(_amountController.text) ?? 0) * 100;
+    final amountCents = (int.tryParse(_amountController.text) ?? 0) * 100;
     if (amountCents <= 0) return;
 
     setState(() => _isLoading = true);
-    final group =
-        await ref.read(groupDetailProvider(widget.groupId).future);
+    final group = await ref.read(groupDetailProvider(widget.groupId).future);
 
     final notifier = ref.read(settlementNotifierProvider.notifier);
     final success = await notifier.settleDebt(
@@ -76,18 +74,18 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final groupAsync = ref.watch(groupDetailProvider(widget.groupId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ghi nhận thanh toán')),
+      appBar: AppBar(title: Text(l10n.recordSettlement)),
       body: groupAsync.when(
         data: (group) {
           final fromMember = group.members
               .where((m) => m.id == widget.fromMemberId)
               .firstOrNull;
-          final toMember = group.members
-              .where((m) => m.id == widget.toMemberId)
-              .firstOrNull;
+          final toMember =
+              group.members.where((m) => m.id == widget.toMemberId).firstOrNull;
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -97,36 +95,33 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      '${fromMember.name} trả ${toMember.name}',
+                      l10n.owes(fromMember.name, toMember.name),
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
               const SizedBox(height: 16),
-
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: 'Số tiền (${group.currencyCode})',
+                  labelText: '${l10n.amount} (${group.currencyCode})',
                   border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
-
               TextField(
                 controller: _noteController,
-                decoration: const InputDecoration(
-                  labelText: 'Ghi chú (không bắt buộc)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.note,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 24),
-
               FilledButton(
                 onPressed: _isLoading ? null : _save,
-                child: const Text('Xác nhận đã trả'),
+                child: Text(l10n.confirmPaid),
               ),
             ],
           );

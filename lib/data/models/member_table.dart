@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import 'group_table.dart';
+import 'package:simsplit/data/models/group_table.dart';
 
 class Members extends Table {
   TextColumn get id => text()();

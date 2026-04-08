@@ -1,10 +1,10 @@
 import 'package:fpdart/fpdart.dart' hide Group;
-import '../../domain/entities/group.dart';
-import '../../domain/failures/core_failure.dart';
-import '../../domain/failures/group_failure.dart';
-import '../../domain/repositories/group_repository.dart';
-import '../daos/group_dao.dart';
-import '../mappers/group_mapper.dart';
+import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/failures/group_failure.dart';
+import 'package:simsplit/domain/repositories/group_repository.dart';
+import 'package:simsplit/data/daos/group_dao.dart';
+import 'package:simsplit/data/mappers/group_mapper.dart';
 
 class DriftGroupRepository implements GroupRepository {
   const DriftGroupRepository({

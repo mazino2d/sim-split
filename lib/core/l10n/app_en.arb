@@ -8,20 +8,54 @@
   "noGroupsHint": "Tap + to create your first group",
   "createGroup": "Create Group",
   "editGroup": "Edit Group",
+  "saveChanges": "Save changes",
   "groupName": "Group name",
   "groupNameHint": "e.g. Vietnam Trip",
+  "groupNameRequired": "Please enter group name",
   "groupCurrency": "Currency",
   "archiveGroup": "Archive group",
   "deleteGroup": "Delete group",
   "groupArchived": "Group archived",
+  "deleteGroupConfirmTitle": "Delete group?",
+  "deleteGroupConfirmMessage": "Group \"{name}\" and all data will be permanently deleted.",
+  "@deleteGroupConfirmMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
 
+  "memberCountLabel": "{count} members · {currency}",
+  "@memberCountLabel": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "currency": { "type": "String" }
+    }
+  },
+  "paidByLabel": "{name} paid",
+  "@paidByLabel": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "settle": "Settle",
   "members": "Members",
+  "noMembers": "No members yet",
   "addMember": "Add member",
+  "editMember": "Edit member",
   "memberName": "Member name",
   "memberNameHint": "e.g. Khoi",
+  "memberNameRequired": "Please enter a name",
   "markAsMe": "Mark as me",
+  "edit": "Edit",
   "removeMember": "Remove",
   "cannotRemoveMemberWithDebts": "Cannot remove a member with unsettled debts",
+  "deleteMemberConfirmTitle": "Remove member?",
+  "deleteMemberConfirmMessage": "\"{name}\" will be removed from the group.",
+  "@deleteMemberConfirmMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
 
   "expenses": "Expenses",
   "noExpenses": "No expenses yet",
@@ -29,7 +63,9 @@
   "editExpense": "Edit expense",
   "expenseTitle": "Description",
   "expenseTitleHint": "e.g. Dinner at Nhà Hàng Ngon",
+  "expenseTitleRequired": "Please enter a description",
   "amount": "Amount",
+  "invalidAmount": "Enter a valid amount",
   "paidBy": "Paid by",
   "date": "Date",
   "category": "Category",
@@ -43,8 +79,22 @@
   "exactMustSumTotal": "Amounts must sum to the total",
   "deleteExpense": "Delete expense",
   "expenseDeleted": "Expense deleted",
+  "deleteExpenseConfirmTitle": "Delete expense?",
+  "deleteExpenseConfirmMessage": "\"{title}\" will be deleted.",
+  "@deleteExpenseConfirmMessage": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "expenseDeletedMessage": "Deleted \"{title}\"",
+  "@expenseDeletedMessage": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
 
   "balances": "Balances",
+  "groupBalancesTitle": "Group balances",
   "settledUp": "All settled up!",
   "suggestedSettlements": "Suggested settlements",
   "owes": "{from} owes {to}",
@@ -56,12 +106,18 @@
   },
 
   "recordSettlement": "Record settlement",
+  "confirmPaid": "Confirm paid",
   "markAsPaid": "Mark as paid",
   "settlementRecorded": "Settlement recorded",
   "settlementHistory": "Settlement history",
   "noSettlements": "No settlements yet",
 
   "exportGroup": "Export summary",
+
+  "settings": "Settings",
+  "language": "Language",
+  "vietnamese": "Tiếng Việt",
+  "english": "English",
 
   "cancel": "Cancel",
   "save": "Save",

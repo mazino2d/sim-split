@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../domain/entities/group.dart';
-import '../../../domain/entities/member.dart';
-import '../../notifiers/expense_notifier.dart';
-import '../../notifiers/group_notifier.dart';
-import '../../notifiers/member_notifier.dart';
-import '../../providers/expense_providers.dart';
-import '../../providers/group_providers.dart';
-import '../../widgets/common/error_widget.dart';
-import '../../widgets/common/loading_widget.dart';
-import '../../widgets/expenses/expense_list_tile.dart';
+import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/presentation/notifiers/expense_notifier.dart';
+import 'package:simsplit/presentation/notifiers/group_notifier.dart';
+import 'package:simsplit/presentation/notifiers/member_notifier.dart';
+import 'package:simsplit/presentation/providers/expense_providers.dart';
+import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/widgets/common/error_widget.dart';
+import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
+import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
 
 class GroupDetailScreen extends ConsumerWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -41,20 +42,21 @@ class _GroupDetailBody extends ConsumerWidget {
   final Group group;
 
   Future<void> _confirmDeleteGroup(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Xoá nhóm?'),
-        content: Text('Nhóm "${group.name}" và toàn bộ dữ liệu sẽ bị xoá vĩnh viễn.'),
+        title: Text(l10n.deleteGroupConfirmTitle),
+        content: Text(l10n.deleteGroupConfirmMessage(group.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Huỷ'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xoá'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -67,6 +69,8 @@ class _GroupDetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -80,18 +84,18 @@ class _GroupDetailBody extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.account_balance_wallet_outlined),
               onPressed: () => context.push('/groups/${group.id}/debts'),
-              tooltip: 'Xem số dư',
+              tooltip: l10n.balances,
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'Xoá nhóm',
+              tooltip: l10n.deleteGroup,
               onPressed: () => _confirmDeleteGroup(context, ref),
             ),
           ],
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Chi tiêu'),
-              Tab(text: 'Thành viên'),
+              Tab(text: l10n.expenses),
+              Tab(text: l10n.members),
             ],
           ),
         ),
@@ -117,6 +121,7 @@ class _ExpensesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final expensesAsync = ref.watch(expenseListProvider(group.id));
     final membersAsync = ref.watch(memberListProvider(group.id));
     final members = membersAsync.valueOrNull ?? [];
@@ -124,7 +129,7 @@ class _ExpensesTab extends ConsumerWidget {
     return expensesAsync.when(
       data: (expenses) {
         if (expenses.isEmpty) {
-          return const Center(child: Text('Chưa có chi tiêu nào'));
+          return Center(child: Text(l10n.noExpenses));
         }
         return ListView.builder(
           itemCount: expenses.length,
@@ -143,18 +148,19 @@ class _ExpensesTab extends ConsumerWidget {
                 return await showDialog<bool>(
                   context: ctx,
                   builder: (dCtx) => AlertDialog(
-                    title: const Text('Xoá chi tiêu?'),
-                    content: Text('"${expense.title}" sẽ bị xoá.'),
+                    title: Text(l10n.deleteExpenseConfirmTitle),
+                    content:
+                        Text(l10n.deleteExpenseConfirmMessage(expense.title)),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(dCtx, false),
-                        child: const Text('Huỷ'),
+                        child: Text(l10n.cancel),
                       ),
                       FilledButton(
-                        style: FilledButton.styleFrom(
-                            backgroundColor: Colors.red),
+                        style:
+                            FilledButton.styleFrom(backgroundColor: Colors.red),
                         onPressed: () => Navigator.pop(dCtx, true),
-                        child: const Text('Xoá'),
+                        child: Text(l10n.delete),
                       ),
                     ],
                   ),
@@ -166,7 +172,9 @@ class _ExpensesTab extends ConsumerWidget {
                     .deleteExpense(expense.id);
                 if (ctx.mounted) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(content: Text('Đã xoá "${expense.title}"')),
+                    SnackBar(
+                        content:
+                            Text(l10n.expenseDeletedMessage(expense.title))),
                   );
                 }
               },
@@ -197,20 +205,21 @@ class _MembersTab extends ConsumerWidget {
     WidgetRef ref,
     Member member,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Xoá thành viên?'),
-        content: Text('"${member.name}" sẽ bị xoá khỏi nhóm.'),
+        title: Text(l10n.deleteMemberConfirmTitle),
+        content: Text(l10n.deleteMemberConfirmMessage(member.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Huỷ'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Xoá'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -227,7 +236,7 @@ class _MembersTab extends ConsumerWidget {
         SnackBar(
           content: Text(
             error?.toString() ??
-                'Không thể xoá: thành viên còn chi tiêu chưa thanh toán.',
+                AppLocalizations.of(context)!.cannotRemoveMemberWithDebts,
           ),
         ),
       );
@@ -236,6 +245,7 @@ class _MembersTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final membersAsync = ref.watch(memberListProvider(group.id));
 
     return membersAsync.when(
@@ -245,13 +255,13 @@ class _MembersTab extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Chưa có thành viên nào'),
+                Text(l10n.noMembers),
                 const SizedBox(height: 12),
                 FilledButton.icon(
                   onPressed: () =>
                       context.push('/groups/${group.id}/members/add'),
                   icon: const Icon(Icons.person_add),
-                  label: const Text('Thêm thành viên'),
+                  label: Text(l10n.addMember),
                 ),
               ],
             ),
@@ -264,9 +274,8 @@ class _MembersTab extends ConsumerWidget {
             if (i == members.length) {
               return ListTile(
                 leading: const Icon(Icons.person_add_outlined),
-                title: const Text('Thêm thành viên'),
-                onTap: () =>
-                    context.push('/groups/${group.id}/members/add'),
+                title: Text(l10n.addMember),
+                onTap: () => context.push('/groups/${group.id}/members/add'),
               );
             }
             final member = members[i];
@@ -279,13 +288,13 @@ class _MembersTab extends ConsumerWidget {
                 ),
               ),
               title: Text(member.name),
-              subtitle: member.isMe ? const Text('Tôi') : null,
+              subtitle: member.isMe ? Text(l10n.markAsMe) : null,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.edit_outlined),
-                    tooltip: 'Sửa',
+                    tooltip: l10n.edit,
                     onPressed: () => context.push(
                       '/groups/${group.id}/members/${member.id}/edit',
                       extra: member,
@@ -293,9 +302,8 @@ class _MembersTab extends ConsumerWidget {
                   ),
                   IconButton(
                     icon: const Icon(Icons.person_remove_outlined),
-                    tooltip: 'Xoá',
-                    onPressed: () =>
-                        _confirmRemoveMember(context, ref, member),
+                    tooltip: l10n.removeMember,
+                    onPressed: () => _confirmRemoveMember(context, ref, member),
                   ),
                 ],
               ),

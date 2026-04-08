@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-import '../database/app_database.dart';
-import '../models/settlement_table.dart';
+import 'package:simsplit/data/database/app_database.dart';
+import 'package:simsplit/data/models/settlement_table.dart';
 
 part 'settlement_dao.g.dart';
 

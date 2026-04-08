@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
-import '../entities/member.dart';
-import '../failures/core_failure.dart';
+import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
 
 abstract interface class MemberRepository {
   Stream<Either<Failure, List<Member>>> watchMembersByGroup(String groupId);

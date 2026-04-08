@@ -1,4 +1,4 @@
-package com.simsplit.simsplit
+package com.simsplit.app
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,8 +1,8 @@
 import 'package:fpdart/fpdart.dart';
-import '../../entities/settlement.dart';
-import '../../failures/core_failure.dart';
-import '../../repositories/settlement_repository.dart';
-import '../use_case.dart';
+import 'package:simsplit/domain/entities/settlement.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/repositories/settlement_repository.dart';
+import 'package:simsplit/domain/use_cases/use_case.dart';
 
 class ListSettlementsParams {
   const ListSettlementsParams({required this.groupId});

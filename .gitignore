@@ -24,6 +24,7 @@ android/app/debug/
 android/app/profile/
 android/app/release/
 android/.gradle/
+android/.kotlin/
 
 # iOS
 ios/fastlane/AuthKey_*.p8

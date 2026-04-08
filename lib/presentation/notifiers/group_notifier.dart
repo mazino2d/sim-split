@@ -1,9 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../core/di/injection.dart';
-import '../../domain/use_cases/groups/create_group.dart';
-import '../../domain/use_cases/groups/delete_group.dart';
-import '../../domain/use_cases/groups/update_group.dart';
+import 'package:simsplit/core/di/injection.dart';
+import 'package:simsplit/domain/use_cases/groups/create_group.dart';
+import 'package:simsplit/domain/use_cases/groups/delete_group.dart';
+import 'package:simsplit/domain/use_cases/groups/update_group.dart';
 
 part 'group_notifier.g.dart';
 

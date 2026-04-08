@@ -1,11 +1,11 @@
 import 'package:fpdart/fpdart.dart';
-import '../../entities/expense.dart';
-import '../../entities/expense_split.dart';
-import '../../failures/core_failure.dart';
-import '../../failures/expense_failure.dart';
-import '../../repositories/expense_repository.dart';
-import '../use_case.dart';
-import 'calculate_splits.dart';
+import 'package:simsplit/domain/entities/expense.dart';
+import 'package:simsplit/domain/entities/expense_split.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/failures/expense_failure.dart';
+import 'package:simsplit/domain/repositories/expense_repository.dart';
+import 'package:simsplit/domain/use_cases/use_case.dart';
+import 'package:simsplit/domain/use_cases/expenses/calculate_splits.dart';
 
 class EditExpenseParams {
   const EditExpenseParams({
@@ -18,8 +18,8 @@ class EditExpenseParams {
     required this.splitInputs,
     this.category = ExpenseCategory.other,
     this.note,
-    DateTime? expenseDate,
-  }) : expenseDate = expenseDate ?? null;
+    this.expenseDate,
+  });
 
   final String id;
   final String title;

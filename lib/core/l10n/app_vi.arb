@@ -7,20 +7,54 @@
   "noGroupsHint": "Nhấn + để tạo nhóm đầu tiên",
   "createGroup": "Tạo nhóm",
   "editGroup": "Sửa nhóm",
+  "saveChanges": "Lưu thay đổi",
   "groupName": "Tên nhóm",
   "groupNameHint": "vd. Du lịch Đà Nẵng",
+  "groupNameRequired": "Vui lòng nhập tên nhóm",
   "groupCurrency": "Đơn vị tiền tệ",
   "archiveGroup": "Lưu trữ nhóm",
   "deleteGroup": "Xóa nhóm",
   "groupArchived": "Đã lưu trữ nhóm",
+  "deleteGroupConfirmTitle": "Xoá nhóm?",
+  "deleteGroupConfirmMessage": "Nhóm \"{name}\" và toàn bộ dữ liệu sẽ bị xoá vĩnh viễn.",
+  "@deleteGroupConfirmMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
 
+  "memberCountLabel": "{count} thành viên · {currency}",
+  "@memberCountLabel": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "currency": { "type": "String" }
+    }
+  },
+  "paidByLabel": "{name} đã trả",
+  "@paidByLabel": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "settle": "Trả",
   "members": "Thành viên",
+  "noMembers": "Chưa có thành viên nào",
   "addMember": "Thêm thành viên",
+  "editMember": "Sửa thành viên",
   "memberName": "Tên thành viên",
   "memberNameHint": "vd. Khôi",
+  "memberNameRequired": "Vui lòng nhập tên",
   "markAsMe": "Đây là tôi",
+  "edit": "Sửa",
   "removeMember": "Xóa",
   "cannotRemoveMemberWithDebts": "Không thể xóa thành viên còn nợ chưa thanh toán",
+  "deleteMemberConfirmTitle": "Xoá thành viên?",
+  "deleteMemberConfirmMessage": "\"{name}\" sẽ bị xoá khỏi nhóm.",
+  "@deleteMemberConfirmMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
 
   "expenses": "Chi tiêu",
   "noExpenses": "Chưa có chi tiêu nào",
@@ -28,7 +62,9 @@
   "editExpense": "Sửa chi tiêu",
   "expenseTitle": "Mô tả",
   "expenseTitleHint": "vd. Ăn tối tại Nhà Hàng Ngon",
+  "expenseTitleRequired": "Vui lòng nhập mô tả",
   "amount": "Số tiền",
+  "invalidAmount": "Nhập số tiền hợp lệ",
   "paidBy": "Người trả",
   "date": "Ngày",
   "category": "Danh mục",
@@ -42,8 +78,22 @@
   "exactMustSumTotal": "Tổng số tiền phải bằng tổng chi tiêu",
   "deleteExpense": "Xóa chi tiêu",
   "expenseDeleted": "Đã xóa chi tiêu",
+  "deleteExpenseConfirmTitle": "Xoá chi tiêu?",
+  "deleteExpenseConfirmMessage": "\"{title}\" sẽ bị xoá.",
+  "@deleteExpenseConfirmMessage": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "expenseDeletedMessage": "Đã xoá \"{title}\"",
+  "@expenseDeletedMessage": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
 
   "balances": "Số dư",
+  "groupBalancesTitle": "Số dư nhóm",
   "settledUp": "Đã thanh toán xong!",
   "suggestedSettlements": "Gợi ý thanh toán",
   "owes": "{from} nợ {to}",
@@ -55,12 +105,18 @@
   },
 
   "recordSettlement": "Ghi nhận thanh toán",
+  "confirmPaid": "Xác nhận đã trả",
   "markAsPaid": "Đánh dấu đã trả",
   "settlementRecorded": "Đã ghi nhận thanh toán",
   "settlementHistory": "Lịch sử thanh toán",
   "noSettlements": "Chưa có thanh toán nào",
 
   "exportGroup": "Xuất tóm tắt",
+
+  "settings": "Cài đặt",
+  "language": "Ngôn ngữ",
+  "vietnamese": "Tiếng Việt",
+  "english": "English",
 
   "cancel": "Hủy",
   "save": "Lưu",

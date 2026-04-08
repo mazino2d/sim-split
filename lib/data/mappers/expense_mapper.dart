@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
-import '../../domain/entities/expense.dart';
-import '../../domain/entities/expense_split.dart';
-import '../database/app_database.dart' as db;
+import 'package:simsplit/domain/entities/expense.dart';
+import 'package:simsplit/domain/entities/expense_split.dart';
+import 'package:simsplit/data/database/app_database.dart' as db;
 
 class ExpenseMapper {
   const ExpenseMapper();

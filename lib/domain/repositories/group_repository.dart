@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart' hide Group;
-import '../entities/group.dart';
-import '../failures/core_failure.dart';
+import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
 
 abstract interface class GroupRepository {
   /// Reactive stream of all groups (including archived).

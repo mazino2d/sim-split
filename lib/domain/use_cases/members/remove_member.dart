@@ -1,10 +1,9 @@
 import 'package:fpdart/fpdart.dart';
-import '../../failures/core_failure.dart';
-import '../../failures/settlement_failure.dart';
-import '../../repositories/expense_repository.dart';
-import '../../repositories/member_repository.dart';
-import '../../repositories/settlement_repository.dart';
-import '../use_case.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/failures/settlement_failure.dart';
+import 'package:simsplit/domain/repositories/expense_repository.dart';
+import 'package:simsplit/domain/repositories/member_repository.dart';
+import 'package:simsplit/domain/use_cases/use_case.dart';
 
 class RemoveMemberParams {
   const RemoveMemberParams({required this.memberId, required this.groupId});
@@ -16,14 +15,11 @@ class RemoveMember implements AsyncUseCase<Unit, RemoveMemberParams> {
   const RemoveMember({
     required MemberRepository memberRepository,
     required ExpenseRepository expenseRepository,
-    required SettlementRepository settlementRepository,
   })  : _memberRepository = memberRepository,
-        _expenseRepository = expenseRepository,
-        _settlementRepository = settlementRepository;
+        _expenseRepository = expenseRepository;
 
   final MemberRepository _memberRepository;
   final ExpenseRepository _expenseRepository;
-  final SettlementRepository _settlementRepository;
 
   @override
   Future<Either<Failure, Unit>> call(RemoveMemberParams params) async {

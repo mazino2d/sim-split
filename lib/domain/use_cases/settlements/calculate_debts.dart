@@ -1,11 +1,11 @@
 import 'package:fpdart/fpdart.dart';
-import '../../entities/debt.dart';
-import '../../entities/member.dart';
-import '../../failures/core_failure.dart';
-import '../../repositories/expense_repository.dart';
-import '../../repositories/member_repository.dart';
-import '../../repositories/settlement_repository.dart';
-import '../use_case.dart';
+import 'package:simsplit/domain/entities/debt.dart';
+import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/repositories/expense_repository.dart';
+import 'package:simsplit/domain/repositories/member_repository.dart';
+import 'package:simsplit/domain/repositories/settlement_repository.dart';
+import 'package:simsplit/domain/use_cases/use_case.dart';
 
 class CalculateDebtsParams {
   const CalculateDebtsParams({
@@ -34,14 +34,14 @@ class CalculateDebts
   final SettlementRepository _settlementRepository;
 
   @override
-  Future<Either<Failure, DebtSummary>> call(
-      CalculateDebtsParams params) async {
+  Future<Either<Failure, DebtSummary>> call(CalculateDebtsParams params) async {
     final membersResult =
         await _memberRepository.watchMembersByGroup(params.groupId).first;
     final expensesResult =
         await _expenseRepository.watchExpensesByGroup(params.groupId).first;
-    final settlementsResult =
-        await _settlementRepository.watchSettlementsByGroup(params.groupId).first;
+    final settlementsResult = await _settlementRepository
+        .watchSettlementsByGroup(params.groupId)
+        .first;
 
     return membersResult.flatMap((members) => expensesResult.flatMap(
           (expenses) => settlementsResult.flatMap((settlements) {

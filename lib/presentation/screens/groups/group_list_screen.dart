@@ -2,22 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../domain/entities/group.dart';
-import '../../providers/group_providers.dart';
-import '../../widgets/common/error_widget.dart';
-import '../../widgets/common/loading_widget.dart';
-import '../../widgets/groups/group_card.dart';
+import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/widgets/common/error_widget.dart';
+import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
+import 'package:simsplit/presentation/widgets/groups/group_card.dart';
 
 class GroupListScreen extends ConsumerWidget {
   const GroupListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final groupsAsync = ref.watch(groupListProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SimSplit'),
+        title: Text(l10n.appTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: l10n.settings,
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
       ),
       body: groupsAsync.when(
         data: (groups) => _GroupListBody(groups: groups),
@@ -45,6 +54,7 @@ class _GroupListBody extends StatelessWidget {
     final activeGroups = groups.where((g) => !g.isArchived).toList();
 
     if (activeGroups.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -52,13 +62,13 @@ class _GroupListBody extends StatelessWidget {
             const Icon(Icons.group_outlined, size: 80, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
-              'Chưa có nhóm nào',
+              l10n.noGroups,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Nhấn + để tạo nhóm đầu tiên',
-              style: TextStyle(color: Colors.grey),
+            Text(
+              l10n.noGroupsHint,
+              style: const TextStyle(color: Colors.grey),
             ),
           ],
         ),

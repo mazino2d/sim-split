@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-import '../database/app_database.dart';
-import '../models/expense_split_table.dart';
+import 'package:simsplit/data/database/app_database.dart';
+import 'package:simsplit/data/models/expense_split_table.dart';
 
 part 'expense_split_dao.g.dart';
 
@@ -10,8 +10,7 @@ class ExpenseSplitDao extends DatabaseAccessor<AppDatabase>
   ExpenseSplitDao(super.db);
 
   Future<List<ExpenseSplit>> getSplitsForExpense(String expenseId) =>
-      (select(expenseSplits)
-            ..where((s) => s.expenseId.equals(expenseId)))
+      (select(expenseSplits)..where((s) => s.expenseId.equals(expenseId)))
           .get();
 
   Future<void> insertSplits(List<ExpenseSplitsCompanion> companions) =>

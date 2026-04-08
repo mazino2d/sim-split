@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-import '../../domain/entities/member.dart';
-import '../database/app_database.dart' as db;
+import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/data/database/app_database.dart' as db;
 
 class MemberMapper {
   const MemberMapper();

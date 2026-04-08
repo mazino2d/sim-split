@@ -1,12 +1,12 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../core/di/injection.dart';
-import '../../domain/entities/expense.dart';
-import '../../domain/entities/expense_split.dart';
-import '../../domain/use_cases/expenses/add_expense.dart';
-import '../../domain/use_cases/expenses/calculate_splits.dart';
-import '../../domain/use_cases/expenses/delete_expense.dart';
-import '../../domain/use_cases/expenses/edit_expense.dart';
+import 'package:simsplit/core/di/injection.dart';
+import 'package:simsplit/domain/entities/expense.dart';
+import 'package:simsplit/domain/entities/expense_split.dart';
+import 'package:simsplit/domain/use_cases/expenses/add_expense.dart';
+import 'package:simsplit/domain/use_cases/expenses/calculate_splits.dart';
+import 'package:simsplit/domain/use_cases/expenses/delete_expense.dart';
+import 'package:simsplit/domain/use_cases/expenses/edit_expense.dart';
 
 part 'expense_notifier.g.dart';
 

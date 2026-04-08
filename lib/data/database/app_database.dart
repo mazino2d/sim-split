@@ -1,17 +1,17 @@
 import 'package:drift/drift.dart';
-import 'connection/native_connection.dart'
+import 'package:simsplit/data/database/connection/native_connection.dart'
     if (dart.library.html) 'connection/web_connection.dart';
 
-import '../daos/expense_dao.dart';
-import '../daos/expense_split_dao.dart';
-import '../daos/group_dao.dart';
-import '../daos/member_dao.dart';
-import '../daos/settlement_dao.dart';
-import '../models/expense_split_table.dart';
-import '../models/expense_table.dart';
-import '../models/group_table.dart';
-import '../models/member_table.dart';
-import '../models/settlement_table.dart';
+import 'package:simsplit/data/daos/expense_dao.dart';
+import 'package:simsplit/data/daos/expense_split_dao.dart';
+import 'package:simsplit/data/daos/group_dao.dart';
+import 'package:simsplit/data/daos/member_dao.dart';
+import 'package:simsplit/data/daos/settlement_dao.dart';
+import 'package:simsplit/data/models/expense_split_table.dart';
+import 'package:simsplit/data/models/expense_table.dart';
+import 'package:simsplit/data/models/group_table.dart';
+import 'package:simsplit/data/models/member_table.dart';
+import 'package:simsplit/data/models/settlement_table.dart';
 
 part 'app_database.g.dart';
 

@@ -1,9 +1,9 @@
 import 'package:fpdart/fpdart.dart';
-import '../../entities/expense_split.dart';
-import '../../failures/core_failure.dart';
-import '../../failures/expense_failure.dart';
-import '../../value_objects/unique_id.dart';
-import '../use_case.dart';
+import 'package:simsplit/domain/entities/expense_split.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/failures/expense_failure.dart';
+import 'package:simsplit/domain/value_objects/unique_id.dart';
+import 'package:simsplit/domain/use_cases/use_case.dart';
 
 /// Raw user input for a single participant's split entry.
 class RawSplitInput {

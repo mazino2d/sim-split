@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:simsplit/domain/entities/debt.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/expense_split.dart';
 import 'package:simsplit/domain/entities/member.dart';
@@ -12,7 +11,9 @@ import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/domain/use_cases/settlements/calculate_debts.dart';
 
 class MockMemberRepository extends Mock implements MemberRepository {}
+
 class MockExpenseRepository extends Mock implements ExpenseRepository {}
+
 class MockSettlementRepository extends Mock implements SettlementRepository {}
 
 Member _member(String id, String name) => Member(

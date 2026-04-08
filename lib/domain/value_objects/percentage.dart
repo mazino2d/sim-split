@@ -5,7 +5,8 @@ class Percentage {
 
   /// [value] is a percentage × 100 integer (e.g. 3333 = 33.33%).
   factory Percentage.fromScaled(int value) {
-    assert(value >= 0 && value <= 10000, 'Percentage must be between 0 and 100');
+    assert(
+        value >= 0 && value <= 10000, 'Percentage must be between 0 and 100');
     return Percentage._(value);
   }
 

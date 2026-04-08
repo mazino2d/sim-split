@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/money_formatter.dart';
-import '../../../domain/entities/expense.dart';
-import '../../../domain/entities/member.dart';
+import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/core/utils/money_formatter.dart';
+import 'package:simsplit/domain/entities/expense.dart';
+import 'package:simsplit/domain/entities/member.dart';
 
 class ExpenseListTile extends StatelessWidget {
   const ExpenseListTile({
@@ -18,8 +19,11 @@ class ExpenseListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paidBy = members.where((m) => m.id == expense.paidByMemberId).firstOrNull;
-    final amountDisplay = formatMoney(expense.amountCents, expense.currencyCode);
+    final l10n = AppLocalizations.of(context)!;
+    final paidBy =
+        members.where((m) => m.id == expense.paidByMemberId).firstOrNull;
+    final amountDisplay =
+        formatMoney(expense.amountCents, expense.currencyCode);
 
     return ListTile(
       leading: CircleAvatar(
@@ -31,7 +35,7 @@ class ExpenseListTile extends StatelessWidget {
       ),
       title: Text(expense.title),
       subtitle: Text(
-        paidBy != null ? '${paidBy.name} đã trả' : '',
+        paidBy != null ? l10n.paidByLabel(paidBy.name) : '',
         style: const TextStyle(color: Colors.grey),
       ),
       trailing: Text(
