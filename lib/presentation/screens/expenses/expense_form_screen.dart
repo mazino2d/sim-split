@@ -414,6 +414,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             SegmentedButton<SplitType>(
+              showSelectedIcon: false,
               segments: [
                 ButtonSegment(
                     value: SplitType.equal, label: Text(l10n.splitEqual)),
@@ -520,6 +521,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   /// Shows a live sum for % and exact types so user sees if it balances.
   Widget _buildSplitSumIndicator(String currencyCode) {
+    final l10n = AppLocalizations.of(context)!;
     if (_splitType == SplitType.percentage) {
       final total = _members.fold<double>(0, (sum, m) {
         final t = _splitControllers[m.id]?.text ?? '0';
@@ -533,7 +535,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               size: 16, color: isValid ? Colors.green : Colors.orange),
           const SizedBox(width: 4),
           Text(
-            'Tổng: ${total.toStringAsFixed(2)}%',
+            l10n.splitSumPercentage(total.toStringAsFixed(2)),
             style: TextStyle(
               color: isValid ? Colors.green : Colors.orange,
               fontWeight: FontWeight.w500,
@@ -557,7 +559,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               size: 16, color: isValid ? Colors.green : Colors.orange),
           const SizedBox(width: 4),
           Text(
-            'Tổng: ${formatMoney(totalEntered * 100, currencyCode)} / ${formatMoney(target * 100, currencyCode)}',
+            l10n.splitSumExact(
+              formatMoney(totalEntered * 100, currencyCode),
+              formatMoney(target * 100, currencyCode),
+            ),
             style: TextStyle(
               color: isValid ? Colors.green : Colors.orange,
               fontWeight: FontWeight.w500,

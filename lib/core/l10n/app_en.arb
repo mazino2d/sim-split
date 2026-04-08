@@ -93,6 +93,37 @@
     }
   },
 
+  "today": "Today",
+  "yesterday": "Yesterday",
+
+  "youAreOwed": "You are owed {amount}",
+  "@youAreOwed": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "youOwe": "You owe {amount}",
+  "@youOwe": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "evenBalance": "Even",
+
+  "splitSumPercentage": "Total: {value}%",
+  "@splitSumPercentage": {
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  },
+  "splitSumExact": "Total: {entered} / {target}",
+  "@splitSumExact": {
+    "placeholders": {
+      "entered": { "type": "String" },
+      "target": { "type": "String" }
+    }
+  },
+
   "balances": "Balances",
   "groupBalancesTitle": "Group balances",
   "settledUp": "All settled up!",

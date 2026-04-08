@@ -24,4 +24,8 @@ class MemberDao extends DatabaseAccessor<AppDatabase> with _$MemberDaoMixin {
 
   Future<int> deleteMemberById(String id) =>
       (delete(members)..where((m) => m.id.equals(id))).go();
+
+  Future<void> clearIsMeForGroup(String groupId) =>
+      (update(members)..where((m) => m.groupId.equals(groupId)))
+          .write(const MembersCompanion(isMe: Value(false)));
 }

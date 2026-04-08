@@ -92,6 +92,37 @@
     }
   },
 
+  "today": "Hôm nay",
+  "yesterday": "Hôm qua",
+
+  "youAreOwed": "Bạn được nhận {amount}",
+  "@youAreOwed": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "youOwe": "Bạn đang nợ {amount}",
+  "@youOwe": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "evenBalance": "Hòa vốn",
+
+  "splitSumPercentage": "Tổng: {value}%",
+  "@splitSumPercentage": {
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  },
+  "splitSumExact": "Tổng: {entered} / {target}",
+  "@splitSumExact": {
+    "placeholders": {
+      "entered": { "type": "String" },
+      "target": { "type": "String" }
+    }
+  },
+
   "balances": "Số dư",
   "groupBalancesTitle": "Số dư nhóm",
   "settledUp": "Đã thanh toán xong!",

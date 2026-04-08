@@ -21,17 +21,21 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           ListTile(
             title: Text(l10n.language),
-            trailing: SegmentedButton<String>(
-              segments: [
-                ButtonSegment(value: 'vi', label: Text(l10n.vietnamese)),
-                ButtonSegment(value: 'en', label: Text(l10n.english)),
-              ],
-              selected: {currentLocale.languageCode},
-              onSelectionChanged: (selected) {
-                ref
-                    .read(localeNotifierProvider.notifier)
-                    .setLocale(Locale(selected.first));
-              },
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 'vi', label: Text(l10n.vietnamese)),
+                  ButtonSegment(value: 'en', label: Text(l10n.english)),
+                ],
+                selected: {currentLocale.languageCode},
+                onSelectionChanged: (selected) {
+                  ref
+                      .read(localeNotifierProvider.notifier)
+                      .setLocale(Locale(selected.first));
+                },
+              ),
             ),
           ),
         ],

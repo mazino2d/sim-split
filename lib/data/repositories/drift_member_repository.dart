@@ -44,7 +44,12 @@ class DriftMemberRepository implements MemberRepository {
   @override
   Future<Either<Failure, Member>> addMember(Member member) async {
     try {
-      await _memberDao.insertMember(_mapper.toCompanion(member));
+      await _memberDao.attachedDatabase.transaction(() async {
+        if (member.isMe) {
+          await _memberDao.clearIsMeForGroup(member.groupId);
+        }
+        await _memberDao.insertMember(_mapper.toCompanion(member));
+      });
       return right(member);
     } catch (e) {
       return left(Failure.dbFailure(e.toString()));
@@ -54,7 +59,12 @@ class DriftMemberRepository implements MemberRepository {
   @override
   Future<Either<Failure, Member>> updateMember(Member member) async {
     try {
-      await _memberDao.updateMemberById(_mapper.toCompanion(member));
+      await _memberDao.attachedDatabase.transaction(() async {
+        if (member.isMe) {
+          await _memberDao.clearIsMeForGroup(member.groupId);
+        }
+        await _memberDao.updateMemberById(_mapper.toCompanion(member));
+      });
       return right(member);
     } catch (e) {
       return left(Failure.dbFailure(e.toString()));

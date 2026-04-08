@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/core/utils/money_formatter.dart';
+import 'package:simsplit/domain/entities/debt.dart';
+import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/group.dart';
-import 'package:simsplit/domain/entities/member.dart';
-import 'package:simsplit/presentation/notifiers/expense_notifier.dart';
-import 'package:simsplit/presentation/notifiers/group_notifier.dart';
-import 'package:simsplit/presentation/notifiers/member_notifier.dart';
 import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/providers/settlement_providers.dart';
 import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
+import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
 
 class GroupDetailScreen extends ConsumerWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -36,83 +38,73 @@ class GroupDetailScreen extends ConsumerWidget {
   }
 }
 
-class _GroupDetailBody extends ConsumerWidget {
+class _GroupDetailBody extends ConsumerStatefulWidget {
   const _GroupDetailBody({required this.group});
 
   final Group group;
 
-  Future<void> _confirmDeleteGroup(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.deleteGroupConfirmTitle),
-        content: Text(l10n.deleteGroupConfirmMessage(group.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    final success =
-        await ref.read(groupNotifierProvider.notifier).deleteGroup(group.id);
-    if (success && context.mounted) context.go('/');
+  @override
+  ConsumerState<_GroupDetailBody> createState() => _GroupDetailBodyState();
+}
+
+class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() => setState(() {}));
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('${group.emoji ?? ''} ${group.name}'.trim()),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: () => context.push('/groups/${group.id}/edit'),
-            ),
-            IconButton(
-              icon: const Icon(Icons.account_balance_wallet_outlined),
-              onPressed: () => context.push('/groups/${group.id}/debts'),
-              tooltip: l10n.balances,
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.deleteGroup,
-              onPressed: () => _confirmDeleteGroup(context, ref),
-            ),
-          ],
-          bottom: TabBar(
-            tabs: [
-              Tab(text: l10n.expenses),
-              Tab(text: l10n.members),
-            ],
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final group = widget.group;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${group.emoji ?? ''} ${group.name}'.trim()),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => context.push('/groups/${group.id}/edit'),
           ),
-        ),
-        body: TabBarView(
-          children: [
-            _ExpensesTab(group: group),
-            _MembersTab(group: group),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: l10n.expenses),
+            Tab(text: l10n.balances),
           ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => context.push('/groups/${group.id}/expenses/add'),
-          child: const Icon(Icons.add),
         ),
       ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _ExpensesTab(group: group),
+          _BalancesTab(group: group),
+        ],
+      ),
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton(
+              onPressed: () =>
+                  context.push('/groups/${group.id}/expenses/add'),
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }
+
+// ── Expenses Tab ─────────────────────────────────────────────────────────────
 
 class _ExpensesTab extends ConsumerWidget {
   const _ExpensesTab({required this.group});
@@ -123,67 +115,43 @@ class _ExpensesTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final expensesAsync = ref.watch(expenseListProvider(group.id));
-    final membersAsync = ref.watch(memberListProvider(group.id));
-    final members = membersAsync.valueOrNull ?? [];
+    final members = ref.watch(memberListProvider(group.id)).valueOrNull ?? [];
+    final meMember = members.where((m) => m.isMe).firstOrNull;
 
     return expensesAsync.when(
       data: (expenses) {
         if (expenses.isEmpty) {
           return Center(child: Text(l10n.noExpenses));
         }
+
+        // Group by date, sorted newest first
+        final grouped = _groupByDate(expenses);
+        final dateKeys = grouped.keys.toList()
+          ..sort((a, b) => b.compareTo(a));
+
+        // Build flat list: [date header, tile, tile, date header, tile ...]
+        final items = <_ListItem>[];
+        for (final date in dateKeys) {
+          items.add(_DateHeader(date));
+          for (final exp in grouped[date]!) {
+            items.add(_ExpenseItem(exp));
+          }
+        }
+
         return ListView.builder(
-          itemCount: expenses.length,
+          itemCount: items.length,
           itemBuilder: (ctx, i) {
-            final expense = expenses[i];
-            return Dismissible(
-              key: ValueKey(expense.id),
-              direction: DismissDirection.endToStart,
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 20),
-                color: Colors.red,
-                child: const Icon(Icons.delete, color: Colors.white),
-              ),
-              confirmDismiss: (_) async {
-                return await showDialog<bool>(
-                  context: ctx,
-                  builder: (dCtx) => AlertDialog(
-                    title: Text(l10n.deleteExpenseConfirmTitle),
-                    content:
-                        Text(l10n.deleteExpenseConfirmMessage(expense.title)),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(dCtx, false),
-                        child: Text(l10n.cancel),
-                      ),
-                      FilledButton(
-                        style:
-                            FilledButton.styleFrom(backgroundColor: Colors.red),
-                        onPressed: () => Navigator.pop(dCtx, true),
-                        child: Text(l10n.delete),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              onDismissed: (_) async {
-                await ref
-                    .read(expenseNotifierProvider.notifier)
-                    .deleteExpense(expense.id);
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(
-                        content:
-                            Text(l10n.expenseDeletedMessage(expense.title))),
-                  );
-                }
-              },
-              child: ExpenseListTile(
-                expense: expense,
-                members: members,
-                onTap: () => context.push(
-                  '/groups/${group.id}/expenses/${expense.id}/edit',
-                ),
+            final item = items[i];
+            if (item is _DateHeader) {
+              return _DateSectionHeader(date: item.date);
+            }
+            final expense = (item as _ExpenseItem).expense;
+            return ExpenseListTile(
+              expense: expense,
+              members: members,
+              meMember: meMember,
+              onTap: () => context.push(
+                '/groups/${group.id}/expenses/${expense.id}/edit',
               ),
             );
           },
@@ -193,126 +161,197 @@ class _ExpensesTab extends ConsumerWidget {
       error: (e, _) => AppErrorWidget(message: e.toString()),
     );
   }
+
+  Map<DateTime, List<Expense>> _groupByDate(List<Expense> expenses) {
+    final map = <DateTime, List<Expense>>{};
+    for (final e in expenses) {
+      final d = e.expenseDate.toLocal();
+      final key = DateTime(d.year, d.month, d.day);
+      map.putIfAbsent(key, () => []).add(e);
+    }
+    return map;
+  }
 }
 
-class _MembersTab extends ConsumerWidget {
-  const _MembersTab({required this.group});
+// Sealed-ish item types for the flat list
+abstract class _ListItem {}
 
-  final Group group;
+class _DateHeader extends _ListItem {
+  _DateHeader(this.date);
+  final DateTime date;
+}
 
-  Future<void> _confirmRemoveMember(
-    BuildContext context,
-    WidgetRef ref,
-    Member member,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.deleteMemberConfirmTitle),
-        content: Text(l10n.deleteMemberConfirmMessage(member.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.delete),
-          ),
-        ],
+class _ExpenseItem extends _ListItem {
+  _ExpenseItem(this.expense);
+  final Expense expense;
+}
+
+class _DateSectionHeader extends StatelessWidget {
+  const _DateSectionHeader({required this.date});
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    String label;
+    if (date == today) {
+      label = AppLocalizations.of(context)!.today;
+    } else if (date == yesterday) {
+      label = AppLocalizations.of(context)!.yesterday;
+    } else if (date.year == now.year) {
+      label = DateFormat('d MMM', Localizations.localeOf(context).toLanguageTag())
+          .format(date);
+    } else {
+      label = DateFormat('d MMM yyyy', Localizations.localeOf(context).toLanguageTag())
+          .format(date);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.outline,
+              fontWeight: FontWeight.w600,
+            ),
       ),
     );
-    if (confirmed != true) return;
-
-    final success = await ref
-        .read(memberNotifierProvider.notifier)
-        .removeMember(member.id, group.id);
-
-    if (!success && context.mounted) {
-      final error = ref.read(memberNotifierProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error?.toString() ??
-                AppLocalizations.of(context)!.cannotRemoveMemberWithDebts,
-          ),
-        ),
-      );
-    }
   }
+}
+
+// ── Balances Tab ─────────────────────────────────────────────────────────────
+
+class _BalancesTab extends ConsumerWidget {
+  const _BalancesTab({required this.group});
+
+  final Group group;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final membersAsync = ref.watch(memberListProvider(group.id));
+    final debtAsync =
+        ref.watch(debtSummaryProvider(group.id, group.currencyCode));
 
-    return membersAsync.when(
-      data: (members) {
-        if (members.isEmpty) {
+    return debtAsync.when(
+      data: (summary) {
+        if (summary.suggestions.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(l10n.noMembers),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () =>
-                      context.push('/groups/${group.id}/members/add'),
-                  icon: const Icon(Icons.person_add),
-                  label: Text(l10n.addMember),
-                ),
+                const Icon(Icons.check_circle_outline,
+                    size: 80, color: Colors.green),
+                const SizedBox(height: 16),
+                Text(l10n.settledUp,
+                    style: const TextStyle(fontSize: 20)),
               ],
             ),
           );
         }
 
-        return ListView.builder(
-          itemCount: members.length + 1,
-          itemBuilder: (ctx, i) {
-            if (i == members.length) {
-              return ListTile(
-                leading: const Icon(Icons.person_add_outlined),
-                title: Text(l10n.addMember),
-                onTap: () => context.push('/groups/${group.id}/members/add'),
-              );
-            }
-            final member = members[i];
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Color(member.avatarColorValue),
-                child: Text(
-                  member.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-              title: Text(member.name),
-              subtitle: member.isMe ? Text(l10n.markAsMe) : null,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Per-member balances
+            Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    tooltip: l10n.edit,
-                    onPressed: () => context.push(
-                      '/groups/${group.id}/members/${member.id}/edit',
-                      extra: member,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Text(
+                      l10n.balances,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.person_remove_outlined),
-                    tooltip: l10n.removeMember,
-                    onPressed: () => _confirmRemoveMember(context, ref, member),
-                  ),
+                  for (final balance in summary.balances)
+                    _MemberBalanceTile(
+                      balance: balance,
+                      currencyCode: group.currencyCode,
+                    ),
                 ],
               ),
-            );
-          },
+            ),
+            const SizedBox(height: 16),
+
+            Text(
+              l10n.suggestedSettlements,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            for (final debt in summary.suggestions)
+              DebtCard(
+                debt: debt,
+                currencyCode: group.currencyCode,
+                onSettle: () => context.push(
+                  '/groups/${group.id}/settle',
+                  extra: {
+                    'fromMemberId': debt.from.id,
+                    'toMemberId': debt.to.id,
+                    'amountCents': debt.amountCents,
+                  },
+                ),
+              ),
+          ],
         );
       },
       loading: () => const AppLoadingWidget(),
-      error: (e, _) => AppErrorWidget(message: e.toString()),
+      error: (e, _) => AppErrorWidget(
+        message: e.toString(),
+        onRetry: () => ref.invalidate(
+            debtSummaryProvider(group.id, group.currencyCode)),
+      ),
+    );
+  }
+}
+
+class _MemberBalanceTile extends StatelessWidget {
+  const _MemberBalanceTile({
+    required this.balance,
+    required this.currencyCode,
+  });
+
+  final MemberBalance balance;
+  final String currencyCode;
+
+  @override
+  Widget build(BuildContext context) {
+    final net = balance.netAmountCents;
+    final amountStr = formatMoney(net.abs(), currencyCode);
+    final color = net > 0
+        ? Colors.green
+        : net < 0
+            ? Colors.red
+            : Colors.grey;
+
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: Color(balance.member.avatarColorValue),
+        child: Text(
+          balance.member.name.substring(0, 1).toUpperCase(),
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+      title: Text(balance.member.name),
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          '${net >= 0 ? '+' : '-'}$amountStr',
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      ),
     );
   }
 }
