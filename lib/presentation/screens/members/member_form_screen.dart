@@ -7,6 +7,7 @@ import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/use_cases/members/add_member.dart';
 import 'package:simsplit/presentation/notifiers/member_notifier.dart';
+import 'package:simsplit/presentation/providers/group_providers.dart';
 
 const _avatarColors = [
   0xFF1976D2,
@@ -98,13 +99,74 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
     if (success) context.pop();
   }
 
+  Future<void> _confirmDelete(BuildContext ctx) async {
+    final l10n = AppLocalizations.of(ctx)!;
+    final member = widget.editMember!;
+    // ignore: use_build_context_synchronously — ctx is used only before await below
+    final scaffoldMessenger = ScaffoldMessenger.of(ctx);
+    final navigator = Navigator.of(ctx);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: Text(l10n.deleteMemberConfirmTitle),
+        content: Text(l10n.deleteMemberConfirmMessage(member.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dCtx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final success = await ref
+        .read(memberNotifierProvider.notifier)
+        .removeMember(member.id, member.groupId);
+
+    if (!mounted) return;
+    if (success) {
+      navigator.pop();
+    } else {
+      final error = ref.read(memberNotifierProvider).error;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            error?.toString() ?? l10n.cannotRemoveMemberWithDebts,
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final members =
+        ref.watch(memberListProvider(widget.groupId)).valueOrNull ?? [];
+
+    // Find existing isMe member that is NOT the current member being edited
+    final existingIsMeMember = members
+        .where((m) =>
+            m.isMe && m.id != (widget.editMember?.id ?? ''))
+        .firstOrNull;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEdit ? l10n.editMember : l10n.addMember),
+        actions: [
+          if (_isEdit)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: l10n.removeMember,
+              onPressed: () => _confirmDelete(context), // context captured before async
+            ),
+        ],
       ),
       body: Form(
         key: _formKey,
@@ -152,6 +214,36 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
               value: _isMe,
               onChanged: (v) => setState(() => _isMe = v),
             ),
+
+            // Warning: another member is already marked as "me"
+            if (_isMe && existingIsMeMember != null) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline,
+                        color: Colors.orange, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.isMeWillReplace(existingIsMeMember.name),
+                        style: const TextStyle(
+                            color: Colors.orange, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 24),
 
             FilledButton(

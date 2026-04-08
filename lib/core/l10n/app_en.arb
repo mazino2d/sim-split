@@ -93,6 +93,14 @@
     }
   },
 
+  "noMembersAddExpenseHint": "Add members to the group before creating an expense",
+  "isMeWillReplace": "This will replace \"{name}\" as your identity in the group",
+  "@isMeWillReplace": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
   "today": "Today",
   "yesterday": "Yesterday",
 

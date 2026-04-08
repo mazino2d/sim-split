@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
-import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/presentation/notifiers/group_notifier.dart';
-import 'package:simsplit/presentation/notifiers/member_notifier.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 
@@ -230,88 +228,6 @@ class _MembersSection extends ConsumerWidget {
 
   final String groupId;
 
-  Future<void> _showMemberOptions(
-    BuildContext context,
-    WidgetRef ref,
-    Member member,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: Text(l10n.edit),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.push(
-                  '/groups/$groupId/members/${member.id}/edit',
-                  extra: member,
-                );
-              },
-            ),
-            ListTile(
-              leading:
-                  const Icon(Icons.person_remove_outlined, color: Colors.red),
-              title:
-                  Text(l10n.removeMember, style: const TextStyle(color: Colors.red)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await _confirmRemoveMember(context, ref, member);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmRemoveMember(
-    BuildContext context,
-    WidgetRef ref,
-    Member member,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dCtx) => AlertDialog(
-        title: Text(l10n.deleteMemberConfirmTitle),
-        content: Text(l10n.deleteMemberConfirmMessage(member.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dCtx, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(dCtx, true),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    final success = await ref
-        .read(memberNotifierProvider.notifier)
-        .removeMember(member.id, groupId);
-
-    if (!success && context.mounted) {
-      final error = ref.read(memberNotifierProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error?.toString() ??
-                AppLocalizations.of(context)!.cannotRemoveMemberWithDebts,
-          ),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -332,8 +248,11 @@ class _MembersSection extends ConsumerWidget {
               ),
               title: Text(member.name),
               subtitle: member.isMe ? Text(l10n.markAsMe) : null,
-              trailing: const Icon(Icons.more_vert),
-              onTap: () => _showMemberOptions(context, ref, member),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(
+                '/groups/$groupId/members/${member.id}/edit',
+                extra: member,
+              ),
             ),
           ListTile(
             contentPadding: EdgeInsets.zero,

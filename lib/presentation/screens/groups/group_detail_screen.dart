@@ -95,8 +95,27 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
       ),
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton(
-              onPressed: () =>
-                  context.push('/groups/${group.id}/expenses/add'),
+              onPressed: () {
+                final members = ref
+                    .read(memberListProvider(group.id))
+                    .valueOrNull ?? [];
+                if (members.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          AppLocalizations.of(context)!
+                              .noMembersAddExpenseHint),
+                      action: SnackBarAction(
+                        label: AppLocalizations.of(context)!.addMember,
+                        onPressed: () => context
+                            .push('/groups/${group.id}/members/add'),
+                      ),
+                    ),
+                  );
+                  return;
+                }
+                context.push('/groups/${group.id}/expenses/add');
+              },
               child: const Icon(Icons.add),
             )
           : null,

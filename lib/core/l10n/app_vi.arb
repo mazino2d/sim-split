@@ -92,6 +92,14 @@
     }
   },
 
+  "noMembersAddExpenseHint": "Thêm thành viên vào nhóm trước khi tạo chi tiêu",
+  "isMeWillReplace": "Bật cờ này sẽ thay thế \"{name}\" làm danh tính của bạn trong nhóm",
+  "@isMeWillReplace": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
   "today": "Hôm nay",
   "yesterday": "Hôm qua",
 
