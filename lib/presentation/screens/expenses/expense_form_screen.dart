@@ -274,7 +274,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
     if (confirmed != true || !mounted) return;
     final success = await ref
-        .read(expenseNotifierProvider.notifier)
+        .read(expenseProvider.notifier)
         .deleteExpense(widget.editExpenseId!);
     if (!success) return;
     if (!mounted) return;
@@ -290,7 +290,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
     final l10n = AppLocalizations.of(context)!;
     final amountCents = _parseDisplayAmount() * 100;
-    final notifier = ref.read(expenseNotifierProvider.notifier);
+    final notifier = ref.read(expenseProvider.notifier);
     final group = await ref.read(groupDetailProvider(widget.groupId).future);
 
     bool success;
@@ -323,7 +323,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       _isDirty = false;
       context.pop();
     } else {
-      final error = ref.read(expenseNotifierProvider).error;
+      final error = ref.read(expenseProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error?.toString() ?? l10n.errorUnexpected)),
       );
@@ -371,11 +371,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     }
 
     final group = groupAsync.requireValue;
-    final members = membersAsync.valueOrNull ?? [];
+    final members = membersAsync.value ?? [];
     _initMemberControllers(members);
 
     if (isEdit && expensesAsync != null) {
-      final expenses = expensesAsync.valueOrNull ?? [];
+      final expenses = expensesAsync.value ?? [];
       final existing =
           expenses.where((e) => e.id == widget.editExpenseId).firstOrNull;
       if (existing != null && !_loadedExistingExpense) {

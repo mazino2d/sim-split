@@ -4,7 +4,7 @@ import 'package:simsplit/domain/entities/member.dart';
 part 'group.freezed.dart';
 
 @freezed
-class Group with _$Group {
+sealed class Group with _$Group {
   const factory Group({
     required String id,
     required String name,

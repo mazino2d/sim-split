@@ -6,7 +6,7 @@ part 'expense_split.freezed.dart';
 enum SplitType { equal, percentage, exact, shares }
 
 @freezed
-class ExpenseSplit with _$ExpenseSplit {
+sealed class ExpenseSplit with _$ExpenseSplit {
   const factory ExpenseSplit({
     required String id,
     required String expenseId,

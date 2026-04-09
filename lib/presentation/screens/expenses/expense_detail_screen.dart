@@ -31,7 +31,7 @@ class ExpenseDetailScreen extends ConsumerWidget {
       return const Scaffold(body: AppLoadingWidget());
     }
 
-    final expense = (expensesAsync.valueOrNull ?? [])
+    final expense = (expensesAsync.value ?? [])
         .where((e) => e.id == expenseId)
         .firstOrNull;
 
@@ -42,8 +42,8 @@ class ExpenseDetailScreen extends ConsumerWidget {
       );
     }
 
-    final members = membersAsync.valueOrNull ?? [];
-    final group = groupAsync.valueOrNull;
+    final members = membersAsync.value ?? [];
+    final group = groupAsync.value;
     final currencyCode = group?.currencyCode ?? expense.currencyCode;
     final paidBy = members.where((m) => m.id == expense.paidByMemberId).firstOrNull;
 

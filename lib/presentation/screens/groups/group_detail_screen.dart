@@ -101,7 +101,7 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
               onPressed: () {
                 final members = ref
                     .read(memberListProvider(group.id))
-                    .valueOrNull ?? [];
+                    .value ?? [];
                 if (members.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -137,7 +137,7 @@ class _ExpensesTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final expensesAsync = ref.watch(expenseListProvider(group.id));
-    final members = ref.watch(memberListProvider(group.id)).valueOrNull ?? [];
+    final members = ref.watch(memberListProvider(group.id)).value ?? [];
     final meMember = members.where((m) => m.isMe).firstOrNull;
 
     return expensesAsync.when(
@@ -278,7 +278,7 @@ class _SwipeableExpenseTile extends ConsumerWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    await ref.read(expenseNotifierProvider.notifier).deleteExpense(expense.id);
+    await ref.read(expenseProvider.notifier).deleteExpense(expense.id);
   }
 
   @override

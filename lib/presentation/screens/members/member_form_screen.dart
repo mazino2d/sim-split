@@ -67,7 +67,7 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
     bool success;
     if (_isEdit) {
       final m = widget.editMember!;
-      success = await ref.read(memberNotifierProvider.notifier).updateMember(
+      success = await ref.read(memberProvider.notifier).updateMember(
             id: m.id,
             groupId: m.groupId,
             name: _nameController.text.trim(),
@@ -126,14 +126,14 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
     if (confirmed != true) return;
 
     final success = await ref
-        .read(memberNotifierProvider.notifier)
+        .read(memberProvider.notifier)
         .removeMember(member.id, member.groupId);
 
     if (!mounted) return;
     if (success) {
       navigator.pop();
     } else {
-      final error = ref.read(memberNotifierProvider).error;
+      final error = ref.read(memberProvider).error;
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -148,7 +148,7 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final members =
-        ref.watch(memberListProvider(widget.groupId)).valueOrNull ?? [];
+        ref.watch(memberListProvider(widget.groupId)).value ?? [];
 
     // Find existing isMe member that is NOT the current member being edited
     final existingIsMeMember = members

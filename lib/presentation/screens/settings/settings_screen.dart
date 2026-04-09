@@ -10,8 +10,8 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final localeAsync = ref.watch(localeNotifierProvider);
-    final currentLocale = localeAsync.valueOrNull ?? const Locale('vi');
+    final localeAsync = ref.watch(localeProvider);
+    final currentLocale = localeAsync.value ?? const Locale('vi');
 
     return Scaffold(
       appBar: AppBar(
@@ -32,7 +32,7 @@ class SettingsScreen extends ConsumerWidget {
                 selected: {currentLocale.languageCode},
                 onSelectionChanged: (selected) {
                   ref
-                      .read(localeNotifierProvider.notifier)
+                      .read(localeProvider.notifier)
                       .setLocale(Locale(selected.first));
                 },
               ),

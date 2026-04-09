@@ -141,7 +141,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
-    final notifier = ref.read(groupNotifierProvider.notifier);
+    final notifier = ref.read(groupProvider.notifier);
     final addMember = ref.read(addMemberProvider);
 
     if (isEdit) {
@@ -158,7 +158,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
       if (success && _existingMeId != null) {
         final meName = _meNameController.text.trim();
         if (meName.isNotEmpty) {
-          await ref.read(memberNotifierProvider.notifier).updateMember(
+          await ref.read(memberProvider.notifier).updateMember(
                 id: _existingMeId!,
                 groupId: widget.editGroupId!,
                 name: meName,
@@ -250,7 +250,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     );
     if (confirmed != true) return;
     final success = await ref
-        .read(groupNotifierProvider.notifier)
+        .read(groupProvider.notifier)
         .deleteGroup(widget.editGroupId!);
     if (success && mounted) context.go('/');
   }
@@ -758,7 +758,7 @@ class _EditModeMembersSectionState
                 onEmojiTap: () => widget.onShowEmojiPicker(
                   member.emoji,
                   (e) => ref
-                      .read(memberNotifierProvider.notifier)
+                      .read(memberProvider.notifier)
                       .updateMember(
                         id: member.id,
                         groupId: member.groupId,
@@ -1016,7 +1016,7 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
   Future<void> _saveName() async {
     final name = _nameController.text.trim();
     if (name.isEmpty || name == widget.member.name) return;
-    await ref.read(memberNotifierProvider.notifier).updateMember(
+    await ref.read(memberProvider.notifier).updateMember(
           id: widget.member.id,
           groupId: widget.member.groupId,
           name: name,
@@ -1050,7 +1050,7 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
     );
     if (confirmed != true) return;
     final success = await ref
-        .read(memberNotifierProvider.notifier)
+        .read(memberProvider.notifier)
         .removeMember(widget.member.id, widget.member.groupId);
     if (!success) {
       messenger.showSnackBar(

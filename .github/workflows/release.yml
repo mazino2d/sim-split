@@ -28,6 +28,7 @@ jobs:
     uses: ./.github/workflows/build_android.yml
     with:
       track: production
+      status: draft  # TODO: change to 'completed' after app passes first Play Store review
     secrets: inherit
 
   # build-ios:                         # disabled — Apple Developer account not yet active

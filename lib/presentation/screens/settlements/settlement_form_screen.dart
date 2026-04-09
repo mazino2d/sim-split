@@ -52,7 +52,7 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
     setState(() => _isLoading = true);
     final group = await ref.read(groupDetailProvider(widget.groupId).future);
 
-    final notifier = ref.read(settlementNotifierProvider.notifier);
+    final notifier = ref.read(settlementProvider.notifier);
     final success = await notifier.settleDebt(
       groupId: widget.groupId,
       fromMemberId: widget.fromMemberId!,

@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'settlement.freezed.dart';
 
 @freezed
-class Settlement with _$Settlement {
+sealed class Settlement with _$Settlement {
   const factory Settlement({
     required String id,
     required String groupId,

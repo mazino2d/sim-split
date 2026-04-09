@@ -7,14 +7,24 @@ on:
     inputs:
       track:
         description: 'Play Store track'
+        required: false
         default: 'internal'
         type: choice
         options: [internal, alpha, beta, production]
+      status:
+        description: 'Release status'
+        required: false
+        default: 'completed'
+        type: choice
+        options: [completed, draft, inProgress, halted]
   workflow_call:
     inputs:
       track:
         type: string
         default: 'internal'
+      status:
+        type: string
+        default: 'completed'
     secrets:
       ANDROID_KEYSTORE_BASE64:
         required: true
@@ -83,7 +93,7 @@ jobs:
           packageName: com.mazino2d.simsplit
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: ${{ inputs.track || github.event.inputs.track || 'internal' }}
-          status: draft  # TODO: change to 'completed' after app passes first Play Store review
+          status: ${{ inputs.status || github.event.inputs.status || 'completed' }}
 
       - name: Clean up keystore
         if: always()

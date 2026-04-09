@@ -16,7 +16,7 @@ class GroupCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final members = ref.watch(memberListProvider(group.id)).valueOrNull ?? [];
+    final members = ref.watch(memberListProvider(group.id)).value ?? [];
     final memberCount = members.length;
     final myMember = members.where((m) => m.isMe).firstOrNull;
 
@@ -24,7 +24,7 @@ class GroupCard extends ConsumerWidget {
         ref.watch(debtSummaryProvider(group.id, group.currencyCode));
     final myBalance = myMember == null
         ? null
-        : debtAsync.valueOrNull?.balances
+        : debtAsync.value?.balances
             .where((b) => b.member.id == myMember.id)
             .firstOrNull;
 

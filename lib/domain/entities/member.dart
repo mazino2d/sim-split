@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'member.freezed.dart';
 
 @freezed
-class Member with _$Member {
+sealed class Member with _$Member {
   const factory Member({
     required String id,
     required String groupId,

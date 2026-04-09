@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,11 +10,26 @@ import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/groups/group_card.dart';
 
-class GroupListScreen extends ConsumerWidget {
+class GroupListScreen extends ConsumerStatefulWidget {
   const GroupListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GroupListScreen> createState() => _GroupListScreenState();
+}
+
+class _GroupListScreenState extends ConsumerState<GroupListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Remove splash after the first frame is fully rasterized,
+    // ensuring icon fonts are already loaded before user sees the UI.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlutterNativeSplash.remove();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final groupsAsync = ref.watch(groupListProvider);
 
@@ -43,6 +59,7 @@ class GroupListScreen extends ConsumerWidget {
     );
   }
 }
+
 
 class _GroupListBody extends StatelessWidget {
   const _GroupListBody({required this.groups});

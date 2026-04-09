@@ -5,7 +5,7 @@ part 'debt.freezed.dart';
 
 /// A computed (not stored) representation of a debt between two members.
 @freezed
-class Debt with _$Debt {
+sealed class Debt with _$Debt {
   const factory Debt({
     required Member from,
     required Member to,
@@ -16,7 +16,7 @@ class Debt with _$Debt {
 
 /// Per-member net balance within a group. Positive = owed to this member.
 @freezed
-class MemberBalance with _$MemberBalance {
+sealed class MemberBalance with _$MemberBalance {
   const factory MemberBalance({
     required Member member,
 
@@ -27,7 +27,7 @@ class MemberBalance with _$MemberBalance {
 
 /// Complete debt summary for a group.
 @freezed
-class DebtSummary with _$DebtSummary {
+sealed class DebtSummary with _$DebtSummary {
   const factory DebtSummary({
     required String groupId,
     required String currencyCode,
