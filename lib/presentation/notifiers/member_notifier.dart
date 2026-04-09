@@ -16,6 +16,7 @@ class MemberNotifier extends _$MemberNotifier {
     required String groupId,
     required String name,
     required int avatarColorValue,
+    String? emoji,
     required bool isMe,
     required DateTime createdAt,
   }) async {
@@ -26,6 +27,7 @@ class MemberNotifier extends _$MemberNotifier {
       groupId: groupId,
       name: name,
       avatarColorValue: avatarColorValue,
+      emoji: emoji,
       isMe: isMe,
       createdAt: createdAt,
     ));

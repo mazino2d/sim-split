@@ -9,6 +9,7 @@ class Member with _$Member {
     required String groupId,
     required String name,
     required int avatarColorValue,
+    String? emoji,
     @Default(false) bool isMe,
     required DateTime createdAt,
   }) = _Member;

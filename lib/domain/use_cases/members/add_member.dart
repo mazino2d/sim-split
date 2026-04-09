@@ -10,12 +10,14 @@ class AddMemberParams {
     required this.groupId,
     required this.name,
     this.avatarColorValue = 0xFF1976D2,
+    this.emoji,
     this.isMe = false,
   });
 
   final String groupId;
   final String name;
   final int avatarColorValue;
+  final String? emoji;
   final bool isMe;
 }
 
@@ -32,6 +34,7 @@ class AddMember implements AsyncUseCase<Member, AddMemberParams> {
       groupId: params.groupId,
       name: params.name.trim(),
       avatarColorValue: params.avatarColorValue,
+      emoji: params.emoji,
       isMe: params.isMe,
       createdAt: DateTime.now(),
     );

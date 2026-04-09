@@ -8,6 +8,7 @@ class Members extends Table {
       text().references(Groups, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text().withLength(min: 1, max: 80)();
   IntColumn get avatarColorValue => integer()();
+  TextColumn get emoji => text().nullable()();
   BoolColumn get isMe => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
 

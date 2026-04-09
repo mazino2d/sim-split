@@ -84,7 +84,10 @@ class GroupCard extends ConsumerWidget {
             ],
           ),
           isThreeLine: myMember != null && myBalance != null,
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [Icon(Icons.chevron_right)],
+          ),
           onTap: () => context.push('/groups/${group.id}'),
         ),
       ),

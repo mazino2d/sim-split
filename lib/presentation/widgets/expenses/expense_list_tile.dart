@@ -43,7 +43,10 @@ class ExpenseListTile extends StatelessWidget {
       ),
       title: Text(expense.title),
       subtitle: Text(
-        paidBy != null ? l10n.paidByLabel(paidBy.name) : '',
+        paidBy != null
+            ? l10n.paidByLabel(
+                paidBy.isMe ? '${paidBy.name} ${l10n.meLabel}' : paidBy.name)
+            : '',
         style: const TextStyle(color: Colors.grey),
       ),
       trailing: Column(

@@ -167,5 +167,18 @@
 
   "errorUnexpected": "An unexpected error occurred",
   "errorNotFound": "Not found",
-  "retry": "Retry"
+  "retry": "Retry",
+
+  "settlements": "Settlements",
+  "meLabel": "(me)",
+  "unsavedChanges": "Unsaved changes",
+  "discardChanges": "Discard",
+  "keepEditing": "Keep editing",
+  "chooseIcon": "Choose icon",
+  "viewExpense": "Expense detail",
+  "splitBreakdown": "Split breakdown",
+  "addMemberName": "Name",
+  "you": "You",
+  "yourName": "Your name",
+  "youRequired": "Please enter your name"
 }

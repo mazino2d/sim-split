@@ -166,5 +166,18 @@
 
   "errorUnexpected": "Đã xảy ra lỗi không mong muốn",
   "errorNotFound": "Không tìm thấy",
-  "retry": "Thử lại"
+  "retry": "Thử lại",
+
+  "settlements": "Thanh toán",
+  "meLabel": "(tôi)",
+  "unsavedChanges": "Chưa lưu thay đổi",
+  "discardChanges": "Bỏ qua",
+  "keepEditing": "Tiếp tục chỉnh sửa",
+  "chooseIcon": "Chọn biểu tượng",
+  "viewExpense": "Chi tiết chi tiêu",
+  "splitBreakdown": "Chi tiết chia",
+  "addMemberName": "Tên",
+  "you": "Tôi",
+  "yourName": "Tên của bạn",
+  "youRequired": "Vui lòng nhập tên của bạn"
 }

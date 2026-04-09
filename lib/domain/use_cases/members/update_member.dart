@@ -10,6 +10,7 @@ class UpdateMemberParams {
     required this.groupId,
     required this.name,
     required this.avatarColorValue,
+    this.emoji,
     required this.isMe,
     required this.createdAt,
   });
@@ -18,6 +19,7 @@ class UpdateMemberParams {
   final String groupId;
   final String name;
   final int avatarColorValue;
+  final String? emoji;
   final bool isMe;
   final DateTime createdAt;
 }
@@ -35,6 +37,7 @@ class UpdateMember implements AsyncUseCase<Member, UpdateMemberParams> {
       groupId: params.groupId,
       name: params.name.trim(),
       avatarColorValue: params.avatarColorValue,
+      emoji: params.emoji,
       isMe: params.isMe,
       createdAt: params.createdAt,
     );

@@ -10,6 +10,7 @@ class MemberMapper {
         groupId: row.groupId,
         name: row.name,
         avatarColorValue: row.avatarColorValue,
+        emoji: row.emoji,
         isMe: row.isMe,
         createdAt: row.createdAt,
       );
@@ -19,6 +20,7 @@ class MemberMapper {
         groupId: Value(entity.groupId),
         name: Value(entity.name),
         avatarColorValue: Value(entity.avatarColorValue),
+        emoji: Value(entity.emoji),
         isMe: Value(entity.isMe),
         createdAt: Value(entity.createdAt),
       );

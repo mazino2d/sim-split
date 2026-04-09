@@ -8,6 +8,7 @@ import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/debt.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/presentation/notifiers/expense_notifier.dart';
 import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/providers/settlement_providers.dart';
@@ -54,7 +55,7 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() => setState(() {}));
   }
 
@@ -83,6 +84,7 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
           tabs: [
             Tab(text: l10n.expenses),
             Tab(text: l10n.balances),
+            Tab(text: l10n.settlements),
           ],
         ),
       ),
@@ -91,6 +93,7 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
         children: [
           _ExpensesTab(group: group),
           _BalancesTab(group: group),
+          _SettlementsTab(group: group),
         ],
       ),
       floatingActionButton: _tabController.index == 0
@@ -108,7 +111,7 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
                       action: SnackBarAction(
                         label: AppLocalizations.of(context)!.addMember,
                         onPressed: () => context
-                            .push('/groups/${group.id}/members/add'),
+                            .push('/groups/${group.id}/edit'),
                       ),
                     ),
                   );
@@ -165,13 +168,11 @@ class _ExpensesTab extends ConsumerWidget {
               return _DateSectionHeader(date: item.date);
             }
             final expense = (item as _ExpenseItem).expense;
-            return ExpenseListTile(
+            return _SwipeableExpenseTile(
               expense: expense,
               members: members,
               meMember: meMember,
-              onTap: () => context.push(
-                '/groups/${group.id}/expenses/${expense.id}/edit',
-              ),
+              group: group,
             );
           },
         );
@@ -241,10 +242,163 @@ class _DateSectionHeader extends StatelessWidget {
   }
 }
 
+// ── Swipeable Expense Tile ────────────────────────────────────────────────────
+
+class _SwipeableExpenseTile extends ConsumerWidget {
+  const _SwipeableExpenseTile({
+    required this.expense,
+    required this.members,
+    required this.meMember,
+    required this.group,
+  });
+
+  final Expense expense;
+  final List members;
+  final dynamic meMember;
+  final Group group;
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: Text(l10n.deleteExpenseConfirmTitle),
+        content: Text(l10n.deleteConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dCtx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await ref.read(expenseNotifierProvider.notifier).deleteExpense(expense.id);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    return Dismissible(
+      key: ValueKey('expense-${expense.id}'),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          // Right swipe → edit
+          await context.push(
+            '/groups/${group.id}/expenses/${expense.id}/edit',
+          );
+        } else {
+          // Left swipe → delete with confirmation
+          await _confirmDelete(context, ref);
+        }
+        return false;
+      },
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 24),
+        color: Colors.blue,
+        child: Row(
+          children: [
+            const Icon(Icons.edit, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(l10n.edit,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        color: Colors.red,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(l10n.delete,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 8),
+            const Icon(Icons.delete_outline, color: Colors.white),
+          ],
+        ),
+      ),
+      child: ExpenseListTile(
+        expense: expense,
+        members: members.cast(),
+        meMember: meMember,
+        onTap: () => context.push(
+          '/groups/${group.id}/expenses/${expense.id}',
+        ),
+      ),
+    );
+  }
+}
+
 // ── Balances Tab ─────────────────────────────────────────────────────────────
 
 class _BalancesTab extends ConsumerWidget {
   const _BalancesTab({required this.group});
+
+  final Group group;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final debtAsync =
+        ref.watch(debtSummaryProvider(group.id, group.currencyCode));
+
+    return debtAsync.when(
+      data: (summary) {
+        if (summary.balances.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(AppLocalizations.of(context)!.noMembers,
+                    style: const TextStyle(fontSize: 18, color: Colors.grey)),
+              ],
+            ),
+          );
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              child: Column(
+                children: [
+                  for (final balance in summary.balances)
+                    _MemberBalanceTile(
+                      balance: balance,
+                      currencyCode: group.currencyCode,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const AppLoadingWidget(),
+      error: (e, _) => AppErrorWidget(
+        message: e.toString(),
+        onRetry: () => ref.invalidate(
+            debtSummaryProvider(group.id, group.currencyCode)),
+      ),
+    );
+  }
+}
+
+// ── Settlements Tab ───────────────────────────────────────────────────────────
+
+class _SettlementsTab extends ConsumerWidget {
+  const _SettlementsTab({required this.group});
 
   final Group group;
 
@@ -274,34 +428,6 @@ class _BalancesTab extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Per-member balances
-            Card(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text(
-                      l10n.balances,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ),
-                  for (final balance in summary.balances)
-                    _MemberBalanceTile(
-                      balance: balance,
-                      currencyCode: group.currencyCode,
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Text(
-              l10n.suggestedSettlements,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
             for (final debt in summary.suggestions)
               DebtCard(
                 debt: debt,
@@ -351,8 +477,12 @@ class _MemberBalanceTile extends StatelessWidget {
       leading: CircleAvatar(
         backgroundColor: Color(balance.member.avatarColorValue),
         child: Text(
-          balance.member.name.substring(0, 1).toUpperCase(),
-          style: const TextStyle(color: Colors.white),
+          balance.member.emoji ??
+              balance.member.name.substring(0, 1).toUpperCase(),
+          style: TextStyle(
+            color: balance.member.emoji != null ? null : Colors.white,
+            fontSize: balance.member.emoji != null ? 18 : 14,
+          ),
         ),
       ),
       title: Text(balance.member.name),

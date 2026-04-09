@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/presentation/screens/expenses/expense_detail_screen.dart';
 import 'package:simsplit/presentation/screens/expenses/expense_form_screen.dart';
 import 'package:simsplit/presentation/screens/groups/group_detail_screen.dart';
 import 'package:simsplit/presentation/screens/groups/group_form_screen.dart';
@@ -45,6 +46,14 @@ final appRouter = GoRouter(
           builder: (context, state) {
             final groupId = state.pathParameters['groupId']!;
             return ExpenseFormScreen(groupId: groupId);
+          },
+        ),
+        GoRoute(
+          path: 'expenses/:expenseId',
+          builder: (context, state) {
+            final groupId = state.pathParameters['groupId']!;
+            final expenseId = state.pathParameters['expenseId']!;
+            return ExpenseDetailScreen(groupId: groupId, expenseId: expenseId);
           },
         ),
         GoRoute(

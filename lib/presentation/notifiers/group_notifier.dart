@@ -12,7 +12,8 @@ class GroupNotifier extends _$GroupNotifier {
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
-  Future<bool> createGroup({
+  /// Returns the new group's ID on success, null on failure.
+  Future<String?> createGroup({
     required String name,
     required String currencyCode,
     String? emoji,
@@ -30,11 +31,11 @@ class GroupNotifier extends _$GroupNotifier {
     return result.fold(
       (failure) {
         state = AsyncError(failure, StackTrace.current);
-        return false;
+        return null;
       },
-      (_) {
+      (group) {
         state = const AsyncData(null);
-        return true;
+        return group.id;
       },
     );
   }
