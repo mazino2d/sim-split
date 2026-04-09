@@ -83,7 +83,7 @@ jobs:
           packageName: com.mazino2d.simsplit
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: ${{ inputs.track || github.event.inputs.track || 'internal' }}
-          status: completed
+          status: draft  # TODO: change to 'completed' after app passes first Play Store review
 
       - name: Clean up keystore
         if: always()
