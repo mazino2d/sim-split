@@ -17,7 +17,7 @@
   <string>manual</string>
   <key>provisioningProfiles</key>
   <dict>
-    <key>com.simsplit.app</key>
+    <key>com.mazino2d.simsplit</key>
     <string>SimSplit AppStore Distribution</string>
   </dict>
 </dict>

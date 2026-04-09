@@ -1,4 +1,4 @@
-app_identifier("com.simsplit.app")
+app_identifier("com.mazino2d.simsplit")
 apple_id(ENV["APPLE_ID"] || "your-apple-id@example.com")
 itc_team_id(ENV["ITC_TEAM_ID"])
 team_id(ENV["TEAM_ID"])

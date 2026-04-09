@@ -6,7 +6,7 @@
 ## Quick Reference
 
 - **Flutter 3.24** + Dart 3.5, offline-first, no auth
-- **Bundle ID:** `com.simsplit.app`
+- **Bundle ID:** `com.mazino2d.simsplit`
 - **Architecture:** Clean Architecture — Domain (pure Dart) ← Data (Drift) ← Presentation (Riverpod)
 - **Money:** always integer cents (`amountCents: int`), never `double`
 - **Errors:** `Either<Failure, T>` from `fpdart`, not exceptions

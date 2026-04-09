@@ -8,7 +8,7 @@
 
 ## Project Overview
 
-SimSplit is a Flutter app for tracking and splitting group expenses. It works **offline-first** with no account required. Bundle ID: `com.simsplit.app`.
+SimSplit is a Flutter app for tracking and splitting group expenses. It works **offline-first** with no account required. Bundle ID: `com.mazino2d.simsplit`.
 
 ---
 

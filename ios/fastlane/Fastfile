@@ -11,7 +11,7 @@ platform :ios do
     upload_to_testflight(
       api_key: api_key,
       ipa: "../build/ios/ipa/simsplit.ipa",
-      app_identifier: "com.simsplit.app",
+      app_identifier: "com.mazino2d.simsplit",
       skip_waiting_for_build_processing: true,
     )
   end
@@ -26,7 +26,7 @@ platform :ios do
     deliver(
       api_key: api_key,
       ipa: "../build/ios/ipa/simsplit.ipa",
-      app_identifier: "com.simsplit.app",
+      app_identifier: "com.mazino2d.simsplit",
       submit_for_review: false,  # Submit manually after review of metadata
       automatic_release: false,
       metadata_path: "./metadata",

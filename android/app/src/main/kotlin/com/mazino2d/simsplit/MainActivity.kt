@@ -1,4 +1,4 @@
-package com.simsplit.app
+package com.mazino2d.simsplit
 
 import io.flutter.embedding.android.FlutterActivity
 
