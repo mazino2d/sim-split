@@ -2,7 +2,7 @@ name: simsplit
 description: "Ứng dụng ghi chú và chia chi tiêu nhóm, hoạt động offline."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
