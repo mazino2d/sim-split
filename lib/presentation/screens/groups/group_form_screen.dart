@@ -358,10 +358,9 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                               width: 56,
                               height: 56,
                               decoration: BoxDecoration(
-                                border: Border.all(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .outline),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Center(
@@ -372,7 +371,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                                         size: 24,
                                         color: Theme.of(context)
                                             .colorScheme
-                                            .outline),
+                                            .onSurfaceVariant),
                               ),
                             ),
                           ),
@@ -384,7 +383,6 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                             decoration: InputDecoration(
                               labelText: l10n.groupName,
                               hintText: l10n.groupNameHint,
-                              border: const OutlineInputBorder(),
                             ),
                             validator: (v) =>
                                 (v == null || v.trim().isEmpty)
@@ -401,7 +399,6 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       initialValue: _currency,
                       decoration: InputDecoration(
                         labelText: l10n.groupCurrency,
-                        border: const OutlineInputBorder(),
                       ),
                       items: _currencies
                           .map((c) =>
@@ -412,9 +409,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                         _isDirty = true;
                       }),
                     ),
-                    const SizedBox(height: 24),
-                    const Divider(),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 28),
 
                     // ── "Tôi" section (always shown) ───────────────────
                     _SectionHeader(
@@ -433,9 +428,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       ),
                       l10n: l10n,
                     ),
-                    const SizedBox(height: 24),
-                    const Divider(),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 28),
 
                     // ── Other members ──────────────────────────────────
                     _SectionHeader(
@@ -536,14 +529,17 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? Theme.of(context).colorScheme.onSurface;
+    final c = color ?? Theme.of(context).colorScheme.onSurfaceVariant;
     return Row(
       children: [
-        Icon(icon, size: 18, color: c),
+        Icon(icon, size: 14, color: c),
         const SizedBox(width: 6),
         Text(label,
             style: TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 15, color: c)),
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                color: c,
+                letterSpacing: 0.3)),
       ],
     );
   }
@@ -651,7 +647,6 @@ class _MeRow extends StatelessWidget {
             controller: nameController,
             decoration: InputDecoration(
               hintText: l10n.yourName,
-              border: const OutlineInputBorder(),
               isDense: true,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -889,7 +884,6 @@ class _NewMemberRow extends StatelessWidget {
             autofocus: true,
             decoration: InputDecoration(
               hintText: l10n.addMemberName,
-              border: const OutlineInputBorder(),
               isDense: true,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -954,7 +948,6 @@ class _DraftMemberRow extends StatelessWidget {
               controller: draft.controller,
               decoration: InputDecoration(
                 hintText: l10n.memberName,
-                border: const OutlineInputBorder(),
                 isDense: true,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1089,7 +1082,6 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
               controller: _nameController,
               decoration: InputDecoration(
                 hintText: l10n.memberName,
-                border: const OutlineInputBorder(),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 10),

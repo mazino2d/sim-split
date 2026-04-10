@@ -201,7 +201,6 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
               decoration: InputDecoration(
                 labelText: l10n.memberName,
                 hintText: l10n.memberNameHint,
-                border: const OutlineInputBorder(),
               ),
               validator: (v) => (v == null || v.trim().isEmpty)
                   ? l10n.memberNameRequired

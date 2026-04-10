@@ -416,7 +416,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 decoration: InputDecoration(
                   labelText: l10n.expenseTitle,
                   hintText: l10n.expenseTitleHint,
-                  border: const OutlineInputBorder(),
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty)
                     ? l10n.expenseTitleRequired
@@ -430,7 +429,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: '${l10n.amount} (${group.currencyCode})',
-                  border: const OutlineInputBorder(),
                 ),
                 validator: (v) {
                   final n = int.tryParse(
@@ -441,13 +439,33 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               ),
               const SizedBox(height: 12),
 
+              // ── Paid by ──────────────────────────────────────────────
+              DropdownButtonFormField<String>(
+                initialValue: _paidByMemberId,
+                decoration: InputDecoration(
+                  labelText: l10n.paidBy,
+                ),
+                items: members
+                    .map((m) => DropdownMenuItem(
+                          value: m.id,
+                          child: Text(m.isMe
+                              ? '${m.name} ${l10n.meLabel}'
+                              : m.name),
+                        ))
+                    .toList(),
+                onChanged: (v) => setState(() {
+                  _paidByMemberId = v;
+                  _isDirty = true;
+                }),
+              ),
+              const SizedBox(height: 12),
+
               // ── Date picker ──────────────────────────────────────────
-              Card(
-                margin: EdgeInsets.zero,
-                child: ListTile(
-                  leading: const Icon(Icons.calendar_today),
-                  title: Text(dateLabel),
-                  subtitle: Text(l10n.date),
+              Material(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: context,
@@ -462,29 +480,27 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                       });
                     }
                   },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_today_outlined,
+                            size: 18,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(dateLabel)),
+                        Icon(Icons.expand_more,
+                            size: 18,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-
-              // ── Paid by ──────────────────────────────────────────────
-              DropdownButtonFormField<String>(
-                initialValue: _paidByMemberId,
-                decoration: InputDecoration(
-                  labelText: l10n.paidBy,
-                  border: const OutlineInputBorder(),
-                ),
-                items: members
-                    .map((m) => DropdownMenuItem(
-                          value: m.id,
-                          child: Text(m.isMe
-                              ? '${m.name} ${l10n.meLabel}'
-                              : m.name),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() {
-                  _paidByMemberId = v;
-                  _isDirty = true;
-                }),
               ),
               const SizedBox(height: 16),
 
@@ -669,7 +685,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                   SplitType.shares => '×',
                   SplitType.equal => '',
                 },
-                border: const OutlineInputBorder(),
                 isDense: true,
               ),
             ),

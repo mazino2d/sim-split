@@ -107,7 +107,6 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: '${l10n.amount} (${group.currencyCode})',
-                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -115,7 +114,6 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
                 controller: _noteController,
                 decoration: InputDecoration(
                   labelText: l10n.note,
-                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 24),
