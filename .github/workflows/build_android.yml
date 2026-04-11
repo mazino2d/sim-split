@@ -6,25 +6,25 @@ on:
   workflow_dispatch:
     inputs:
       track:
-        description: 'Play Store track'
+        description: "Play Store track"
         required: false
-        default: 'internal'
+        default: "internal"
         type: choice
         options: [internal, alpha, beta, production]
       status:
-        description: 'Release status'
+        description: "Release status"
         required: false
-        default: 'completed'
+        default: "draft"
         type: choice
         options: [completed, draft, inProgress, halted]
   workflow_call:
     inputs:
       track:
         type: string
-        default: 'internal'
+        default: "internal"
       status:
         type: string
-        default: 'completed'
+        default: "draft"
     secrets:
       ANDROID_KEYSTORE_BASE64:
         required: true
@@ -47,13 +47,13 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.x'
-          channel: 'stable'
+          flutter-version: "3.41.x"
+          channel: "stable"
           cache: true
 
       - name: Install dependencies
@@ -93,7 +93,7 @@ jobs:
           packageName: com.mazino2d.simsplit
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: ${{ inputs.track || github.event.inputs.track || 'internal' }}
-          status: ${{ inputs.status || github.event.inputs.status || 'completed' }}
+          status: ${{ inputs.status || github.event.inputs.status || 'draft' }}
 
       - name: Clean up keystore
         if: always()
