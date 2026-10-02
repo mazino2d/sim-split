@@ -3,6 +3,19 @@ name: PR Validation
 on:
   pull_request:
     branches: [main]
+    # Only Dart sources and their build inputs affect format/analyze/test.
+    # PRs touching only docs, store assets, native platform folders, etc. skip
+    # this workflow entirely.
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "analysis_options.yaml"
+      - "build.yaml"
+      - "l10n.yaml"
+      - ".github/workflows/pr_validate.yml"
+      - ".github/actions/flutter-setup/**"
 
 # A new push to the same PR supersedes the run in progress.
 concurrency:
