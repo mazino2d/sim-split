@@ -5,6 +5,7 @@ import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/expense_split.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
+import 'package:simsplit/domain/failures/settlement_failure.dart';
 import 'package:simsplit/domain/repositories/expense_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
@@ -213,5 +214,127 @@ void main() {
     expect(summary.suggestions.length, 1);
     expect(summary.suggestions.first.from.id, 'm2');
     expect(summary.suggestions.first.amountCents, 10000);
+  });
+
+  Settlement settlement(String from, String to, int amountCents) => Settlement(
+        id: 's_${from}_$to',
+        groupId: 'g1',
+        fromMemberId: from,
+        toMemberId: to,
+        amountCents: amountCents,
+        currencyCode: 'VND',
+        settledAt: DateTime(2024),
+        createdAt: DateTime(2024),
+      );
+
+  const params = CalculateDebtsParams(groupId: 'g1', currencyCode: 'VND');
+
+  test('4 members with tied balances settle fully in N-1 or fewer', () async {
+    final m4 = _member('m4', 'Dave');
+    stubMembers([m1, m2, m3, m4]);
+    stubSettlements([]);
+    // m1 and m2 each paid 20000 split equally across all four (5000 each):
+    // m1 +10000, m2 +10000, m3 -10000, m4 -10000 (two ties).
+    stubExpenses([
+      for (final payer in ['m1', 'm2'])
+        _expense(
+          id: 'e_$payer',
+          paidBy: payer,
+          amountCents: 20000,
+          splits: [
+            for (final m in ['m1', 'm2', 'm3', 'm4'])
+              _split('e_$payer', m, 5000),
+          ],
+        ),
+    ]);
+
+    final summary = (await useCase(params)).getOrElse((_) => throw Exception());
+
+    expect(
+      {for (final b in summary.balances) b.member.id: b.netAmountCents},
+      {'m1': 10000, 'm2': 10000, 'm3': -10000, 'm4': -10000},
+    );
+    expect(summary.suggestions.length, lessThanOrEqualTo(3));
+    // Ties are broken by member order: deterministic output.
+    expect(
+      summary.suggestions
+          .map((d) => '${d.from.id}->${d.to.id}:${d.amountCents}'),
+      ['m3->m1:10000', 'm4->m2:10000'],
+    );
+
+    // Applying the suggestions zeroes every balance.
+    final remaining = {
+      for (final b in summary.balances) b.member.id: b.netAmountCents,
+    };
+    for (final d in summary.suggestions) {
+      remaining[d.from.id] = remaining[d.from.id]! + d.amountCents;
+      remaining[d.to.id] = remaining[d.to.id]! - d.amountCents;
+    }
+    expect(remaining.values.every((v) => v == 0), isTrue);
+  });
+
+  test('unknown payer returns a failure instead of crashing', () async {
+    stubMembers([m1, m2]);
+    stubSettlements([]);
+    stubExpenses([
+      _expense(
+        id: 'e1',
+        paidBy: 'ghost',
+        amountCents: 10000,
+        splits: [_split('e1', 'm1', 10000)],
+      ),
+    ]);
+
+    final result = await useCase(params);
+
+    expect(result.getLeft().toNullable(), isA<SettlementMemberNotInGroup>());
+  });
+
+  test('unknown split member returns a failure instead of crashing', () async {
+    stubMembers([m1, m2]);
+    stubSettlements([]);
+    stubExpenses([
+      _expense(
+        id: 'e1',
+        paidBy: 'm1',
+        amountCents: 10000,
+        splits: [_split('e1', 'ghost', 10000)],
+      ),
+    ]);
+
+    final result = await useCase(params);
+
+    expect(result.getLeft().toNullable(), isA<SettlementMemberNotInGroup>());
+  });
+
+  test('unknown settlement member returns a failure instead of crashing',
+      () async {
+    stubMembers([m1, m2]);
+    stubExpenses([]);
+    stubSettlements([settlement('m1', 'ghost', 500)]);
+
+    final result = await useCase(params);
+
+    expect(result.getLeft().toNullable(), isA<SettlementMemberNotInGroup>());
+  });
+
+  test('partial settlement leaves the remaining debt', () async {
+    stubMembers([m1, m2]);
+    stubExpenses([
+      _expense(
+        id: 'e1',
+        paidBy: 'm1',
+        amountCents: 20000,
+        splits: [_split('e1', 'm1', 10000), _split('e1', 'm2', 10000)],
+      ),
+    ]);
+    stubSettlements([settlement('m2', 'm1', 4000)]);
+
+    final summary = (await useCase(params)).getOrElse((_) => throw Exception());
+
+    expect(summary.suggestions.length, 1);
+    expect(summary.suggestions.single.from.id, 'm2');
+    expect(summary.suggestions.single.to.id, 'm1');
+    expect(summary.suggestions.single.amountCents, 6000);
   });
 }
