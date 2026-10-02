@@ -1,6 +1,9 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/failures/member_failure.dart';
+import 'package:simsplit/domain/failures/settlement_failure.dart';
+import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/domain/value_objects/unique_id.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
@@ -26,13 +29,38 @@ class SettleDebtParams {
 }
 
 class SettleDebt implements AsyncUseCase<Settlement, SettleDebtParams> {
-  const SettleDebt({required SettlementRepository settlementRepository})
-      : _settlementRepository = settlementRepository;
+  const SettleDebt({
+    required SettlementRepository settlementRepository,
+    required MemberRepository memberRepository,
+  })  : _settlementRepository = settlementRepository,
+        _memberRepository = memberRepository;
 
   final SettlementRepository _settlementRepository;
+  final MemberRepository _memberRepository;
 
   @override
-  Future<Either<Failure, Settlement>> call(SettleDebtParams params) {
+  Future<Either<Failure, Settlement>> call(SettleDebtParams params) async {
+    if (params.amountCents <= 0) {
+      return left(const SettlementFailure.amountMustBePositive());
+    }
+    if (params.fromMemberId == params.toMemberId) {
+      return left(const SettlementFailure.sameMember());
+    }
+
+    for (final memberId in [params.fromMemberId, params.toMemberId]) {
+      final memberResult = await _memberRepository.getMember(memberId);
+      switch (memberResult) {
+        case Left(value: MemberNotFound()):
+          return left(const SettlementFailure.memberNotInGroup());
+        case Left(value: final failure):
+          return left(failure);
+        case Right(value: final member) when member.groupId != params.groupId:
+          return left(const SettlementFailure.memberNotInGroup());
+        case Right():
+          break;
+      }
+    }
+
     final now = DateTime.now();
     final settlement = Settlement(
       id: UniqueId.generate().value,

@@ -6,6 +6,7 @@ sealed class GroupFailure extends Failure {
   const factory GroupFailure.notFound() = GroupNotFound;
   const factory GroupFailure.nameTooShort() = GroupNameTooShort;
   const factory GroupFailure.nameTooLong() = GroupNameTooLong;
+  const factory GroupFailure.currencyLocked() = GroupCurrencyLocked;
 }
 
 final class GroupNotFound extends GroupFailure {
@@ -18,4 +19,9 @@ final class GroupNameTooShort extends GroupFailure {
 
 final class GroupNameTooLong extends GroupFailure {
   const GroupNameTooLong() : super();
+}
+
+/// The group's currency cannot change once it has expenses.
+final class GroupCurrencyLocked extends GroupFailure {
+  const GroupCurrencyLocked() : super();
 }
