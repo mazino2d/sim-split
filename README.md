@@ -145,8 +145,14 @@ from `pubspec.yaml`.
 ```text
 ANDROID_KEYSTORE_BASE64   ANDROID_STORE_PASSWORD
 ANDROID_KEY_PASSWORD      ANDROID_KEY_ALIAS
-GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
 ```
+
+**Google Play upload** needs no secret: `build_android.yml` authenticates with
+Workload Identity Federation as
+`gha-play-publisher@mazino2d-as-se1-dev.iam.gserviceaccount.com`, defined in
+[everything-as-code](https://github.com/mazino2d/everything-as-code/blob/main/terraform/gcp/mazino2d-as-se1-dev/github_actions.tf).
+Only `main` and `vX.Y.Z` tags can use it. The account must be invited in Play
+Console → Users and permissions with release permissions for SimSplit.
 
 **iOS (not needed until the Apple account is active):**
 
