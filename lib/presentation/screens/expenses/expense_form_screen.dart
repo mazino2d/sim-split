@@ -83,8 +83,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     _membersInitialized = true;
     _members = members;
     // Default payer: prefer "me" member
-    _paidByMemberId ??= members.where((m) => m.isMe).firstOrNull?.id
-        ?? (members.isNotEmpty ? members.first.id : null);
+    _paidByMemberId ??= members.where((m) => m.isMe).firstOrNull?.id ??
+        (members.isNotEmpty ? members.first.id : null);
 
     for (final m in members) {
       _splitControllers[m.id] = TextEditingController(text: '0');
@@ -136,17 +136,15 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       final ctrl = _splitControllers[split.memberId];
       if (ctrl == null) continue;
       ctrl.text = switch (expense.splitType) {
-        SplitType.percentage =>
-          (split.value / 100).toStringAsFixed(2),
-        SplitType.exact =>
-          (split.amountCents ~/ 100).toString(),
+        SplitType.percentage => (split.value / 100).toStringAsFixed(2),
+        SplitType.exact => (split.amountCents ~/ 100).toString(),
         SplitType.shares => split.value.toString(),
         SplitType.equal => '0',
       };
     }
     // Reset dirty after loading existing data
-    WidgetsBinding.instance.addPostFrameCallback(
-        (_) => setState(() => _isDirty = false));
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => setState(() => _isDirty = false));
   }
 
   // ── Default & Redistribute ────────────────────────────────────────────────
@@ -448,9 +446,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 items: members
                     .map((m) => DropdownMenuItem(
                           value: m.id,
-                          child: Text(m.isMe
-                              ? '${m.name} ${l10n.meLabel}'
-                              : m.name),
+                          child: Text(
+                              m.isMe ? '${m.name} ${l10n.meLabel}' : m.name),
                         ))
                     .toList(),
                 onChanged: (v) => setState(() {
@@ -487,16 +484,14 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                       children: [
                         Icon(Icons.calendar_today_outlined,
                             size: 18,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(width: 10),
                         Expanded(child: Text(dateLabel)),
                         Icon(Icons.expand_more,
                             size: 18,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ],
                     ),
                   ),
@@ -530,8 +525,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: TextButton.icon(
-                    style:
-                        TextButton.styleFrom(foregroundColor: Colors.red),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
                     icon: const Icon(Icons.delete_outline),
                     label: Text(l10n.deleteExpense),
                     onPressed: _confirmDelete,
@@ -567,8 +561,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
   }
 
-  Widget _splitTypeChip(
-      (SplitType, String, IconData) typeData) {
+  Widget _splitTypeChip((SplitType, String, IconData) typeData) {
     final (type, label, icon) = typeData;
     final isSelected = _splitType == type;
     return Expanded(
@@ -612,9 +605,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
                     color: isSelected
                         ? Theme.of(context).colorScheme.primary
                         : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -653,8 +645,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             radius: 16,
             backgroundColor: Color(member.avatarColorValue),
             child: member.emoji != null
-                ? Text(member.emoji!,
-                    style: const TextStyle(fontSize: 14))
+                ? Text(member.emoji!, style: const TextStyle(fontSize: 14))
                 : Text(
                     member.name.substring(0, 1).toUpperCase(),
                     style: const TextStyle(color: Colors.white, fontSize: 12),
