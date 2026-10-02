@@ -88,7 +88,7 @@ lib/
     └── di/          # Dependency injection (DB → DAO → Repo → UseCase)
 ```
 
-> See full architecture guidelines: [.github/copilot-instructions.md](.github/copilot-instructions.md)
+> See full architecture guidelines: [CLAUDE.md](CLAUDE.md)
 
 ### Key rules
 
