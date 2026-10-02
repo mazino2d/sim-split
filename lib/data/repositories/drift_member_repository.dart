@@ -1,10 +1,11 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
-import 'package:simsplit/domain/failures/settlement_failure.dart';
+import 'package:simsplit/domain/failures/member_failure.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/data/daos/member_dao.dart';
 import 'package:simsplit/data/mappers/member_mapper.dart';
+import 'package:simsplit/data/utils/stream_failure_transformer.dart';
 
 class DriftMemberRepository implements MemberRepository {
   const DriftMemberRepository({
@@ -23,18 +24,14 @@ class DriftMemberRepository implements MemberRepository {
         .map((rows) => right<Failure, List<Member>>(
               rows.map(_mapper.toEntity).toList(),
             ))
-        .handleError(
-          (Object e) => left<Failure, List<Member>>(
-            Failure.dbFailure(e.toString()),
-          ),
-        );
+        .mapErrorsToDbFailure();
   }
 
   @override
   Future<Either<Failure, Member>> getMember(String id) async {
     try {
       final row = await _memberDao.getMemberById(id);
-      if (row == null) return left(const SettlementFailure.notFound());
+      if (row == null) return left(const MemberFailure.notFound());
       return right(_mapper.toEntity(row));
     } catch (e) {
       return left(Failure.dbFailure(e.toString()));
@@ -59,12 +56,15 @@ class DriftMemberRepository implements MemberRepository {
   @override
   Future<Either<Failure, Member>> updateMember(Member member) async {
     try {
-      await _memberDao.attachedDatabase.transaction(() async {
+      final updated = await _memberDao.attachedDatabase.transaction(() async {
+        final exists = await _memberDao.getMemberById(member.id);
+        if (exists == null) return false;
         if (member.isMe) {
           await _memberDao.clearIsMeForGroup(member.groupId);
         }
-        await _memberDao.updateMemberById(_mapper.toCompanion(member));
+        return _memberDao.updateMemberById(_mapper.toCompanion(member));
       });
+      if (!updated) return left(const MemberFailure.notFound());
       return right(member);
     } catch (e) {
       return left(Failure.dbFailure(e.toString()));
@@ -74,8 +74,18 @@ class DriftMemberRepository implements MemberRepository {
   @override
   Future<Either<Failure, Unit>> removeMember(String id) async {
     try {
-      await _memberDao.deleteMemberById(id);
+      final deleted = await _memberDao.deleteMemberById(id);
+      if (deleted == 0) return left(const MemberFailure.notFound());
       return right(unit);
+    } catch (e) {
+      return left(Failure.dbFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> isMemberReferenced(String memberId) async {
+    try {
+      return right(await _memberDao.isMemberReferenced(memberId));
     } catch (e) {
       return left(Failure.dbFailure(e.toString()));
     }

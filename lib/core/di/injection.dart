@@ -104,8 +104,10 @@ CreateGroup createGroup(Ref ref) =>
     CreateGroup(groupRepository: ref.watch(groupRepositoryProvider));
 
 @riverpod
-UpdateGroup updateGroup(Ref ref) =>
-    UpdateGroup(groupRepository: ref.watch(groupRepositoryProvider));
+UpdateGroup updateGroup(Ref ref) => UpdateGroup(
+      groupRepository: ref.watch(groupRepositoryProvider),
+      expenseRepository: ref.watch(expenseRepositoryProvider),
+    );
 
 @riverpod
 DeleteGroup deleteGroup(Ref ref) =>
@@ -120,10 +122,8 @@ AddMember addMember(Ref ref) =>
     AddMember(memberRepository: ref.watch(memberRepositoryProvider));
 
 @riverpod
-RemoveMember removeMember(Ref ref) => RemoveMember(
-      memberRepository: ref.watch(memberRepositoryProvider),
-      expenseRepository: ref.watch(expenseRepositoryProvider),
-    );
+RemoveMember removeMember(Ref ref) =>
+    RemoveMember(memberRepository: ref.watch(memberRepositoryProvider));
 
 @riverpod
 UpdateMember updateMember(Ref ref) =>
@@ -146,6 +146,7 @@ AddExpense addExpense(Ref ref) => AddExpense(
 @riverpod
 EditExpense editExpense(Ref ref) => EditExpense(
       expenseRepository: ref.watch(expenseRepositoryProvider),
+      memberRepository: ref.watch(memberRepositoryProvider),
       calculateSplits: ref.watch(calculateSplitsProvider),
     );
 
@@ -161,8 +162,10 @@ CalculateDebts calculateDebts(Ref ref) => CalculateDebts(
     );
 
 @riverpod
-SettleDebt settleDebt(Ref ref) =>
-    SettleDebt(settlementRepository: ref.watch(settlementRepositoryProvider));
+SettleDebt settleDebt(Ref ref) => SettleDebt(
+      settlementRepository: ref.watch(settlementRepositoryProvider),
+      memberRepository: ref.watch(memberRepositoryProvider),
+    );
 
 @riverpod
 ListSettlements listSettlements(Ref ref) => ListSettlements(

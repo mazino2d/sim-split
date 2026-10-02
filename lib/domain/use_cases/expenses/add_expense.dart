@@ -8,6 +8,7 @@ import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/value_objects/unique_id.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
 import 'package:simsplit/domain/use_cases/expenses/calculate_splits.dart';
+import 'package:simsplit/domain/use_cases/expenses/expense_member_validation.dart';
 
 class AddExpenseParams {
   const AddExpenseParams({
@@ -50,16 +51,21 @@ class AddExpense implements AsyncUseCase<Expense, AddExpenseParams> {
 
   @override
   Future<Either<Failure, Expense>> call(AddExpenseParams params) async {
+    if (params.title.trim().isEmpty) {
+      return left(const ExpenseFailure.titleEmpty());
+    }
     if (params.amountCents <= 0) {
       return left(const ExpenseFailure.amountMustBePositive());
     }
 
-    // Validate payer exists
-    final payerResult =
-        await _memberRepository.getMember(params.paidByMemberId);
-    if (payerResult.isLeft()) {
-      return left(const ExpenseFailure.memberNotFound());
-    }
+    // Payer and every participant must belong to the expense's group
+    final membersCheck = await validateExpenseMembers(
+      memberRepository: _memberRepository,
+      groupId: params.groupId,
+      paidByMemberId: params.paidByMemberId,
+      splitInputs: params.splitInputs,
+    );
+    if (membersCheck case Left(value: final failure)) return left(failure);
 
     final expenseId = UniqueId.generate().value;
 

@@ -12,6 +12,10 @@ sealed class ExpenseFailure extends Failure {
   const factory ExpenseFailure.invalidShares() = InvalidShares;
   const factory ExpenseFailure.noParticipants() = NoParticipants;
   const factory ExpenseFailure.amountMustBePositive() = AmountMustBePositive;
+  const factory ExpenseFailure.memberNotInGroup() = ExpenseMemberNotInGroup;
+  const factory ExpenseFailure.titleEmpty() = ExpenseTitleEmpty;
+  const factory ExpenseFailure.duplicateParticipant() = DuplicateParticipant;
+  const factory ExpenseFailure.negativeSplitValue() = NegativeSplitValue;
 }
 
 final class ExpenseNotFound extends ExpenseFailure {
@@ -44,4 +48,24 @@ final class NoParticipants extends ExpenseFailure {
 
 final class AmountMustBePositive extends ExpenseFailure {
   const AmountMustBePositive() : super();
+}
+
+/// The payer or a split participant does not belong to the expense's group.
+final class ExpenseMemberNotInGroup extends ExpenseFailure {
+  const ExpenseMemberNotInGroup() : super();
+}
+
+/// The expense title is empty or whitespace only.
+final class ExpenseTitleEmpty extends ExpenseFailure {
+  const ExpenseTitleEmpty() : super();
+}
+
+/// The same member appears more than once in the split inputs.
+final class DuplicateParticipant extends ExpenseFailure {
+  const DuplicateParticipant() : super();
+}
+
+/// A percentage or exact split value is negative.
+final class NegativeSplitValue extends ExpenseFailure {
+  const NegativeSplitValue() : super();
 }

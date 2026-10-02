@@ -8,4 +8,8 @@ abstract interface class MemberRepository {
   Future<Either<Failure, Member>> addMember(Member member);
   Future<Either<Failure, Member>> updateMember(Member member);
   Future<Either<Failure, Unit>> removeMember(String id);
+
+  /// Whether the member is referenced by any expense (as payer, including
+  /// soft-deleted expenses), any expense split, or any settlement.
+  Future<Either<Failure, bool>> isMemberReferenced(String memberId);
 }

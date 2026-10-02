@@ -47,6 +47,10 @@ class CalculateSplits
     if (params.totalAmountCents <= 0) {
       return left(const ExpenseFailure.amountMustBePositive());
     }
+    final memberIds = params.inputs.map((i) => i.memberId).toSet();
+    if (memberIds.length != params.inputs.length) {
+      return left(const ExpenseFailure.duplicateParticipant());
+    }
 
     return switch (params.splitType) {
       SplitType.equal => _calculateEqual(params),
@@ -77,39 +81,23 @@ class CalculateSplits
 
   Either<Failure, List<ExpenseSplit>> _calculatePercentage(
       CalculateSplitsParams params) {
+    if (params.inputs.any((i) => i.value < 0)) {
+      return left(const ExpenseFailure.negativeSplitValue());
+    }
     final totalScaled = params.inputs.fold(0, (sum, i) => sum + i.value);
     // Total should be 10000 (= 100.00%)
     if (totalScaled != 10000) {
       return left(const ExpenseFailure.percentageDoesNotSumTo100());
     }
 
-    final splits = <ExpenseSplit>[];
-    var allocated = 0;
-
-    for (var i = 0; i < params.inputs.length; i++) {
-      final input = params.inputs[i];
-      final isLast = i == params.inputs.length - 1;
-
-      // Last member gets the remainder to avoid rounding loss
-      final amountCents = isLast
-          ? params.totalAmountCents - allocated
-          : (params.totalAmountCents * input.value ~/ 10000);
-
-      splits.add(ExpenseSplit(
-        id: UniqueId.generate().value,
-        expenseId: params.expenseId,
-        memberId: input.memberId,
-        value: input.value,
-        amountCents: amountCents,
-      ));
-      allocated += amountCents;
-    }
-
-    return right(splits);
+    return right(_allocateProportionally(params, totalWeight: totalScaled));
   }
 
   Either<Failure, List<ExpenseSplit>> _validateExact(
       CalculateSplitsParams params) {
+    if (params.inputs.any((i) => i.value < 0)) {
+      return left(const ExpenseFailure.negativeSplitValue());
+    }
     final total = params.inputs.fold(0, (sum, i) => sum + i.value);
     if (total != params.totalAmountCents) {
       return left(const ExpenseFailure.exactDoesNotSumToTotal());
@@ -134,27 +122,58 @@ class CalculateSplits
     }
 
     final totalShares = params.inputs.fold(0, (sum, i) => sum + i.value);
-    final splits = <ExpenseSplit>[];
+    return right(_allocateProportionally(params, totalWeight: totalShares));
+  }
+
+  /// Splits [CalculateSplitsParams.totalAmountCents] proportionally to each
+  /// input's non-negative weight using the largest-remainder method.
+  ///
+  /// Every member first receives `floor(total * weight / totalWeight)`. The
+  /// leftover cents are then handed out one by one to the members with the
+  /// largest fractional remainders (ties broken by input order). A member
+  /// with weight 0 has remainder 0 and therefore never receives a leftover
+  /// cent, and the sum of all amounts always equals the total exactly.
+  List<ExpenseSplit> _allocateProportionally(
+    CalculateSplitsParams params, {
+    required int totalWeight,
+  }) {
+    final total = params.totalAmountCents;
+    final inputs = params.inputs;
+    final amounts = <int>[];
+    final remainders = <int>[];
     var allocated = 0;
 
-    for (var i = 0; i < params.inputs.length; i++) {
-      final input = params.inputs[i];
-      final isLast = i == params.inputs.length - 1;
-
-      final amountCents = isLast
-          ? params.totalAmountCents - allocated
-          : (params.totalAmountCents * input.value ~/ totalShares);
-
-      splits.add(ExpenseSplit(
-        id: UniqueId.generate().value,
-        expenseId: params.expenseId,
-        memberId: input.memberId,
-        value: input.value,
-        amountCents: amountCents,
-      ));
-      allocated += amountCents;
+    for (final input in inputs) {
+      final product = total * input.value;
+      final base = product ~/ totalWeight;
+      amounts.add(base);
+      remainders.add(product % totalWeight);
+      allocated += base;
     }
 
-    return right(splits);
+    final order = List<int>.generate(inputs.length, (i) => i)
+      ..sort((a, b) {
+        final byRemainder = remainders[b].compareTo(remainders[a]);
+        return byRemainder != 0 ? byRemainder : a.compareTo(b);
+      });
+
+    var leftover = total - allocated;
+    for (final index in order) {
+      if (leftover == 0) break;
+      if (remainders[index] == 0) break;
+      amounts[index] += 1;
+      leftover -= 1;
+    }
+
+    return [
+      for (var i = 0; i < inputs.length; i++)
+        ExpenseSplit(
+          id: UniqueId.generate().value,
+          expenseId: params.expenseId,
+          memberId: inputs[i].memberId,
+          value: inputs[i].value,
+          amountCents: amounts[i],
+        ),
+    ];
   }
 }

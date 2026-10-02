@@ -1,7 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
-import 'package:simsplit/domain/failures/settlement_failure.dart';
-import 'package:simsplit/domain/repositories/expense_repository.dart';
+import 'package:simsplit/domain/failures/member_failure.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
 
@@ -11,39 +10,40 @@ class RemoveMemberParams {
   final String groupId;
 }
 
+/// Removes a member from a group.
+///
+/// Fails with:
+/// - [MemberFailure.notFound] if the member does not exist,
+/// - [MemberFailure.notInGroup] if the member belongs to another group,
+/// - [MemberFailure.hasHistory] if the member is referenced by any expense
+///   (including soft-deleted ones), split, or settlement.
 class RemoveMember implements AsyncUseCase<Unit, RemoveMemberParams> {
-  const RemoveMember({
-    required MemberRepository memberRepository,
-    required ExpenseRepository expenseRepository,
-  })  : _memberRepository = memberRepository,
-        _expenseRepository = expenseRepository;
+  const RemoveMember({required MemberRepository memberRepository})
+      : _memberRepository = memberRepository;
 
   final MemberRepository _memberRepository;
-  final ExpenseRepository _expenseRepository;
 
   @override
   Future<Either<Failure, Unit>> call(RemoveMemberParams params) async {
-    // Check if member has any active (non-deleted) expenses as payer or participant
-    final expensesResult =
-        await _expenseRepository.watchExpensesByGroup(params.groupId).first;
+    final memberResult = await _memberRepository.getMember(params.memberId);
+    switch (memberResult) {
+      case Left(value: final failure):
+        return left(failure);
+      case Right(value: final member) when member.groupId != params.groupId:
+        return left(const MemberFailure.notInGroup());
+      case Right():
+        break;
+    }
 
-    return expensesResult.fold<Future<Either<Failure, Unit>>>(
-      (failure) async => left(failure),
-      (expenses) {
-        final hasExpenses = expenses.any(
-          (e) =>
-              !e.isDeleted &&
-              (e.paidByMemberId == params.memberId ||
-                  e.splits.any((s) => s.memberId == params.memberId)),
-        );
-
-        if (hasExpenses) {
-          return Future.value(
-              left(const SettlementFailure.memberHasUnsettledDebts()));
-        }
-
+    final referencedResult =
+        await _memberRepository.isMemberReferenced(params.memberId);
+    switch (referencedResult) {
+      case Left(value: final failure):
+        return left(failure);
+      case Right(value: true):
+        return left(const MemberFailure.hasHistory());
+      case Right(value: false):
         return _memberRepository.removeMember(params.memberId);
-      },
-    );
+    }
   }
 }

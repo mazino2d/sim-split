@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/failures/member_failure.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
 
@@ -31,7 +32,10 @@ class UpdateMember implements AsyncUseCase<Member, UpdateMemberParams> {
   final MemberRepository _memberRepository;
 
   @override
-  Future<Either<Failure, Member>> call(UpdateMemberParams params) {
+  Future<Either<Failure, Member>> call(UpdateMemberParams params) async {
+    if (params.name.trim().isEmpty) {
+      return left(const MemberFailure.nameEmpty());
+    }
     final member = Member(
       id: params.id,
       groupId: params.groupId,
