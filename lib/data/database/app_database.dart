@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:simsplit/data/database/connection/native_connection.dart'
-    if (dart.library.html) 'connection/web_connection.dart';
+    if (dart.library.js_interop) 'connection/web_connection.dart';
 
 import 'package:simsplit/data/daos/expense_dao.dart';
 import 'package:simsplit/data/daos/expense_split_dao.dart';

@@ -49,15 +49,32 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (keyPropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            // Never fall back to the debug key: a debug-signed AAB cannot be
+            // uploaded to Play. A missing key.properties fails release tasks
+            // (see the taskGraph check below).
+            if (keyPropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
             }
-            // Keep release stable first; re-enable minify after adding verified keep rules.
+            // R8 code + resource shrinking. Flutter's default keep rules cover
+            // the engine and plugins; add proguard-rules.pro only if a release
+            // build shows missing-class issues.
             isMinifyEnabled = true
             isShrinkResources = true
         }
+    }
+}
+
+// Fail fast, only when a release variant is actually being built, instead of
+// producing an unsigned or debug-signed artifact. Debug builds and
+// `flutter run` are unaffected.
+gradle.taskGraph.whenReady {
+    val buildsRelease = allTasks.any { it.project == project && it.name.contains("Release") }
+    if (buildsRelease && !keyPropertiesFile.exists()) {
+        throw GradleException(
+            "Release signing is not configured: ${keyPropertiesFile.path} is missing. " +
+                "Copy android/key.properties.example to android/key.properties and fill in " +
+                "your upload keystore details (see README > Releasing).",
+        )
     }
 }
 
