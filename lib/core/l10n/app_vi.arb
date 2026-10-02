@@ -200,6 +200,13 @@
   "invalidShares": "Nhập số nguyên ≥ 1",
   "exceedsTotal": "Vượt quá tổng",
   "currencyLockedHint": "Không thể đổi tiền tệ khi nhóm đã có khoản chi",
+  "errorMemberNameEmpty": "Tên thành viên không được để trống",
+  "errorMemberNotInGroup": "Một thành viên được chọn không thuộc nhóm này",
+  "errorMemberHasHistory": "Thành viên này đã có khoản chi hoặc thanh toán nên không thể xoá",
+  "errorExpenseTitleEmpty": "Tiêu đề khoản chi không được để trống",
+  "errorDuplicateParticipant": "Mỗi thành viên chỉ được xuất hiện một lần khi chia",
+  "errorNegativeSplitValue": "Giá trị chia không được âm",
+  "errorSettlementSameMember": "Thành viên không thể tự trả cho chính mình",
   "noIcon": "Không có biểu tượng",
   "avatarColorOption": "Màu {index}",
   "@avatarColorOption": {

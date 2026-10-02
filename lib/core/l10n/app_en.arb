@@ -201,6 +201,13 @@
   "invalidShares": "Enter a whole number ≥ 1",
   "exceedsTotal": "Exceeds total",
   "currencyLockedHint": "Currency can't be changed once the group has expenses",
+  "errorMemberNameEmpty": "Member name can't be empty",
+  "errorMemberNotInGroup": "A selected member isn't part of this group",
+  "errorMemberHasHistory": "This member has expenses or settlements and can't be removed",
+  "errorExpenseTitleEmpty": "Expense title can't be empty",
+  "errorDuplicateParticipant": "Each member can only appear once in a split",
+  "errorNegativeSplitValue": "Split values can't be negative",
+  "errorSettlementSameMember": "A member can't pay themselves",
   "noIcon": "No icon",
   "avatarColorOption": "Color {index}",
   "@avatarColorOption": {
