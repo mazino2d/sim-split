@@ -4,6 +4,7 @@ import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/data/daos/settlement_dao.dart';
 import 'package:simsplit/data/mappers/settlement_mapper.dart';
+import 'package:simsplit/data/utils/stream_failure_transformer.dart';
 
 class DriftSettlementRepository implements SettlementRepository {
   const DriftSettlementRepository({
@@ -23,11 +24,7 @@ class DriftSettlementRepository implements SettlementRepository {
         .map((rows) => right<Failure, List<Settlement>>(
               rows.map(_mapper.toEntity).toList(),
             ))
-        .handleError(
-          (Object e) => left<Failure, List<Settlement>>(
-            Failure.dbFailure(e.toString()),
-          ),
-        );
+        .mapErrorsToDbFailure();
   }
 
   @override

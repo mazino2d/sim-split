@@ -6,6 +6,7 @@ import 'package:simsplit/domain/repositories/expense_repository.dart';
 import 'package:simsplit/data/daos/expense_dao.dart';
 import 'package:simsplit/data/daos/expense_split_dao.dart';
 import 'package:simsplit/data/mappers/expense_mapper.dart';
+import 'package:simsplit/data/utils/stream_failure_transformer.dart';
 
 class DriftExpenseRepository implements ExpenseRepository {
   const DriftExpenseRepository({
@@ -22,28 +23,24 @@ class DriftExpenseRepository implements ExpenseRepository {
 
   @override
   Stream<Either<Failure, List<Expense>>> watchExpensesByGroup(String groupId) {
-    // Watch expenses then hydrate each with its splits.
-    // Note: this triggers a re-load of all splits whenever any expense changes.
-    // For MVP scale this is acceptable; can be optimized with a JOIN later.
-    return _expenseDao.watchExpensesByGroup(groupId).asyncMap((rows) async {
-      final expenses = <Expense>[];
-      for (final row in rows) {
-        final splits = await _expenseSplitDao.getSplitsForExpense(row.id);
-        expenses.add(_mapper.toEntity(row, splits));
-      }
-      return right<Failure, List<Expense>>(expenses);
-    }).handleError(
-      (Object e) => left<Failure, List<Expense>>(
-        Failure.dbFailure(e.toString()),
-      ),
-    );
+    // A single JOIN query watches both the expenses and the splits table, so
+    // every emission carries up-to-date splits for each expense.
+    return _expenseDao
+        .watchExpensesWithSplitsByGroup(groupId)
+        .map((rows) => right<Failure, List<Expense>>([
+              for (final (row, splits) in rows) _mapper.toEntity(row, splits),
+            ]))
+        .mapErrorsToDbFailure();
   }
 
   @override
   Future<Either<Failure, Expense>> getExpense(String id) async {
     try {
       final row = await _expenseDao.getExpenseById(id);
-      if (row == null) return left(const ExpenseFailure.notFound());
+      // Soft-deleted expenses are treated as non-existent.
+      if (row == null || row.isDeleted) {
+        return left(const ExpenseFailure.notFound());
+      }
       final splits = await _expenseSplitDao.getSplitsForExpense(id);
       return right(_mapper.toEntity(row, splits));
     } catch (e) {
@@ -54,9 +51,12 @@ class DriftExpenseRepository implements ExpenseRepository {
   @override
   Future<Either<Failure, Expense>> addExpense(Expense expense) async {
     try {
-      await _expenseDao.insertExpense(_mapper.toCompanion(expense));
-      await _expenseSplitDao
-          .insertSplits(_mapper.splitCompanions(expense.splits));
+      // Expense row and splits are written atomically.
+      await _expenseDao.attachedDatabase.transaction(() async {
+        await _expenseDao.insertExpense(_mapper.toCompanion(expense));
+        await _expenseSplitDao
+            .insertSplits(_mapper.splitCompanions(expense.splits));
+      });
       return right(expense);
     } catch (e) {
       return left(Failure.dbFailure(e.toString()));
@@ -66,11 +66,17 @@ class DriftExpenseRepository implements ExpenseRepository {
   @override
   Future<Either<Failure, Expense>> updateExpense(Expense expense) async {
     try {
-      // Replace expense row and re-insert splits atomically
-      await _expenseDao.updateExpenseById(_mapper.toCompanion(expense));
-      await _expenseSplitDao.deleteSplitsForExpense(expense.id);
-      await _expenseSplitDao
-          .insertSplits(_mapper.splitCompanions(expense.splits));
+      // Replace expense row and re-insert splits atomically.
+      final replaced = await _expenseDao.attachedDatabase.transaction(() async {
+        final ok =
+            await _expenseDao.updateExpenseById(_mapper.toCompanion(expense));
+        if (!ok) return false;
+        await _expenseSplitDao.deleteSplitsForExpense(expense.id);
+        await _expenseSplitDao
+            .insertSplits(_mapper.splitCompanions(expense.splits));
+        return true;
+      });
+      if (!replaced) return left(const ExpenseFailure.notFound());
       return right(expense);
     } catch (e) {
       return left(Failure.dbFailure(e.toString()));

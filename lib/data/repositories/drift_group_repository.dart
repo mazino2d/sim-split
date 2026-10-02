@@ -5,6 +5,7 @@ import 'package:simsplit/domain/failures/group_failure.dart';
 import 'package:simsplit/domain/repositories/group_repository.dart';
 import 'package:simsplit/data/daos/group_dao.dart';
 import 'package:simsplit/data/mappers/group_mapper.dart';
+import 'package:simsplit/data/utils/stream_failure_transformer.dart';
 
 class DriftGroupRepository implements GroupRepository {
   const DriftGroupRepository({
@@ -23,11 +24,7 @@ class DriftGroupRepository implements GroupRepository {
         .map((rows) => right<Failure, List<Group>>(
               rows.map(_mapper.toEntity).toList(),
             ))
-        .handleError(
-          (Object e) => left<Failure, List<Group>>(
-            Failure.dbFailure(e.toString()),
-          ),
-        );
+        .mapErrorsToDbFailure();
   }
 
   @override
