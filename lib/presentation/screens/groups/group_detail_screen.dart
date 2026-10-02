@@ -16,6 +16,8 @@ import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
+import 'package:simsplit/presentation/utils/failure_message.dart';
+import 'package:simsplit/presentation/utils/member_initial.dart';
 
 class GroupDetailScreen extends ConsumerWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -31,7 +33,7 @@ class GroupDetailScreen extends ConsumerWidget {
       loading: () => const Scaffold(body: AppLoadingWidget()),
       error: (e, _) => Scaffold(
         body: AppErrorWidget(
-          message: e.toString(),
+          error: e,
           onRetry: () => ref.invalidate(groupDetailProvider(groupId)),
         ),
       ),
@@ -76,6 +78,7 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
+            tooltip: l10n.editGroup,
             onPressed: () => context.push('/groups/${group.id}/edit'),
           ),
         ],
@@ -175,7 +178,7 @@ class _ExpensesTab extends ConsumerWidget {
         );
       },
       loading: () => const AppLoadingWidget(),
-      error: (e, _) => AppErrorWidget(message: e.toString()),
+      error: (e, _) => AppErrorWidget(error: e),
     );
   }
 
@@ -269,7 +272,10 @@ class _SwipeableExpenseTile extends ConsumerWidget {
             child: Text(l10n.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dCtx).colorScheme.error,
+              foregroundColor: Theme.of(dCtx).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(dCtx, true),
             child: Text(l10n.delete),
           ),
@@ -277,12 +283,21 @@ class _SwipeableExpenseTile extends ConsumerWidget {
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    await ref.read(expenseProvider.notifier).deleteExpense(expense.id);
+    final messenger = ScaffoldMessenger.of(context);
+    final result =
+        await ref.read(expenseProvider.notifier).deleteExpense(expense.id);
+    result.fold(
+      (failure) => messenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(failure, l10n))),
+      ),
+      (_) {},
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     return Dismissible(
       key: ValueKey('expense-${expense.id}'),
       direction: DismissDirection.horizontal,
@@ -301,29 +316,29 @@ class _SwipeableExpenseTile extends ConsumerWidget {
       background: Container(
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 24),
-        color: Colors.blue,
+        color: colorScheme.primary,
         child: Row(
           children: [
-            const Icon(Icons.edit, color: Colors.white),
+            Icon(Icons.edit, color: colorScheme.onPrimary),
             const SizedBox(width: 8),
             Text(l10n.edit,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w600)),
+                style: TextStyle(
+                    color: colorScheme.onPrimary, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
       secondaryBackground: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        color: Colors.red,
+        color: colorScheme.error,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Text(l10n.delete,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w600)),
+                style: TextStyle(
+                    color: colorScheme.onError, fontWeight: FontWeight.w600)),
             const SizedBox(width: 8),
-            const Icon(Icons.delete_outline, color: Colors.white),
+            Icon(Icons.delete_outline, color: colorScheme.onError),
           ],
         ),
       ),
@@ -358,10 +373,14 @@ class _BalancesTab extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                Icon(Icons.people_outline,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(height: 16),
                 Text(AppLocalizations.of(context)!.noMembers,
-                    style: const TextStyle(fontSize: 18, color: Colors.grey)),
+                    style: TextStyle(
+                        fontSize: 18,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ),
           );
@@ -386,7 +405,7 @@ class _BalancesTab extends ConsumerWidget {
       },
       loading: () => const AppLoadingWidget(),
       error: (e, _) => AppErrorWidget(
-        message: e.toString(),
+        error: e,
         onRetry: () =>
             ref.invalidate(debtSummaryProvider(group.id, group.currencyCode)),
       ),
@@ -414,8 +433,8 @@ class _SettlementsTab extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.check_circle_outline,
-                    size: 80, color: Colors.green),
+                Icon(Icons.check_circle_outline,
+                    size: 80, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 16),
                 Text(l10n.settledUp, style: const TextStyle(fontSize: 20)),
               ],
@@ -444,7 +463,7 @@ class _SettlementsTab extends ConsumerWidget {
       },
       loading: () => const AppLoadingWidget(),
       error: (e, _) => AppErrorWidget(
-        message: e.toString(),
+        error: e,
         onRetry: () =>
             ref.invalidate(debtSummaryProvider(group.id, group.currencyCode)),
       ),
@@ -465,18 +484,18 @@ class _MemberBalanceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final net = balance.netAmountCents;
     final amountStr = formatMoney(net.abs(), currencyCode);
+    final colorScheme = Theme.of(context).colorScheme;
     final color = net > 0
-        ? Colors.green
+        ? colorScheme.primary
         : net < 0
-            ? Colors.red
-            : Colors.grey;
+            ? colorScheme.error
+            : colorScheme.onSurfaceVariant;
 
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Color(balance.member.avatarColorValue),
         child: Text(
-          balance.member.emoji ??
-              balance.member.name.substring(0, 1).toUpperCase(),
+          balance.member.emoji ?? nameInitial(balance.member.name),
           style: TextStyle(
             color: balance.member.emoji != null ? null : Colors.white,
             fontSize: balance.member.emoji != null ? 18 : 14,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,10 +7,14 @@ import 'package:go_router/go_router.dart';
 import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/entities/member.dart';
-import 'package:simsplit/domain/use_cases/members/add_member.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/use_cases/members/update_member.dart';
 import 'package:simsplit/presentation/notifiers/group_notifier.dart';
 import 'package:simsplit/presentation/notifiers/member_notifier.dart';
+import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/utils/failure_message.dart';
+import 'package:simsplit/presentation/utils/member_initial.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 
 const _currencies = ['VND', 'USD', 'EUR', 'SGD', 'THB'];
@@ -103,11 +109,18 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
   final _newNameController = TextEditingController();
   String? _newEmoji;
 
+  // ── Edit mode — renames of existing members not yet persisted ───────────
+  // Keyed by member id. Flushed on form save, and on dispose as a fallback so
+  // a rename is never silently lost when the user navigates back.
+  final Map<String, ({Member member, String name})> _pendingRenames = {};
+  late final UpdateMember _updateMemberUseCase;
+
   bool get isEdit => widget.editGroupId != null;
 
   @override
   void initState() {
     super.initState();
+    _updateMemberUseCase = ref.read(updateMemberProvider);
     _nameController = TextEditingController();
     _nameController.addListener(() => setState(() => _isDirty = true));
     _meNameController.addListener(() => setState(() => _isDirty = true));
@@ -143,6 +156,21 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
 
   @override
   void dispose() {
+    // Persist renames the user typed but never committed (no save, no
+    // editing-complete). The State is gone, so failures cannot be surfaced.
+    for (final pending in _pendingRenames.values) {
+      final m = pending.member;
+      unawaited(_updateMemberUseCase(UpdateMemberParams(
+        id: m.id,
+        groupId: m.groupId,
+        name: pending.name,
+        avatarColorValue: m.avatarColorValue,
+        emoji: m.emoji,
+        isMe: m.isMe,
+        createdAt: m.createdAt,
+      )));
+    }
+    _pendingRenames.clear();
     _nameController.dispose();
     _meNameController.dispose();
     _newNameController.dispose();
@@ -165,7 +193,10 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             child: Text(l10n.keepEditing),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(l10n.discardChanges),
           ),
@@ -175,93 +206,148 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     return result == true;
   }
 
+  void _onPendingRename(Member member, String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || trimmed == member.name) {
+      _pendingRenames.remove(member.id);
+    } else {
+      _pendingRenames[member.id] = (member: member, name: trimmed);
+    }
+  }
+
+  /// Persists pending member renames. Returns the first failure, if any.
+  Future<Failure?> _flushPendingRenames() async {
+    final notifier = ref.read(memberProvider.notifier);
+    for (final entry in _pendingRenames.entries.toList()) {
+      final m = entry.value.member;
+      final result = await notifier.updateMember(
+        id: m.id,
+        groupId: m.groupId,
+        name: entry.value.name,
+        avatarColorValue: m.avatarColorValue,
+        emoji: m.emoji,
+        isMe: m.isMe,
+        createdAt: m.createdAt,
+      );
+      final failure = result.fold<Failure?>((f) => f, (_) => null);
+      if (failure != null) return failure;
+      _pendingRenames.remove(entry.key);
+    }
+    return null;
+  }
+
+  void _showFailure(ScaffoldMessengerState messenger, Failure failure) {
+    final l10n = AppLocalizations.of(context)!;
+    messenger.showSnackBar(
+      SnackBar(content: Text(failureMessage(failure, l10n))),
+    );
+  }
+
   Future<void> _save() async {
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isLoading = true);
 
-    final notifier = ref.read(groupProvider.notifier);
-    final addMember = ref.read(addMemberProvider);
+    final groupNotifier = ref.read(groupProvider.notifier);
+    final memberNotifier = ref.read(memberProvider.notifier);
 
     if (isEdit) {
       // ── Edit mode ──────────────────────────────────────────────────────
-      final success = await notifier.updateGroup(
-        id: widget.editGroupId!,
+      final groupId = widget.editGroupId!;
+      var failure = (await groupNotifier.updateGroup(
+        id: groupId,
         name: _nameController.text.trim(),
         currencyCode: _currency,
         emoji: _emoji,
         colorValue: _colorValue,
-      );
+      ))
+          .fold<Failure?>((f) => f, (_) => null);
 
-      // Save "me" member if we have one
-      if (success && _existingMeId != null) {
-        final meName = _meNameController.text.trim();
-        if (meName.isNotEmpty) {
-          await ref.read(memberProvider.notifier).updateMember(
+      final meName = _meNameController.text.trim();
+      if (failure == null && meName.isNotEmpty) {
+        final meResult = _existingMeId != null
+            ? await memberNotifier.updateMember(
                 id: _existingMeId!,
-                groupId: widget.editGroupId!,
+                groupId: groupId,
                 name: meName,
                 avatarColorValue: _existingMeAvatarColor,
                 emoji: _meEmoji,
                 isMe: true,
                 createdAt: _existingMeCreatedAt!,
+              )
+            // No me member yet — create one
+            : await memberNotifier.addMember(
+                groupId: groupId,
+                name: meName,
+                emoji: _meEmoji,
+                isMe: true,
               );
-        }
-      } else if (success && _existingMeId == null) {
-        // No me member yet — create one
-        final meName = _meNameController.text.trim();
-        if (meName.isNotEmpty) {
-          await addMember(AddMemberParams(
-            groupId: widget.editGroupId!,
-            name: meName,
-            emoji: _meEmoji,
-            isMe: true,
-          ));
-        }
+        failure = meResult.fold<Failure?>(
+          (f) => f,
+          (me) {
+            _existingMeId = me.id;
+            _existingMeCreatedAt = me.createdAt;
+            _existingMeAvatarColor = me.avatarColorValue;
+            return null;
+          },
+        );
       }
+
+      failure ??= await _flushPendingRenames();
 
       if (!mounted) return;
       setState(() => _isLoading = false);
-      if (success) {
-        _isDirty = false;
-        ref.invalidate(groupDetailProvider(widget.editGroupId!));
-        context.pop();
+      if (failure != null) {
+        _showFailure(messenger, failure);
+        return;
       }
+      _isDirty = false;
+      ref.invalidate(groupDetailProvider(groupId));
+      context.pop();
     } else {
       // ── Create mode ────────────────────────────────────────────────────
-      final groupId = await notifier.createGroup(
+      final createResult = await groupNotifier.createGroup(
         name: _nameController.text.trim(),
         currencyCode: _currency,
         emoji: _emoji,
         colorValue: _colorValue,
       );
-
+      final groupId = createResult.fold<String?>((_) => null, (g) => g.id);
       if (groupId == null) {
-        if (mounted) setState(() => _isLoading = false);
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        createResult.fold((f) => _showFailure(messenger, f), (_) {});
         return;
       }
 
-      // Add "me" member (required)
-      await addMember(AddMemberParams(
+      // Add "me" member (required) and pending other members. The group
+      // already exists, so on failure we still navigate to it (the user can
+      // add missing members there) but report the problem.
+      var failure = (await memberNotifier.addMember(
         groupId: groupId,
         name: _meNameController.text.trim(),
         emoji: _meEmoji,
         isMe: true,
-      ));
+      ))
+          .fold<Failure?>((f) => f, (_) => null);
 
-      // Add pending other members
       for (final draft in _memberDrafts) {
         final name = draft.controller.text.trim();
-        if (name.isNotEmpty) {
-          await addMember(AddMemberParams(
-            groupId: groupId,
-            name: name,
-            emoji: draft.emoji,
-          ));
-        }
+        if (name.isEmpty) continue;
+        final result = await memberNotifier.addMember(
+          groupId: groupId,
+          name: name,
+          emoji: draft.emoji,
+        );
+        failure ??= result.fold<Failure?>((f) => f, (_) => null);
       }
 
       if (!mounted) return;
+      if (failure != null) _showFailure(messenger, failure);
       _isDirty = false;
+      // Routes are nested under '/', so this yields [GroupList, GroupDetail]
+      // and Back from the detail returns to the list.
       context.go('/groups/$groupId');
     }
   }
@@ -279,17 +365,29 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             child: Text(l10n.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(l10n.delete),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
-    final success =
+    if (confirmed != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final result =
         await ref.read(groupProvider.notifier).deleteGroup(widget.editGroupId!);
-    if (success && mounted) context.go('/');
+    if (!mounted) return;
+    result.fold(
+      (f) => _showFailure(messenger, f),
+      (_) {
+        _isDirty = false;
+        _pendingRenames.clear();
+        context.go('/');
+      },
+    );
   }
 
   Future<void> _showEmojiPicker({
@@ -348,6 +446,18 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    // Watching keeps the auto-dispose notifiers alive while the form is open.
+    final saving = _isLoading ||
+        ref.watch(groupProvider).isLoading ||
+        ref.watch(memberProvider).isLoading;
+    // Changing currency would corrupt existing expense amounts.
+    final currencyLocked = isEdit &&
+        (ref
+                .watch(expenseListProvider(widget.editGroupId!))
+                .value
+                ?.isNotEmpty ??
+            true);
 
     return PopScope(
       canPop: !_isDirty,
@@ -363,7 +473,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
             IconButton(
               icon: const Icon(Icons.check),
               tooltip: l10n.save,
-              onPressed: _isLoading ? null : _save,
+              onPressed: saving ? null : _save,
             ),
           ],
         ),
@@ -431,18 +541,25 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
 
                     // ── Currency ───────────────────────────────────────
                     DropdownButtonFormField<String>(
+                      // Re-create when the loaded group's currency arrives.
+                      key: ValueKey('currency-$_currency'),
                       initialValue: _currency,
                       decoration: InputDecoration(
                         labelText: l10n.groupCurrency,
+                        helperText:
+                            currencyLocked ? l10n.currencyLockedHint : null,
                       ),
-                      items: _currencies
+                      items: {..._currencies, _currency}
                           .map(
                               (c) => DropdownMenuItem(value: c, child: Text(c)))
                           .toList(),
-                      onChanged: (v) => setState(() {
-                        _currency = v!;
-                        _isDirty = true;
-                      }),
+                      onChanged: currencyLocked
+                          ? null
+                          : (v) => setState(() {
+                                if (v == null) return;
+                                _currency = v;
+                                _isDirty = true;
+                              }),
                     ),
                     const SizedBox(height: 28),
 
@@ -476,6 +593,9 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       // Edit mode: stream-backed member list (non-me)
                       _EditModeMembersSection(
                         groupId: widget.editGroupId!,
+                        onPendingRename: _onPendingRename,
+                        onRenameSaved: (memberId) =>
+                            _pendingRenames.remove(memberId),
                         onShowEmojiPicker: (current, onSelected) =>
                             _showEmojiPicker(
                           options: _memberEmojiOptions,
@@ -534,11 +654,11 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: TextButton.icon(
-                          style:
-                              TextButton.styleFrom(foregroundColor: Colors.red),
+                          style: TextButton.styleFrom(
+                              foregroundColor: colorScheme.error),
                           icon: const Icon(Icons.delete_outline),
                           label: Text(l10n.deleteGroup),
-                          onPressed: _confirmDeleteGroup,
+                          onPressed: saving ? null : _confirmDeleteGroup,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -592,25 +712,52 @@ class _EmojiCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: selected
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Colors.transparent,
+    final colorScheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: emoji ?? AppLocalizations.of(context)!.noIcon,
+      excludeSemantics: true,
+      child: Material(
+        color: selected ? colorScheme.primaryContainer : Colors.transparent,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey.shade300,
+          side: BorderSide(
+            color: selected ? colorScheme.primary : colorScheme.outlineVariant,
           ),
         ),
-        child: Center(
-          child: child ?? Text(emoji!, style: const TextStyle(fontSize: 24)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Center(
+              child:
+                  child ?? Text(emoji!, style: const TextStyle(fontSize: 24)),
+            ),
+          ),
         ),
+      ),
+    );
+  }
+}
+
+/// Accessible circular tap target for avatar/emoji pickers.
+class _AvatarTapTarget extends StatelessWidget {
+  const _AvatarTapTarget({required this.onTap, required this.child});
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: AppLocalizations.of(context)!.chooseIcon,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: child,
       ),
     );
   }
@@ -622,19 +769,29 @@ class _FlatIconButton extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.onTap,
+    required this.tooltip,
   });
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+  final String tooltip;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Icon(icon, size: 20, color: color),
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        excludeSemantics: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(4),
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Icon(icon, size: 20, color: color),
+          ),
+        ),
       ),
     );
   }
@@ -660,7 +817,7 @@ class _MeRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        GestureDetector(
+        _AvatarTapTarget(
           onTap: onEmojiTap,
           child: CircleAvatar(
             radius: 22,
@@ -696,11 +853,15 @@ class _EditModeMembersSection extends ConsumerStatefulWidget {
   const _EditModeMembersSection({
     required this.groupId,
     required this.onShowEmojiPicker,
+    required this.onPendingRename,
+    required this.onRenameSaved,
   });
 
   final String groupId;
   final void Function(String? current, void Function(String?) onSelected)
       onShowEmojiPicker;
+  final void Function(Member member, String name) onPendingRename;
+  final void Function(String memberId) onRenameSaved;
 
   @override
   ConsumerState<_EditModeMembersSection> createState() =>
@@ -710,6 +871,7 @@ class _EditModeMembersSection extends ConsumerStatefulWidget {
 class _EditModeMembersSectionState
     extends ConsumerState<_EditModeMembersSection> {
   bool _addingNew = false;
+  bool _savingNew = false;
   final _newNameController = TextEditingController();
   String? _newEmoji;
 
@@ -720,23 +882,33 @@ class _EditModeMembersSectionState
   }
 
   Future<void> _saveNew() async {
+    if (_savingNew) return;
     final name = _newNameController.text.trim();
     if (name.isEmpty) {
       setState(() => _addingNew = false);
       return;
     }
-    final useCase = ref.read(addMemberProvider);
-    await useCase(AddMemberParams(
-      groupId: widget.groupId,
-      name: name,
-      emoji: _newEmoji,
-    ));
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _savingNew = true);
+    final result = await ref.read(memberProvider.notifier).addMember(
+          groupId: widget.groupId,
+          name: name,
+          emoji: _newEmoji,
+        );
     if (!mounted) return;
-    setState(() {
-      _addingNew = false;
-      _newNameController.clear();
-      _newEmoji = null;
-    });
+    setState(() => _savingNew = false);
+    result.fold(
+      // Keep the row open with the typed name so the user can retry.
+      (failure) => messenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(failure, l10n))),
+      ),
+      (_) => setState(() {
+        _addingNew = false;
+        _newNameController.clear();
+        _newEmoji = null;
+      }),
+    );
   }
 
   @override
@@ -776,20 +948,11 @@ class _EditModeMembersSectionState
             ],
             for (final member in others)
               _ExistingMemberRow(
+                key: ValueKey('member-${member.id}'),
                 member: member,
-                groupId: widget.groupId,
-                onEmojiTap: () => widget.onShowEmojiPicker(
-                  member.emoji,
-                  (e) => ref.read(memberProvider.notifier).updateMember(
-                        id: member.id,
-                        groupId: member.groupId,
-                        name: member.name,
-                        avatarColorValue: member.avatarColorValue,
-                        emoji: e,
-                        isMe: member.isMe,
-                        createdAt: member.createdAt,
-                      ),
-                ),
+                onShowEmojiPicker: widget.onShowEmojiPicker,
+                onPendingRename: widget.onPendingRename,
+                onRenameSaved: widget.onRenameSaved,
               ),
           ],
         );
@@ -798,7 +961,7 @@ class _EditModeMembersSectionState
         padding: EdgeInsets.all(16),
         child: CircularProgressIndicator(),
       ),
-      error: (e, _) => Text(e.toString()),
+      error: (e, _) => Text(failureMessage(e, l10n)),
     );
   }
 }
@@ -888,7 +1051,7 @@ class _NewMemberRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        GestureDetector(
+        _AvatarTapTarget(
           onTap: onEmojiTap,
           child: CircleAvatar(
             radius: 18,
@@ -918,13 +1081,15 @@ class _NewMemberRow extends StatelessWidget {
         const SizedBox(width: 6),
         _FlatIconButton(
           icon: Icons.check,
-          color: Colors.green.shade600,
+          color: Theme.of(context).colorScheme.primary,
           onTap: onSave,
+          tooltip: l10n.save,
         ),
         _FlatIconButton(
           icon: Icons.close,
-          color: Colors.grey.shade500,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           onTap: onCancel,
+          tooltip: l10n.cancel,
         ),
       ],
     );
@@ -952,7 +1117,7 @@ class _DraftMemberRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          GestureDetector(
+          _AvatarTapTarget(
             onTap: onEmojiTap,
             child: CircleAvatar(
               radius: 18,
@@ -980,8 +1145,9 @@ class _DraftMemberRow extends StatelessWidget {
           const SizedBox(width: 6),
           _FlatIconButton(
             icon: Icons.delete_outline,
-            color: Colors.red.shade400,
+            color: Theme.of(context).colorScheme.error,
             onTap: onDelete,
+            tooltip: l10n.removeMember,
           ),
         ],
       ),
@@ -993,14 +1159,18 @@ class _DraftMemberRow extends StatelessWidget {
 
 class _ExistingMemberRow extends ConsumerStatefulWidget {
   const _ExistingMemberRow({
+    super.key,
     required this.member,
-    required this.groupId,
-    required this.onEmojiTap,
+    required this.onShowEmojiPicker,
+    required this.onPendingRename,
+    required this.onRenameSaved,
   });
 
   final Member member;
-  final String groupId;
-  final VoidCallback onEmojiTap;
+  final void Function(String? current, void Function(String?) onSelected)
+      onShowEmojiPicker;
+  final void Function(Member member, String name) onPendingRename;
+  final void Function(String memberId) onRenameSaved;
 
   @override
   ConsumerState<_ExistingMemberRow> createState() => _ExistingMemberRowState();
@@ -1008,6 +1178,7 @@ class _ExistingMemberRow extends ConsumerStatefulWidget {
 
 class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
   late final TextEditingController _nameController;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -1029,18 +1200,49 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
     super.dispose();
   }
 
+  /// Name to persist: the typed name when non-empty, else the stored one.
+  String get _effectiveName {
+    final typed = _nameController.text.trim();
+    return typed.isEmpty ? widget.member.name : typed;
+  }
+
+  Future<void> _update({required String name, required String? emoji}) async {
+    if (_saving) return;
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final member = widget.member;
+    setState(() => _saving = true);
+    final result = await ref.read(memberProvider.notifier).updateMember(
+          id: member.id,
+          groupId: member.groupId,
+          name: name,
+          avatarColorValue: member.avatarColorValue,
+          emoji: emoji,
+          isMe: member.isMe,
+          createdAt: member.createdAt,
+        );
+    if (!mounted) return;
+    setState(() => _saving = false);
+    result.fold(
+      // The rename stays pending in the parent form and is retried on save.
+      (failure) => messenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(failure, l10n))),
+      ),
+      (_) => widget.onRenameSaved(member.id),
+    );
+  }
+
   Future<void> _saveName() async {
     final name = _nameController.text.trim();
     if (name.isEmpty || name == widget.member.name) return;
-    await ref.read(memberProvider.notifier).updateMember(
-          id: widget.member.id,
-          groupId: widget.member.groupId,
-          name: name,
-          avatarColorValue: widget.member.avatarColorValue,
-          emoji: widget.member.emoji,
-          isMe: widget.member.isMe,
-          createdAt: widget.member.createdAt,
-        );
+    await _update(name: name, emoji: widget.member.emoji);
+  }
+
+  void _pickEmoji() {
+    widget.onShowEmojiPicker(
+      widget.member.emoji,
+      (e) => _update(name: _effectiveName, emoji: e),
+    );
   }
 
   Future<void> _confirmDelete() async {
@@ -1057,22 +1259,28 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
             child: Text(l10n.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dCtx).colorScheme.error,
+              foregroundColor: Theme.of(dCtx).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(dCtx, true),
             child: Text(l10n.delete),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
-    final success = await ref
+    if (confirmed != true || !mounted) return;
+    final memberId = widget.member.id;
+    final result = await ref
         .read(memberProvider.notifier)
-        .removeMember(widget.member.id, widget.member.groupId);
-    if (!success) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.cannotRemoveMemberWithDebts)),
-      );
-    }
+        .removeMember(memberId, widget.member.groupId);
+    result.fold(
+      (failure) => messenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(failure, l10n))),
+      ),
+      // Member is gone: drop any pending rename so it is not re-applied.
+      (_) => widget.onRenameSaved(memberId),
+    );
   }
 
   @override
@@ -1084,15 +1292,15 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: widget.onEmojiTap,
+          _AvatarTapTarget(
+            onTap: _pickEmoji,
             child: CircleAvatar(
               radius: 18,
               backgroundColor: Color(member.avatarColorValue),
               child: member.emoji != null
                   ? Text(member.emoji!, style: const TextStyle(fontSize: 16))
                   : Text(
-                      member.name.substring(0, 1).toUpperCase(),
+                      nameInitial(member.name),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
             ),
@@ -1107,6 +1315,7 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
+              onChanged: (v) => widget.onPendingRename(member, v),
               onEditingComplete: _saveName,
               onTapOutside: (_) => _saveName(),
             ),
@@ -1114,8 +1323,9 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
           const SizedBox(width: 6),
           _FlatIconButton(
             icon: Icons.delete_outline,
-            color: Colors.red.shade400,
+            color: Theme.of(context).colorScheme.error,
             onTap: _confirmDelete,
+            tooltip: l10n.removeMember,
           ),
         ],
       ),

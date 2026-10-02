@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/entities/member.dart';
-import 'package:simsplit/domain/use_cases/members/add_member.dart';
 import 'package:simsplit/presentation/notifiers/member_notifier.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/utils/failure_message.dart';
 
 const _avatarColors = [
   0xFF1976D2,
@@ -61,50 +60,46 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
   }
 
   Future<void> _save() async {
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isLoading = true);
 
-    bool success;
-    if (_isEdit) {
-      final m = widget.editMember!;
-      success = await ref.read(memberProvider.notifier).updateMember(
+    final notifier = ref.read(memberProvider.notifier);
+    final m = widget.editMember;
+    final result = m != null
+        ? await notifier.updateMember(
             id: m.id,
             groupId: m.groupId,
             name: _nameController.text.trim(),
             avatarColorValue: _selectedColor,
+            emoji: m.emoji,
             isMe: _isMe,
             createdAt: m.createdAt,
+          )
+        : await notifier.addMember(
+            groupId: widget.groupId,
+            name: _nameController.text.trim(),
+            avatarColorValue: _selectedColor,
+            isMe: _isMe,
           );
-    } else {
-      final useCase = ref.read(addMemberProvider);
-      final result = await useCase(AddMemberParams(
-        groupId: widget.groupId,
-        name: _nameController.text.trim(),
-        avatarColorValue: _selectedColor,
-        isMe: _isMe,
-      ));
-      success = result.isRight();
-      if (!success && mounted) {
-        result.fold(
-          (failure) => ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(failure.toString())),
-          ),
-          (_) {},
-        );
-      }
-    }
 
     if (!mounted) return;
     setState(() => _isLoading = false);
-    if (success) context.pop();
+    result.fold(
+      (failure) => messenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(failure, l10n))),
+      ),
+      (_) => context.pop(),
+    );
   }
 
-  Future<void> _confirmDelete(BuildContext ctx) async {
-    final l10n = AppLocalizations.of(ctx)!;
+  Future<void> _confirmDelete() async {
+    if (_isLoading) return;
+    final l10n = AppLocalizations.of(context)!;
     final member = widget.editMember!;
-    // ignore: use_build_context_synchronously — ctx is used only before await below
-    final scaffoldMessenger = ScaffoldMessenger.of(ctx);
-    final navigator = Navigator.of(ctx);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dCtx) => AlertDialog(
@@ -116,37 +111,39 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
             child: Text(l10n.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dCtx).colorScheme.error,
+              foregroundColor: Theme.of(dCtx).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(dCtx, true),
             child: Text(l10n.delete),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
-    final success = await ref
+    setState(() => _isLoading = true);
+    final result = await ref
         .read(memberProvider.notifier)
         .removeMember(member.id, member.groupId);
 
     if (!mounted) return;
-    if (success) {
-      navigator.pop();
-    } else {
-      final error = ref.read(memberProvider).error;
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            error?.toString() ?? l10n.cannotRemoveMemberWithDebts,
-          ),
-        ),
-      );
-    }
+    setState(() => _isLoading = false);
+    result.fold(
+      (failure) => scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(failure, l10n))),
+      ),
+      (_) => context.pop(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    // Watching keeps the auto-dispose notifier alive while the screen is open.
+    final saving = ref.watch(memberProvider).isLoading || _isLoading;
     final members = ref.watch(memberListProvider(widget.groupId)).value ?? [];
 
     // Find existing isMe member that is NOT the current member being edited
@@ -162,8 +159,7 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
             IconButton(
               icon: const Icon(Icons.delete_outline),
               tooltip: l10n.removeMember,
-              onPressed: () =>
-                  _confirmDelete(context), // context captured before async
+              onPressed: saving ? null : _confirmDelete,
             ),
         ],
       ),
@@ -175,23 +171,30 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
             // Avatar color picker
             Wrap(
               spacing: 8,
-              children: _avatarColors.map((color) {
-                final selected = _selectedColor == color;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedColor = color),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Color(color),
-                      shape: BoxShape.circle,
-                      border: selected
-                          ? Border.all(color: Colors.black, width: 3)
-                          : null,
+              children: [
+                for (final (index, color) in _avatarColors.indexed)
+                  Semantics(
+                    button: true,
+                    selected: _selectedColor == color,
+                    label: l10n.avatarColorOption(index + 1),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () => setState(() => _selectedColor = color),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Color(color),
+                          shape: BoxShape.circle,
+                          border: _selectedColor == color
+                              ? Border.all(
+                                  color: colorScheme.onSurface, width: 3)
+                              : null,
+                        ),
+                      ),
                     ),
                   ),
-                );
-              }).toList(),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -220,21 +223,22 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.12),
+                  color: colorScheme.tertiaryContainer,
                   borderRadius: BorderRadius.circular(8),
-                  border:
-                      Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                  border: Border.all(color: colorScheme.tertiary),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline,
-                        color: Colors.orange, size: 18),
+                    Icon(Icons.info_outline,
+                        color: colorScheme.onTertiaryContainer, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         l10n.isMeWillReplace(existingIsMeMember.name),
-                        style:
-                            const TextStyle(color: Colors.orange, fontSize: 13),
+                        style: TextStyle(
+                          color: colorScheme.onTertiaryContainer,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -245,7 +249,7 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
             const SizedBox(height: 24),
 
             FilledButton(
-              onPressed: _isLoading ? null : _save,
+              onPressed: saving ? null : _save,
               child: Text(_isEdit ? l10n.save : l10n.addMember),
             ),
           ],
