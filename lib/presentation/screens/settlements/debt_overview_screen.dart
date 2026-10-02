@@ -9,6 +9,7 @@ import 'package:simsplit/presentation/providers/settlement_providers.dart';
 import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
+import 'package:simsplit/presentation/utils/member_initial.dart';
 
 class DebtOverviewScreen extends ConsumerWidget {
   const DebtOverviewScreen({super.key, required this.groupId});
@@ -34,8 +35,9 @@ class DebtOverviewScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.check_circle_outline,
-                          size: 80, color: Colors.green),
+                      Icon(Icons.check_circle_outline,
+                          size: 80,
+                          color: Theme.of(context).colorScheme.primary),
                       const SizedBox(height: 16),
                       Text(l10n.settledUp,
                           style: const TextStyle(fontSize: 20)),
@@ -65,9 +67,8 @@ class DebtOverviewScreen extends ConsumerWidget {
                                 backgroundColor:
                                     Color(balance.member.avatarColorValue),
                                 child: Text(
-                                  balance.member.name
-                                      .substring(0, 1)
-                                      .toUpperCase(),
+                                  balance.member.emoji ??
+                                      nameInitial(balance.member.name),
                                   style: const TextStyle(color: Colors.white),
                                 ),
                               ),
@@ -77,8 +78,8 @@ class DebtOverviewScreen extends ConsumerWidget {
                                 '${formatMoney(balance.netAmountCents.abs(), group.currencyCode)}',
                                 style: TextStyle(
                                   color: balance.netAmountCents >= 0
-                                      ? Colors.green
-                                      : Colors.red,
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.error,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -121,7 +122,7 @@ class DebtOverviewScreen extends ConsumerWidget {
             },
             loading: () => const AppLoadingWidget(),
             error: (e, _) => AppErrorWidget(
-              message: e.toString(),
+              error: e,
               onRetry: () => ref
                   .invalidate(debtSummaryProvider(groupId, group.currencyCode)),
             ),
@@ -129,7 +130,7 @@ class DebtOverviewScreen extends ConsumerWidget {
         );
       },
       loading: () => const Scaffold(body: AppLoadingWidget()),
-      error: (e, _) => Scaffold(body: AppErrorWidget(message: e.toString())),
+      error: (e, _) => Scaffold(body: AppErrorWidget(error: e)),
     );
   }
 }

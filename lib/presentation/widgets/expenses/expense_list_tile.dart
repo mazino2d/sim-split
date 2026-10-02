@@ -47,7 +47,7 @@ class ExpenseListTile extends StatelessWidget {
             ? l10n.paidByLabel(
                 paidBy.isMe ? '${paidBy.name} ${l10n.meLabel}' : paidBy.name)
             : '',
-        style: const TextStyle(color: Colors.grey),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -63,7 +63,9 @@ class ExpenseListTile extends StatelessWidget {
               myShare.label,
               style: TextStyle(
                 fontSize: 12,
-                color: myShare.color,
+                color: myShare.isPositive
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.error,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -89,11 +91,10 @@ class ExpenseListTile extends StatelessWidget {
       // I paid — I'm owed back my net (total - my split)
       final owedBack = expense.amountCents - myShareCents;
       if (owedBack <= 0) return null;
-      return _MyShare(
-          '+${formatMoney(owedBack, expense.currencyCode)}', Colors.green);
+      return _MyShare('+${formatMoney(owedBack, expense.currencyCode)}', true);
     } else {
       // Someone else paid — I owe my share
-      return _MyShare('-$label', Colors.red);
+      return _MyShare('-$label', false);
     }
   }
 
@@ -109,7 +110,7 @@ class ExpenseListTile extends StatelessWidget {
 }
 
 class _MyShare {
-  const _MyShare(this.label, this.color);
+  const _MyShare(this.label, this.isPositive);
   final String label;
-  final Color color;
+  final bool isPositive;
 }

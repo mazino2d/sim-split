@@ -9,6 +9,7 @@ import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
+import 'package:simsplit/presentation/utils/member_initial.dart';
 
 class ExpenseDetailScreen extends ConsumerWidget {
   const ExpenseDetailScreen({
@@ -97,8 +98,10 @@ class ExpenseDetailScreen extends ConsumerWidget {
                   if (paidBy != null) ...[
                     Row(
                       children: [
-                        const Icon(Icons.person_outline,
-                            size: 16, color: Colors.grey),
+                        Icon(Icons.person_outline,
+                            size: 16,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(width: 4),
                         Text(
                           l10n.paidByLabel(
@@ -106,7 +109,10 @@ class ExpenseDetailScreen extends ConsumerWidget {
                                 ? '${paidBy.name} ${l10n.meLabel}'
                                 : paidBy.name,
                           ),
-                          style: const TextStyle(color: Colors.grey),
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -152,7 +158,7 @@ class ExpenseDetailScreen extends ConsumerWidget {
           child: member.emoji != null
               ? Text(member.emoji!, style: const TextStyle(fontSize: 18))
               : Text(
-                  member.name.substring(0, 1).toUpperCase(),
+                  nameInitial(member.name),
                   style: const TextStyle(color: Colors.white),
                 ),
         ),

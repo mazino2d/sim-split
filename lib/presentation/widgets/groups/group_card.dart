@@ -7,6 +7,7 @@ import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/providers/settlement_providers.dart';
+import 'package:simsplit/presentation/utils/member_initial.dart';
 
 class GroupCard extends ConsumerWidget {
   const GroupCard({super.key, required this.group});
@@ -28,6 +29,7 @@ class GroupCard extends ConsumerWidget {
             .where((b) => b.member.id == myMember.id)
             .firstOrNull;
 
+    final colorScheme = Theme.of(context).colorScheme;
     return Dismissible(
       key: ValueKey(group.id),
       direction: DismissDirection.startToEnd,
@@ -35,17 +37,17 @@ class GroupCard extends ConsumerWidget {
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 24),
         decoration: BoxDecoration(
-          color: Colors.blue,
+          color: colorScheme.primary,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            const Icon(Icons.edit, color: Colors.white),
+            Icon(Icons.edit, color: colorScheme.onPrimary),
             const SizedBox(width: 8),
             Text(
               l10n.edit,
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  color: colorScheme.onPrimary, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -60,7 +62,7 @@ class GroupCard extends ConsumerWidget {
           leading: CircleAvatar(
             backgroundColor: Color(group.colorValue),
             child: Text(
-              group.emoji ?? group.name.substring(0, 1).toUpperCase(),
+              group.emoji ?? nameInitial(group.name),
               style: const TextStyle(fontSize: 18),
             ),
           ),
@@ -71,7 +73,7 @@ class GroupCard extends ConsumerWidget {
             children: [
               Text(
                 l10n.memberCountLabel(memberCount, group.currencyCode),
-                style: const TextStyle(color: Colors.grey),
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
               if (myMember != null && myBalance != null) ...[
                 const SizedBox(height: 2),
@@ -108,11 +110,12 @@ class _BalanceLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     if (netCents > 0) {
       return Text(
         l10n.youAreOwed(formatMoney(netCents, currencyCode)),
-        style: const TextStyle(
-          color: Colors.green,
+        style: TextStyle(
+          color: colorScheme.primary,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
@@ -120,8 +123,8 @@ class _BalanceLabel extends StatelessWidget {
     } else if (netCents < 0) {
       return Text(
         l10n.youOwe(formatMoney(netCents.abs(), currencyCode)),
-        style: const TextStyle(
-          color: Colors.red,
+        style: TextStyle(
+          color: colorScheme.error,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
@@ -129,8 +132,8 @@ class _BalanceLabel extends StatelessWidget {
     } else {
       return Text(
         l10n.evenBalance,
-        style: const TextStyle(
-          color: Colors.grey,
+        style: TextStyle(
+          color: colorScheme.onSurfaceVariant,
           fontSize: 12,
         ),
       );

@@ -4,6 +4,7 @@ import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/debt.dart';
 import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/presentation/utils/member_initial.dart';
 
 class DebtCard extends StatelessWidget {
   const DebtCard({
@@ -100,7 +101,7 @@ class _MemberAvatar extends StatelessWidget {
           radius: 20,
           backgroundColor: Color(member.avatarColorValue),
           child: Text(
-            member.name.substring(0, 1).toUpperCase(),
+            nameInitial(member.name),
             style: const TextStyle(
                 color: Colors.white, fontWeight: FontWeight.w600),
           ),

@@ -48,7 +48,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
         data: (groups) => _GroupListBody(groups: groups),
         loading: () => const AppLoadingWidget(),
         error: (e, _) => AppErrorWidget(
-          message: e.toString(),
+          error: e,
           onRetry: () => ref.invalidate(groupListProvider),
         ),
       ),
@@ -75,7 +75,9 @@ class _GroupListBody extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.group_outlined, size: 80, color: Colors.grey),
+            Icon(Icons.group_outlined,
+                size: 80,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 16),
             Text(
               l10n.noGroups,
@@ -84,7 +86,8 @@ class _GroupListBody extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               l10n.noGroupsHint,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
