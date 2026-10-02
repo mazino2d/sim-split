@@ -448,9 +448,12 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     // Watching keeps the auto-dispose notifiers alive while the form is open.
-    final saving = _isLoading ||
-        ref.watch(groupProvider).isLoading ||
-        ref.watch(memberProvider).isLoading;
+    // Both watches must run on every build: if `||` short-circuited them once
+    // `_isLoading` is true, Riverpod would dispose the notifiers mid-save and
+    // the next `ref.read` inside them would throw, leaving the spinner forever.
+    final groupSaving = ref.watch(groupProvider).isLoading;
+    final memberSaving = ref.watch(memberProvider).isLoading;
+    final saving = _isLoading || groupSaving || memberSaving;
     // Changing currency would corrupt existing expense amounts.
     final currencyLocked = isEdit &&
         (ref
