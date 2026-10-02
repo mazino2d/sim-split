@@ -2,7 +2,7 @@
 name: write-pr
 description: Draft and open a GitHub pull request for the SimSplit repo (mazino2d/sim-split). Use when the user asks to "write a PR", "open/create a PR", "draft a PR description", or "/write-pr". Reviews the branch diff against Clean Architecture rules, runs the same checks as CI, writes an English title and body, and creates the PR with gh.
 argument-hint: "[base-branch] [--draft]"
-allowed-tools: Bash(git:*), Bash(gh:*), Bash(flutter analyze:*), Bash(dart format:*), Bash(flutter test:*)
+allowed-tools: Bash(git:*), Bash(gh:*), Bash(flutter pub get:*), Bash(dart run build_runner:*), Bash(flutter gen-l10n:*), Bash(flutter analyze:*), Bash(dart format:*), Bash(flutter test:*)
 ---
 
 # Write a SimSplit pull request
@@ -51,9 +51,15 @@ git diff origin/<base>...HEAD -U0 | grep -nE '^\+.*\.members\b'
 
 ## 3. Run CI checks locally
 
-Same as `.github/workflows/pr_validate.yml`:
+Same as `.github/workflows/pr_validate.yml`. Run them even for docs-only PRs — the format check covers the whole repo, so pre-existing issues on the base branch still fail CI.
+
+Resolve packages and regenerate code first. Without `pub get`, `dart format` can't read the package language version and reformats far more files than CI does.
 
 ```bash
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter gen-l10n
+
 flutter analyze --fatal-infos
 dart format --output=none --set-exit-if-changed .
 flutter test
