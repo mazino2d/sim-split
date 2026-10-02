@@ -89,7 +89,8 @@ class ExpenseListTile extends StatelessWidget {
       // I paid — I'm owed back my net (total - my split)
       final owedBack = expense.amountCents - myShareCents;
       if (owedBack <= 0) return null;
-      return _MyShare('+${formatMoney(owedBack, expense.currencyCode)}', Colors.green);
+      return _MyShare(
+          '+${formatMoney(owedBack, expense.currencyCode)}', Colors.green);
     } else {
       // Someone else paid — I owe my share
       return _MyShare('-$label', Colors.red);

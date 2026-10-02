@@ -27,13 +27,14 @@ class ExpenseDetailScreen extends ConsumerWidget {
     final membersAsync = ref.watch(memberListProvider(groupId));
     final groupAsync = ref.watch(groupDetailProvider(groupId));
 
-    if (expensesAsync.isLoading || membersAsync.isLoading || groupAsync.isLoading) {
+    if (expensesAsync.isLoading ||
+        membersAsync.isLoading ||
+        groupAsync.isLoading) {
       return const Scaffold(body: AppLoadingWidget());
     }
 
-    final expense = (expensesAsync.value ?? [])
-        .where((e) => e.id == expenseId)
-        .firstOrNull;
+    final expense =
+        (expensesAsync.value ?? []).where((e) => e.id == expenseId).firstOrNull;
 
     if (expense == null) {
       return Scaffold(
@@ -45,11 +46,12 @@ class ExpenseDetailScreen extends ConsumerWidget {
     final members = membersAsync.value ?? [];
     final group = groupAsync.value;
     final currencyCode = group?.currencyCode ?? expense.currencyCode;
-    final paidBy = members.where((m) => m.id == expense.paidByMemberId).firstOrNull;
+    final paidBy =
+        members.where((m) => m.id == expense.paidByMemberId).firstOrNull;
 
     final locale = Localizations.localeOf(context).toLanguageTag();
-    final dateLabel = DateFormat('d MMM yyyy', locale)
-        .format(expense.expenseDate.toLocal());
+    final dateLabel =
+        DateFormat('d MMM yyyy', locale).format(expense.expenseDate.toLocal());
 
     return Scaffold(
       appBar: AppBar(
@@ -123,8 +125,8 @@ class ExpenseDetailScreen extends ConsumerWidget {
           const SizedBox(height: 8),
 
           for (final split in expense.splits) ...[
-            _buildSplitRow(context, split.memberId, split.amountCents,
-                members, currencyCode, l10n),
+            _buildSplitRow(context, split.memberId, split.amountCents, members,
+                currencyCode, l10n),
           ],
         ],
       ),
@@ -155,14 +157,11 @@ class ExpenseDetailScreen extends ConsumerWidget {
                 ),
         ),
         title: Text(
-          member.isMe
-              ? '${member.name} ${l10n.meLabel}'
-              : member.name,
+          member.isMe ? '${member.name} ${l10n.meLabel}' : member.name,
         ),
         trailing: Text(
           formatMoney(amountCents, currencyCode),
-          style: const TextStyle(
-              fontWeight: FontWeight.w600, fontSize: 15),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         ),
       ),
     );

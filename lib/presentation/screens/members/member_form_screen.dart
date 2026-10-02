@@ -147,13 +147,11 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final members =
-        ref.watch(memberListProvider(widget.groupId)).value ?? [];
+    final members = ref.watch(memberListProvider(widget.groupId)).value ?? [];
 
     // Find existing isMe member that is NOT the current member being edited
     final existingIsMeMember = members
-        .where((m) =>
-            m.isMe && m.id != (widget.editMember?.id ?? ''))
+        .where((m) => m.isMe && m.id != (widget.editMember?.id ?? ''))
         .firstOrNull;
 
     return Scaffold(
@@ -164,7 +162,8 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
             IconButton(
               icon: const Icon(Icons.delete_outline),
               tooltip: l10n.removeMember,
-              onPressed: () => _confirmDelete(context), // context captured before async
+              onPressed: () =>
+                  _confirmDelete(context), // context captured before async
             ),
         ],
       ),
@@ -223,8 +222,8 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
                 decoration: BoxDecoration(
                   color: Colors.orange.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                      color: Colors.orange.withValues(alpha: 0.4)),
+                  border:
+                      Border.all(color: Colors.orange.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   children: [
@@ -234,8 +233,8 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
                     Expanded(
                       child: Text(
                         l10n.isMeWillReplace(existingIsMeMember.name),
-                        style: const TextStyle(
-                            color: Colors.orange, fontSize: 13),
+                        style:
+                            const TextStyle(color: Colors.orange, fontSize: 13),
                       ),
                     ),
                   ],

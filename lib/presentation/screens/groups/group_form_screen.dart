@@ -14,15 +14,53 @@ import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 const _currencies = ['VND', 'USD', 'EUR', 'SGD', 'THB'];
 
 const _groupEmojiOptions = [
-  '🍜', '✈️', '🏖️', '🎉', '🏠', '💼', '🎮', '🎵',
-  '🚗', '🛒', '💊', '🏋️', '📚', '🍺', '💰', '🌏',
+  '🍜',
+  '✈️',
+  '🏖️',
+  '🎉',
+  '🏠',
+  '💼',
+  '🎮',
+  '🎵',
+  '🚗',
+  '🛒',
+  '💊',
+  '🏋️',
+  '📚',
+  '🍺',
+  '💰',
+  '🌏',
 ];
 
 const _memberEmojiOptions = [
-  '👨', '👩', '👧', '👦', '🧒', '👴', '👵', '🧔',
-  '👨‍💼', '👩‍💼', '👨‍🍳', '👩‍🍳', '👨‍💻', '👩‍💻',
-  '👨‍🏫', '👩‍🏫', '👨‍⚕️', '👩‍⚕️', '👨‍🎨', '👩‍🎨',
-  '🤓', '😎', '🥳', '😴', '🤠', '👻', '🐼', '🐶',
+  '👨',
+  '👩',
+  '👧',
+  '👦',
+  '🧒',
+  '👴',
+  '👵',
+  '🧔',
+  '👨‍💼',
+  '👩‍💼',
+  '👨‍🍳',
+  '👩‍🍳',
+  '👨‍💻',
+  '👩‍💻',
+  '👨‍🏫',
+  '👩‍🏫',
+  '👨‍⚕️',
+  '👩‍⚕️',
+  '👨‍🎨',
+  '👩‍🎨',
+  '🤓',
+  '😎',
+  '🥳',
+  '😴',
+  '🤠',
+  '👻',
+  '🐼',
+  '🐶',
 ];
 
 // Draft model for pending (unsaved) members in create mode
@@ -249,9 +287,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
       ),
     );
     if (confirmed != true) return;
-    final success = await ref
-        .read(groupProvider.notifier)
-        .deleteGroup(widget.editGroupId!);
+    final success =
+        await ref.read(groupProvider.notifier).deleteGroup(widget.editGroupId!);
     if (success && mounted) context.go('/');
   }
 
@@ -273,8 +310,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l10n.chooseIcon,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -289,8 +326,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       Navigator.pop(ctx);
                     },
                     child: Icon(Icons.block,
-                        size: 22,
-                        color: Theme.of(ctx).colorScheme.outline),
+                        size: 22, color: Theme.of(ctx).colorScheme.outline),
                   ),
                 for (final e in options)
                   _EmojiCell(
@@ -384,10 +420,9 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                               labelText: l10n.groupName,
                               hintText: l10n.groupNameHint,
                             ),
-                            validator: (v) =>
-                                (v == null || v.trim().isEmpty)
-                                    ? l10n.groupNameRequired
-                                    : null,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? l10n.groupNameRequired
+                                : null,
                           ),
                         ),
                       ],
@@ -401,8 +436,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                         labelText: l10n.groupCurrency,
                       ),
                       items: _currencies
-                          .map((c) =>
-                              DropdownMenuItem(value: c, child: Text(c)))
+                          .map(
+                              (c) => DropdownMenuItem(value: c, child: Text(c)))
                           .toList(),
                       onChanged: (v) => setState(() {
                         _currency = v!;
@@ -471,8 +506,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                             setState(() => _addingNew = false);
                             return;
                           }
-                          final draft = _MemberDraft()
-                            ..emoji = _newEmoji;
+                          final draft = _MemberDraft()..emoji = _newEmoji;
                           draft.controller.text = name;
                           setState(() {
                             _memberDrafts.add(draft);
@@ -480,13 +514,11 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                             _isDirty = true;
                           });
                         },
-                        onNewCancel: () =>
-                            setState(() => _addingNew = false),
+                        onNewCancel: () => setState(() => _addingNew = false),
                         onDraftEmojiTap: (draft) => _showEmojiPicker(
                           options: _memberEmojiOptions,
                           currentEmoji: draft.emoji,
-                          onSelected: (e) =>
-                              setState(() => draft.emoji = e),
+                          onSelected: (e) => setState(() => draft.emoji = e),
                         ),
                         onDraftDelete: (draft) {
                           draft.dispose();
@@ -502,8 +534,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: TextButton.icon(
-                          style: TextButton.styleFrom(
-                              foregroundColor: Colors.red),
+                          style:
+                              TextButton.styleFrom(foregroundColor: Colors.red),
                           icon: const Icon(Icons.delete_outline),
                           label: Text(l10n.deleteGroup),
                           onPressed: _confirmDeleteGroup,
@@ -577,8 +609,7 @@ class _EmojiCell extends StatelessWidget {
           ),
         ),
         child: Center(
-          child: child ??
-              Text(emoji!, style: const TextStyle(fontSize: 24)),
+          child: child ?? Text(emoji!, style: const TextStyle(fontSize: 24)),
         ),
       ),
     );
@@ -637,8 +668,7 @@ class _MeRow extends StatelessWidget {
             child: emoji != null
                 ? Text(emoji!, style: const TextStyle(fontSize: 20))
                 : Icon(Icons.person,
-                    size: 22,
-                    color: Theme.of(context).colorScheme.primary),
+                    size: 22, color: Theme.of(context).colorScheme.primary),
           ),
         ),
         const SizedBox(width: 12),
@@ -730,7 +760,6 @@ class _EditModeMembersSectionState
               }),
             ),
             const SizedBox(height: 8),
-
             if (_addingNew) ...[
               _NewMemberRow(
                 nameController: _newNameController,
@@ -745,16 +774,13 @@ class _EditModeMembersSectionState
               ),
               const SizedBox(height: 4),
             ],
-
             for (final member in others)
               _ExistingMemberRow(
                 member: member,
                 groupId: widget.groupId,
                 onEmojiTap: () => widget.onShowEmojiPicker(
                   member.emoji,
-                  (e) => ref
-                      .read(memberProvider.notifier)
-                      .updateMember(
+                  (e) => ref.read(memberProvider.notifier).updateMember(
                         id: member.id,
                         groupId: member.groupId,
                         name: member.name,
@@ -816,7 +842,6 @@ class _CreateModeMembersSection extends StatelessWidget {
           onPressed: onAddTap,
         ),
         const SizedBox(height: 8),
-
         if (addingNew) ...[
           _NewMemberRow(
             nameController: newNameController,
@@ -828,7 +853,6 @@ class _CreateModeMembersSection extends StatelessWidget {
           ),
           const SizedBox(height: 4),
         ],
-
         for (final draft in drafts)
           _DraftMemberRow(
             draft: draft,
@@ -938,8 +962,7 @@ class _DraftMemberRow extends StatelessWidget {
                   ? Text(draft.emoji!, style: const TextStyle(fontSize: 16))
                   : Icon(Icons.person_outline,
                       size: 18,
-                      color:
-                          Theme.of(context).colorScheme.onSurfaceVariant),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
           const SizedBox(width: 10),
@@ -1067,12 +1090,10 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
               radius: 18,
               backgroundColor: Color(member.avatarColorValue),
               child: member.emoji != null
-                  ? Text(member.emoji!,
-                      style: const TextStyle(fontSize: 16))
+                  ? Text(member.emoji!, style: const TextStyle(fontSize: 16))
                   : Text(
                       member.name.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 13),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
             ),
           ),
@@ -1083,8 +1104,8 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
               decoration: InputDecoration(
                 hintText: l10n.memberName,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               onEditingComplete: _saveName,
               onTapOutside: (_) => _saveName(),

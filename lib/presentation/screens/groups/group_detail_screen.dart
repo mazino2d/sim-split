@@ -99,19 +99,17 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton(
               onPressed: () {
-                final members = ref
-                    .read(memberListProvider(group.id))
-                    .value ?? [];
+                final members =
+                    ref.read(memberListProvider(group.id)).value ?? [];
                 if (members.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                          AppLocalizations.of(context)!
-                              .noMembersAddExpenseHint),
+                      content: Text(AppLocalizations.of(context)!
+                          .noMembersAddExpenseHint),
                       action: SnackBarAction(
                         label: AppLocalizations.of(context)!.addMember,
-                        onPressed: () => context
-                            .push('/groups/${group.id}/edit'),
+                        onPressed: () =>
+                            context.push('/groups/${group.id}/edit'),
                       ),
                     ),
                   );
@@ -148,8 +146,7 @@ class _ExpensesTab extends ConsumerWidget {
 
         // Group by date, sorted newest first
         final grouped = _groupByDate(expenses);
-        final dateKeys = grouped.keys.toList()
-          ..sort((a, b) => b.compareTo(a));
+        final dateKeys = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
         // Build flat list: [date header, tile, tile, date header, tile ...]
         final items = <_ListItem>[];
@@ -222,10 +219,12 @@ class _DateSectionHeader extends StatelessWidget {
     } else if (date == yesterday) {
       label = AppLocalizations.of(context)!.yesterday;
     } else if (date.year == now.year) {
-      label = DateFormat('d MMM', Localizations.localeOf(context).toLanguageTag())
-          .format(date);
+      label =
+          DateFormat('d MMM', Localizations.localeOf(context).toLanguageTag())
+              .format(date);
     } else {
-      label = DateFormat('d MMM yyyy', Localizations.localeOf(context).toLanguageTag())
+      label = DateFormat(
+              'd MMM yyyy', Localizations.localeOf(context).toLanguageTag())
           .format(date);
     }
 
@@ -388,8 +387,8 @@ class _BalancesTab extends ConsumerWidget {
       loading: () => const AppLoadingWidget(),
       error: (e, _) => AppErrorWidget(
         message: e.toString(),
-        onRetry: () => ref.invalidate(
-            debtSummaryProvider(group.id, group.currencyCode)),
+        onRetry: () =>
+            ref.invalidate(debtSummaryProvider(group.id, group.currencyCode)),
       ),
     );
   }
@@ -418,8 +417,7 @@ class _SettlementsTab extends ConsumerWidget {
                 const Icon(Icons.check_circle_outline,
                     size: 80, color: Colors.green),
                 const SizedBox(height: 16),
-                Text(l10n.settledUp,
-                    style: const TextStyle(fontSize: 20)),
+                Text(l10n.settledUp, style: const TextStyle(fontSize: 20)),
               ],
             ),
           );
@@ -447,8 +445,8 @@ class _SettlementsTab extends ConsumerWidget {
       loading: () => const AppLoadingWidget(),
       error: (e, _) => AppErrorWidget(
         message: e.toString(),
-        onRetry: () => ref.invalidate(
-            debtSummaryProvider(group.id, group.currencyCode)),
+        onRetry: () =>
+            ref.invalidate(debtSummaryProvider(group.id, group.currencyCode)),
       ),
     );
   }

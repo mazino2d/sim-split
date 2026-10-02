@@ -1,4 +1,3 @@
-
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:simsplit/domain/entities/expense.dart';

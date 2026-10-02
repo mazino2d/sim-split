@@ -60,7 +60,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
   }
 }
 
-
 class _GroupListBody extends StatelessWidget {
   const _GroupListBody({required this.groups});
 
