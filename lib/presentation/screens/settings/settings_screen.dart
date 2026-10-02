@@ -11,7 +11,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final localeAsync = ref.watch(localeProvider);
-    final currentLocale = localeAsync.value ?? const Locale('vi');
+    final currentLocale = localeAsync.value ?? deviceDefaultLocale();
 
     return Scaffold(
       appBar: AppBar(
