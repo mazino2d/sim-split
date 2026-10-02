@@ -48,7 +48,7 @@ class SimSplitApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final localeAsync = ref.watch(localeProvider);
-    final locale = localeAsync.value ?? const Locale('vi');
+    final locale = localeAsync.value ?? deviceDefaultLocale();
 
     return MaterialApp.router(
       title: 'SimSplit',

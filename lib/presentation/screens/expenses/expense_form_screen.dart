@@ -12,6 +12,9 @@ import 'package:simsplit/domain/use_cases/expenses/calculate_splits.dart';
 import 'package:simsplit/presentation/notifiers/expense_notifier.dart';
 import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/utils/failure_message.dart';
+import 'package:simsplit/presentation/utils/member_initial.dart';
+import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 
 class ExpenseFormScreen extends ConsumerStatefulWidget {
@@ -37,6 +40,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   List<Member> _members = [];
   DateTime _expenseDate = DateTime.now();
   bool _isDirty = false;
+  bool _isSaving = false;
+
+  /// Currency of the group; set on every build from the loaded group.
+  String _currencyCode = 'VND';
 
   // Per-member split controllers and focus nodes
   final Map<String, TextEditingController> _splitControllers = {};
@@ -127,7 +134,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     _loadedExistingExpense = true;
 
     _titleController.text = expense.title;
-    _amountController.text = (expense.amountCents ~/ 100).toString();
+    _amountController.text =
+        formatCentsForInput(expense.amountCents, _currencyCode);
     _paidByMemberId = expense.paidByMemberId;
     _splitType = expense.splitType;
     _expenseDate = expense.expenseDate.toLocal();
@@ -137,37 +145,72 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       if (ctrl == null) continue;
       ctrl.text = switch (expense.splitType) {
         SplitType.percentage => (split.value / 100).toStringAsFixed(2),
-        SplitType.exact => (split.amountCents ~/ 100).toString(),
+        SplitType.exact =>
+          formatCentsForInput(split.amountCents, _currencyCode),
         SplitType.shares => split.value.toString(),
         SplitType.equal => '0',
       };
     }
     // Reset dirty after loading existing data
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => setState(() => _isDirty = false));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _isDirty = false);
+    });
+  }
+
+  // ── Parsing helpers ───────────────────────────────────────────────────────
+
+  /// Total amount in cents, or null when the input is invalid.
+  int? _parseAmountCents() =>
+      parseMoneyToCents(_amountController.text, _currencyCode);
+
+  /// Percentage input scaled ×100 (33.33% → 3333), or null when invalid.
+  int? _parsePercentScaled(String text) {
+    final normalized = text.trim().replaceAll(',', '.');
+    if (normalized.isEmpty) return null;
+    final v = double.tryParse(normalized);
+    if (v == null || v.isNaN || v < 0) return null;
+    return (v * 100).round();
+  }
+
+  int? _parseShares(String text) => int.tryParse(text.trim());
+
+  /// Splits [total] cents across [count] members in multiples of the
+  /// currency's input step; the last member absorbs the remainder.
+  /// Never produces negative values.
+  List<int> _distributeCents(int total, int count) {
+    if (count <= 0) return const [];
+    final safeTotal = total < 0 ? 0 : total;
+    final step = inputStepCents(_currencyCode);
+    final units = safeTotal ~/ step;
+    final baseUnits = units ~/ count;
+    return [
+      for (var i = 0; i < count; i++)
+        i == count - 1
+            ? safeTotal - (count - 1) * baseUnits * step
+            : baseUnits * step,
+    ];
   }
 
   // ── Default & Redistribute ────────────────────────────────────────────────
 
   void _applyDefaultSplits() {
     if (_members.isEmpty) return;
-    final N = _members.length;
-    final displayAmt = _parseDisplayAmount();
+    final n = _members.length;
 
     setState(() {
       switch (_splitType) {
         case SplitType.percentage:
-          final base = 10000 ~/ N;
-          for (var i = 0; i < N; i++) {
-            final val = i == N - 1 ? 10000 - (N - 1) * base : base;
+          final base = 10000 ~/ n;
+          for (var i = 0; i < n; i++) {
+            final val = i == n - 1 ? 10000 - (n - 1) * base : base;
             _splitControllers[_members[i].id]?.text =
                 (val / 100).toStringAsFixed(2);
           }
         case SplitType.exact:
-          final base = displayAmt ~/ N;
-          for (var i = 0; i < N; i++) {
-            final val = i == N - 1 ? displayAmt - (N - 1) * base : base;
-            _splitControllers[_members[i].id]?.text = val.toString();
+          final values = _distributeCents(_parseAmountCents() ?? 0, n);
+          for (var i = 0; i < n; i++) {
+            _splitControllers[_members[i].id]?.text =
+                formatCentsForInput(values[i], _currencyCode);
           }
         case SplitType.shares:
           for (final m in _members) {
@@ -184,35 +227,36 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     _isRedistributing = true;
 
     try {
-      final others = _members.where((m) => m.id != changedMemberId).toList();
-      final M = others.length;
+      final others = _members
+          .where((m) => m.id != changedMemberId)
+          .where((m) => _splitFocusNodes[m.id]?.hasFocus != true)
+          .toList();
+      if (others.isEmpty) return;
+      final changedText = _splitControllers[changedMemberId]?.text ?? '';
 
       if (_splitType == SplitType.percentage) {
-        final changedText = _splitControllers[changedMemberId]?.text ?? '0.00';
-        final changedVal = ((double.tryParse(changedText) ?? 0) * 100).round();
-        final remaining = 10000 - changedVal;
-        final base = remaining ~/ M;
+        final changedVal = _parsePercentScaled(changedText);
+        if (changedVal == null) return; // invalid input: leave others as-is
+        final remaining = (10000 - changedVal).clamp(0, 10000);
+        final m = others.length;
+        final base = remaining ~/ m;
         setState(() {
-          for (var i = 0; i < M; i++) {
-            if (_splitFocusNodes[others[i].id]?.hasFocus == true) continue;
-            final val = i == M - 1 ? remaining - (M - 1) * base : base;
+          for (var i = 0; i < m; i++) {
+            final val = i == m - 1 ? remaining - (m - 1) * base : base;
             _splitControllers[others[i].id]?.text =
                 (val / 100).toStringAsFixed(2);
           }
         });
       } else if (_splitType == SplitType.exact) {
-        final changedText = _splitControllers[changedMemberId]?.text ?? '0';
-        final changedVal =
-            int.tryParse(changedText.replaceAll(',', '').replaceAll('.', '')) ??
-                0;
-        final displayAmt = _parseDisplayAmount();
-        final remaining = displayAmt - changedVal;
-        final base = remaining ~/ M;
+        final changedVal = parseMoneyToCents(changedText, _currencyCode);
+        final total = _parseAmountCents();
+        if (changedVal == null || total == null) return;
+        final remaining = total - changedVal;
+        final values = _distributeCents(remaining, others.length);
         setState(() {
-          for (var i = 0; i < M; i++) {
-            if (_splitFocusNodes[others[i].id]?.hasFocus == true) continue;
-            final val = i == M - 1 ? remaining - (M - 1) * base : base;
-            _splitControllers[others[i].id]?.text = val.toString();
+          for (var i = 0; i < others.length; i++) {
+            _splitControllers[others[i].id]?.text =
+                formatCentsForInput(values[i], _currencyCode);
           }
         });
       }
@@ -221,9 +265,26 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     }
   }
 
-  int _parseDisplayAmount() {
-    final text = _amountController.text.replaceAll(',', '').replaceAll('.', '');
-    return int.tryParse(text) ?? 0;
+  // ── Validation ────────────────────────────────────────────────────────────
+
+  String? _validateSplitField(String? value, AppLocalizations l10n) {
+    final text = value ?? '';
+    switch (_splitType) {
+      case SplitType.percentage:
+        final v = _parsePercentScaled(text);
+        if (v == null || v > 10000) return l10n.invalidPercentage;
+      case SplitType.exact:
+        final v = parseMoneyToCents(text, _currencyCode);
+        if (v == null) return l10n.invalidAmount;
+        final total = _parseAmountCents();
+        if (total != null && v > total) return l10n.exceedsTotal;
+      case SplitType.shares:
+        final v = _parseShares(text);
+        if (v == null || v < 1) return l10n.invalidShares;
+      case SplitType.equal:
+        break;
+    }
+    return null;
   }
 
   // ── Build RawSplitInputs ──────────────────────────────────────────────────
@@ -231,19 +292,12 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   List<RawSplitInput> _buildSplitInputs() {
     return _members.map((m) {
       final text = _splitControllers[m.id]?.text ?? '0';
-      final int val;
-      switch (_splitType) {
-        case SplitType.percentage:
-          val = ((double.tryParse(text) ?? 0) * 100).round();
-        case SplitType.exact:
-          val = (int.tryParse(text.replaceAll(',', '').replaceAll('.', '')) ??
-                  0) *
-              100;
-        case SplitType.shares:
-          val = int.tryParse(text) ?? 0;
-        case SplitType.equal:
-          val = 0;
-      }
+      final int val = switch (_splitType) {
+        SplitType.percentage => _parsePercentScaled(text) ?? 0,
+        SplitType.exact => parseMoneyToCents(text, _currencyCode) ?? 0,
+        SplitType.shares => _parseShares(text) ?? 0,
+        SplitType.equal => 0,
+      };
       return RawSplitInput(memberId: m.id, value: val);
     }).toList();
   }
@@ -251,7 +305,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   // ── Delete ────────────────────────────────────────────────────────────────
 
   Future<void> _confirmDelete() async {
+    if (_isSaving) return;
     final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dCtx) => AlertDialog(
@@ -263,7 +319,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             child: Text(l10n.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dCtx).colorScheme.error,
+              foregroundColor: Theme.of(dCtx).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(dCtx, true),
             child: Text(l10n.delete),
           ),
@@ -271,61 +330,74 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    final success = await ref
+    setState(() => _isSaving = true);
+    final result = await ref
         .read(expenseProvider.notifier)
         .deleteExpense(widget.editExpenseId!);
-    if (!success) return;
     if (!mounted) return;
-    _isDirty = false;
-    context.go('/groups/${widget.groupId}');
+    setState(() => _isSaving = false);
+    result.fold(
+      (failure) => messenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(failure, l10n))),
+      ),
+      (_) {
+        _isDirty = false;
+        context.go('/groups/${widget.groupId}');
+      },
+    );
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_paidByMemberId == null) return;
-
+    if (_isSaving) return;
     final l10n = AppLocalizations.of(context)!;
-    final amountCents = _parseDisplayAmount() * 100;
-    final notifier = ref.read(expenseProvider.notifier);
-    final group = await ref.read(groupDetailProvider(widget.groupId).future);
-
-    bool success;
-    if (isEdit) {
-      success = await notifier.editExpense(
-        id: widget.editExpenseId!,
-        title: _titleController.text.trim(),
-        amountCents: amountCents,
-        currencyCode: group.currencyCode,
-        paidByMemberId: _paidByMemberId!,
-        splitType: _splitType,
-        splitInputs: _buildSplitInputs(),
-        expenseDate: _expenseDate,
+    final messenger = ScaffoldMessenger.of(context);
+    if (!_formKey.currentState!.validate()) return;
+    final amountCents = _parseAmountCents();
+    final paidBy = _paidByMemberId;
+    if (paidBy == null || amountCents == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.errorMemberNotFound)),
       );
-    } else {
-      success = await notifier.addExpense(
-        groupId: widget.groupId,
-        title: _titleController.text.trim(),
-        amountCents: amountCents,
-        currencyCode: group.currencyCode,
-        paidByMemberId: _paidByMemberId!,
-        splitType: _splitType,
-        splitInputs: _buildSplitInputs(),
-        expenseDate: _expenseDate,
-      );
+      return;
     }
+
+    setState(() => _isSaving = true);
+    final notifier = ref.read(expenseProvider.notifier);
+    final result = isEdit
+        ? await notifier.editExpense(
+            id: widget.editExpenseId!,
+            title: _titleController.text.trim(),
+            amountCents: amountCents,
+            currencyCode: _currencyCode,
+            paidByMemberId: paidBy,
+            splitType: _splitType,
+            splitInputs: _buildSplitInputs(),
+            expenseDate: _expenseDate,
+          )
+        : await notifier.addExpense(
+            groupId: widget.groupId,
+            title: _titleController.text.trim(),
+            amountCents: amountCents,
+            currencyCode: _currencyCode,
+            paidByMemberId: paidBy,
+            splitType: _splitType,
+            splitInputs: _buildSplitInputs(),
+            expenseDate: _expenseDate,
+          );
 
     if (!mounted) return;
-    if (success) {
-      _isDirty = false;
-      context.pop();
-    } else {
-      final error = ref.read(expenseProvider).error;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error?.toString() ?? l10n.errorUnexpected)),
-      );
-    }
+    setState(() => _isSaving = false);
+    result.fold(
+      (failure) => messenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(failure, l10n))),
+      ),
+      (_) {
+        _isDirty = false;
+        context.pop();
+      },
+    );
   }
 
   Future<bool> _onWillPop() async {
@@ -341,7 +413,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             child: Text(l10n.keepEditing),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(l10n.discardChanges),
           ),
@@ -353,37 +428,79 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
+  Scaffold _messageScaffold(String title, Widget body) => Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: body,
+      );
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final title = isEdit ? l10n.editExpense : l10n.addExpense;
+    // Watching keeps the auto-dispose notifier alive while the screen is
+    // open and lets us disable Save while a mutation is running.
+    final saving = ref.watch(expenseProvider).isLoading || _isSaving;
     final groupAsync = ref.watch(groupDetailProvider(widget.groupId));
     final membersAsync = ref.watch(memberListProvider(widget.groupId));
     final expensesAsync =
         isEdit ? ref.watch(expenseListProvider(widget.groupId)) : null;
 
-    if (groupAsync.isLoading || membersAsync.isLoading) {
-      return const Scaffold(body: AppLoadingWidget());
+    if (groupAsync.hasError || membersAsync.hasError) {
+      final error = groupAsync.error ?? membersAsync.error;
+      return _messageScaffold(
+        title,
+        AppErrorWidget(
+          error: error,
+          onRetry: () {
+            ref.invalidate(groupDetailProvider(widget.groupId));
+            ref.invalidate(memberListProvider(widget.groupId));
+          },
+        ),
+      );
     }
-    if (groupAsync.hasError) {
-      return Scaffold(body: Center(child: Text(groupAsync.error.toString())));
+    if (!groupAsync.hasValue || !membersAsync.hasValue) {
+      return const Scaffold(body: AppLoadingWidget());
     }
 
     final group = groupAsync.requireValue;
-    final members = membersAsync.value ?? [];
+    _currencyCode = group.currencyCode;
+    final members = membersAsync.requireValue;
     _initMemberControllers(members);
 
-    if (isEdit && expensesAsync != null) {
-      final expenses = expensesAsync.value ?? [];
-      final existing =
-          expenses.where((e) => e.id == widget.editExpenseId).firstOrNull;
-      if (existing != null && !_loadedExistingExpense) {
-        WidgetsBinding.instance.addPostFrameCallback(
-            (_) => setState(() => _loadExistingExpense(existing)));
+    if (isEdit && expensesAsync != null && !_loadedExistingExpense) {
+      if (expensesAsync.hasError) {
+        return _messageScaffold(
+          title,
+          AppErrorWidget(
+            error: expensesAsync.error,
+            onRetry: () => ref.invalidate(expenseListProvider(widget.groupId)),
+          ),
+        );
       }
+      if (!expensesAsync.hasValue) {
+        return const Scaffold(body: AppLoadingWidget());
+      }
+      final existing = expensesAsync.requireValue
+          .where((e) => e.id == widget.editExpenseId)
+          .firstOrNull;
+      if (existing == null) {
+        return _messageScaffold(
+          title,
+          AppErrorWidget(
+            message: l10n.expenseNotFound,
+            onRetry: () => context.pop(),
+            retryLabel: l10n.goBack,
+          ),
+        );
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _loadExistingExpense(existing));
+      });
     }
 
     final locale = Localizations.localeOf(context).toLanguageTag();
     final dateLabel = DateFormat('d MMM yyyy', locale).format(_expenseDate);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return PopScope(
       canPop: !_isDirty,
@@ -394,12 +511,12 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(isEdit ? l10n.editExpense : l10n.addExpense),
+          title: Text(title),
           actions: [
             IconButton(
               icon: const Icon(Icons.check),
               tooltip: l10n.save,
-              onPressed: _save,
+              onPressed: saving ? null : _save,
             ),
           ],
         ),
@@ -424,13 +541,14 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               // ── Amount ───────────────────────────────────────────────
               TextFormField(
                 controller: _amountController,
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.numberWithOptions(
+                  decimal: currencyHasDecimals(group.currencyCode),
+                ),
                 decoration: InputDecoration(
                   labelText: '${l10n.amount} (${group.currencyCode})',
                 ),
                 validator: (v) {
-                  final n = int.tryParse(
-                      v?.replaceAll(',', '').replaceAll('.', '') ?? '');
+                  final n = parseMoneyToCents(v ?? '', group.currencyCode);
                   if (n == null || n <= 0) return l10n.invalidAmount;
                   return null;
                 },
@@ -439,6 +557,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
               // ── Paid by ──────────────────────────────────────────────
               DropdownButtonFormField<String>(
+                key: ValueKey('paidBy-$_paidByMemberId'),
                 initialValue: _paidByMemberId,
                 decoration: InputDecoration(
                   labelText: l10n.paidBy,
@@ -450,6 +569,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                               m.isMe ? '${m.name} ${l10n.meLabel}' : m.name),
                         ))
                     .toList(),
+                validator: (v) => v == null ? l10n.errorMemberNotFound : null,
                 onChanged: (v) => setState(() {
                   _paidByMemberId = v;
                   _isDirty = true;
@@ -459,7 +579,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
               // ── Date picker ──────────────────────────────────────────
               Material(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                color: colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(12),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
@@ -483,15 +603,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                     child: Row(
                       children: [
                         Icon(Icons.calendar_today_outlined,
-                            size: 18,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant),
+                            size: 18, color: colorScheme.onSurfaceVariant),
                         const SizedBox(width: 10),
                         Expanded(child: Text(dateLabel)),
                         Icon(Icons.expand_more,
-                            size: 18,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant),
+                            size: 18, color: colorScheme.onSurfaceVariant),
                       ],
                     ),
                   ),
@@ -511,7 +627,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 _buildSplitHeader(l10n, group.currencyCode),
                 const SizedBox(height: 8),
                 for (final member in members)
-                  _buildMemberSplitRow(member, group.currencyCode),
+                  _buildMemberSplitRow(member, group.currencyCode, l10n),
                 const SizedBox(height: 8),
                 _buildSplitSumIndicator(group.currencyCode),
               ],
@@ -525,10 +641,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    style: TextButton.styleFrom(
+                        foregroundColor: colorScheme.error),
                     icon: const Icon(Icons.delete_outline),
                     label: Text(l10n.deleteExpense),
-                    onPressed: _confirmDelete,
+                    onPressed: saving ? null : _confirmDelete,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -564,55 +681,58 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   Widget _splitTypeChip((SplitType, String, IconData) typeData) {
     final (type, label, icon) = typeData;
     final isSelected = _splitType == type;
+    final colorScheme = Theme.of(context).colorScheme;
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: InkWell(
-          onTap: () {
-            setState(() {
-              _splitType = type;
-              _isDirty = true;
-            });
-            _applyDefaultSplits();
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
+        child: Semantics(
+          button: true,
+          selected: isSelected,
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _splitType = type;
+                _isDirty = true;
+              });
+              _applyDefaultSplits();
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              decoration: BoxDecoration(
                 color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.transparent,
-                width: 2,
+                    ? colorScheme.primaryContainer
+                    : colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? colorScheme.primary : Colors.transparent,
+                  width: 2,
+                ),
               ),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
+              child: Column(
+                children: [
+                  Icon(
+                    icon,
+                    size: 20,
                     color: isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -632,7 +752,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
   }
 
-  Widget _buildMemberSplitRow(Member member, String currencyCode) {
+  Widget _buildMemberSplitRow(
+    Member member,
+    String currencyCode,
+    AppLocalizations l10n,
+  ) {
     final ctrl = _splitControllers[member.id];
     final focusNode = _splitFocusNodes[member.id];
     if (ctrl == null || focusNode == null) return const SizedBox.shrink();
@@ -640,29 +764,42 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: Color(member.avatarColorValue),
-            child: member.emoji != null
-                ? Text(member.emoji!, style: const TextStyle(fontSize: 14))
-                : Text(
-                    member.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: Color(member.avatarColorValue),
+              child: member.emoji != null
+                  ? Text(member.emoji!, style: const TextStyle(fontSize: 14))
+                  : Text(
+                      nameInitial(member.name),
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
             flex: 2,
-            child: Text(member.name, overflow: TextOverflow.ellipsis),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(member.name, overflow: TextOverflow.ellipsis),
+            ),
           ),
           Expanded(
             flex: 3,
             child: TextFormField(
               controller: ctrl,
               focusNode: focusNode,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              keyboardType: TextInputType.numberWithOptions(
+                decimal: _splitType == SplitType.percentage ||
+                    (_splitType == SplitType.exact &&
+                        currencyHasDecimals(currencyCode)),
+              ),
+              onChanged: (_) => setState(() => _isDirty = true),
+              validator: (v) => _validateSplitField(v, l10n),
               decoration: InputDecoration(
                 hintText: switch (_splitType) {
                   SplitType.percentage => '0.00',
@@ -685,55 +822,47 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
   }
 
+  Widget _buildSumRow(bool isValid, String text) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = isValid ? colorScheme.primary : colorScheme.error;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Icon(isValid ? Icons.check_circle : Icons.info_outline,
+            size: 16, color: color),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(color: color, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSplitSumIndicator(String currencyCode) {
     final l10n = AppLocalizations.of(context)!;
     if (_splitType == SplitType.percentage) {
-      final total = _members.fold<double>(0, (sum, m) {
+      final totalScaled = _members.fold<int>(0, (sum, m) {
         final t = _splitControllers[m.id]?.text ?? '0';
-        return sum + (double.tryParse(t) ?? 0);
+        return sum + (_parsePercentScaled(t) ?? 0);
       });
-      final isValid = (total * 100).round() == 10000;
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Icon(isValid ? Icons.check_circle : Icons.info_outline,
-              size: 16, color: isValid ? Colors.green : Colors.orange),
-          const SizedBox(width: 4),
-          Text(
-            l10n.splitSumPercentage(total.toStringAsFixed(2)),
-            style: TextStyle(
-              color: isValid ? Colors.green : Colors.orange,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+      return _buildSumRow(
+        totalScaled == 10000,
+        l10n.splitSumPercentage((totalScaled / 100).toStringAsFixed(2)),
       );
     }
     if (_splitType == SplitType.exact) {
       final totalEntered = _members.fold<int>(0, (sum, m) {
         final t = _splitControllers[m.id]?.text ?? '0';
-        return sum +
-            (int.tryParse(t.replaceAll(',', '').replaceAll('.', '')) ?? 0);
+        return sum + (parseMoneyToCents(t, currencyCode) ?? 0);
       });
-      final target = _parseDisplayAmount();
-      final isValid = totalEntered == target;
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Icon(isValid ? Icons.check_circle : Icons.info_outline,
-              size: 16, color: isValid ? Colors.green : Colors.orange),
-          const SizedBox(width: 4),
-          Text(
-            l10n.splitSumExact(
-              formatMoney(totalEntered * 100, currencyCode),
-              formatMoney(target * 100, currencyCode),
-            ),
-            style: TextStyle(
-              color: isValid ? Colors.green : Colors.orange,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+      final target = _parseAmountCents() ?? 0;
+      return _buildSumRow(
+        totalEntered == target,
+        l10n.splitSumExact(
+          formatMoney(totalEntered, currencyCode),
+          formatMoney(target, currencyCode),
+        ),
       );
     }
     return const SizedBox.shrink();

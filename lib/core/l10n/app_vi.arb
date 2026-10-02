@@ -179,5 +179,32 @@
   "addMemberName": "Tên",
   "you": "Tôi",
   "yourName": "Tên của bạn",
-  "youRequired": "Vui lòng nhập tên của bạn"
+  "youRequired": "Vui lòng nhập tên của bạn",
+
+  "pageNotFound": "Không tìm thấy trang",
+  "goBack": "Quay lại",
+  "expenseNotFound": "Khoản chi này không còn tồn tại",
+  "settlementDetailsMissing": "Thiếu thông tin thanh toán. Vui lòng chọn lại khoản nợ cần thanh toán.",
+  "errorDatabase": "Không thể truy cập dữ liệu đã lưu. Vui lòng thử lại.",
+  "errorMemberNotFound": "Một thành viên được chọn không còn tồn tại",
+  "errorInvalidSplitType": "Kiểu chia không hợp lệ",
+  "errorInvalidShares": "Số phần phải là số nguyên lớn hơn 0",
+  "errorNoParticipants": "Cần ít nhất một người tham gia",
+  "errorAmountMustBePositive": "Số tiền phải lớn hơn 0",
+  "errorGroupNotFound": "Nhóm này không còn tồn tại",
+  "errorGroupNameTooShort": "Tên nhóm quá ngắn",
+  "errorGroupNameTooLong": "Tên nhóm quá dài",
+  "errorSettlementNotFound": "Khoản thanh toán này không còn tồn tại",
+  "errorAmountExceedsDebt": "Số tiền vượt quá khoản nợ hiện tại",
+  "invalidPercentage": "Nhập từ 0–100",
+  "invalidShares": "Nhập số nguyên ≥ 1",
+  "exceedsTotal": "Vượt quá tổng",
+  "currencyLockedHint": "Không thể đổi tiền tệ khi nhóm đã có khoản chi",
+  "noIcon": "Không có biểu tượng",
+  "avatarColorOption": "Màu {index}",
+  "@avatarColorOption": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  }
 }

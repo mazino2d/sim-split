@@ -1,16 +1,21 @@
+import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:simsplit/core/di/injection.dart';
+import 'package:simsplit/domain/entities/settlement.dart';
+import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/use_cases/settlements/settle_debt.dart';
 
 part 'settlement_notifier.g.dart';
 
+/// Settlement mutations. Methods return the use case result directly;
+/// [state] only reflects loading for UI (e.g. disabling Save).
 @riverpod
 class SettlementNotifier extends _$SettlementNotifier {
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
-  Future<bool> settleDebt({
+  Future<Either<Failure, Settlement>> settleDebt({
     required String groupId,
     required String fromMemberId,
     required String toMemberId,
@@ -30,16 +35,12 @@ class SettlementNotifier extends _$SettlementNotifier {
       note: note,
       settledAt: settledAt,
     ));
-
-    return result.fold(
-      (failure) {
-        state = AsyncError(failure, StackTrace.current);
-        return false;
-      },
-      (_) {
-        state = const AsyncData(null);
-        return true;
-      },
-    );
+    if (ref.mounted) {
+      state = result.fold(
+        (failure) => AsyncError(failure, StackTrace.current),
+        (_) => const AsyncData(null),
+      );
+    }
+    return result;
   }
 }
