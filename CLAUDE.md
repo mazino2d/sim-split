@@ -226,7 +226,7 @@ This applies everywhere: member count badges, expense form dropdowns, split inpu
 
 | Workflow | Trigger | Result |
 | --- | --- | --- |
-| `pr_validate` | PR → `main` touching Dart sources/build inputs | Parallel jobs: format, analyze, test (shared setup in `.github/actions/flutter-setup`) |
+| `pr_validate` | Every PR → `main` | Parallel format/analyze/test (skipped when no Dart sources/build inputs change); required check: `PR Validation` |
 | `build_android` | Push → `main` | AAB → Play Store internal track |
 | `build_ios` | Push → `main` | IPA → TestFlight |
 | `release` | `git tag v1.0.0` | Production release to both stores |
