@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:simsplit/core/di/injection.dart';
+import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/domain/entities/debt.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:simsplit/domain/use_cases/settlements/calculate_debts.dart';
@@ -24,7 +25,7 @@ Future<DebtSummary> debtSummary(Ref ref, String groupId, String currencyCode) {
     CalculateDebtsParams(groupId: groupId, currencyCode: currencyCode),
   ).then(
     (either) => either.fold(
-      (failure) => throw Exception(failure.toString()),
+      (failure) => throw FailureException(failure),
       (summary) => summary,
     ),
   );
@@ -36,7 +37,7 @@ Stream<List<Settlement>> settlementList(Ref ref, String groupId) {
   final useCase = ref.watch(listSettlementsProvider);
   return useCase(ListSettlementsParams(groupId: groupId)).map(
     (either) => either.fold(
-      (failure) => throw Exception(failure.toString()),
+      (failure) => throw FailureException(failure),
       (settlements) => settlements,
     ),
   );

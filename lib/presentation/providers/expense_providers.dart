@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/use_cases/expenses/list_expenses.dart';
 import 'package:simsplit/core/di/injection.dart';
+import 'package:simsplit/presentation/utils/failure_message.dart';
 
 part 'expense_providers.g.dart';
 
@@ -12,7 +13,7 @@ Stream<List<Expense>> expenseList(Ref ref, String groupId) {
   final useCase = ref.watch(listExpensesProvider);
   return useCase(ListExpensesParams(groupId: groupId)).map(
     (either) => either.fold(
-      (failure) => throw Exception(failure.toString()),
+      (failure) => throw FailureException(failure),
       (expenses) => expenses,
     ),
   );

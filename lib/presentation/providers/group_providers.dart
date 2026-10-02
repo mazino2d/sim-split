@@ -6,6 +6,7 @@ import 'package:simsplit/domain/use_cases/groups/get_group.dart';
 import 'package:simsplit/domain/use_cases/members/list_members.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
 import 'package:simsplit/core/di/injection.dart';
+import 'package:simsplit/presentation/utils/failure_message.dart';
 
 part 'group_providers.g.dart';
 
@@ -15,7 +16,7 @@ Stream<List<Group>> groupList(Ref ref) {
   final useCase = ref.watch(listGroupsProvider);
   return useCase(const NoParams()).map(
     (either) => either.fold(
-      (failure) => throw Exception(failure.toString()),
+      (failure) => throw FailureException(failure),
       (groups) => groups,
     ),
   );
@@ -27,7 +28,7 @@ Future<Group> groupDetail(Ref ref, String groupId) {
   final useCase = ref.watch(getGroupProvider);
   return useCase(GetGroupParams(id: groupId)).then(
     (either) => either.fold(
-      (failure) => throw Exception(failure.toString()),
+      (failure) => throw FailureException(failure),
       (group) => group,
     ),
   );
@@ -39,7 +40,7 @@ Stream<List<Member>> memberList(Ref ref, String groupId) {
   final useCase = ref.watch(listMembersProvider);
   return useCase(ListMembersParams(groupId: groupId)).map(
     (either) => either.fold(
-      (failure) => throw Exception(failure.toString()),
+      (failure) => throw FailureException(failure),
       (members) => members,
     ),
   );

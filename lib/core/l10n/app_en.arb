@@ -180,5 +180,32 @@
   "addMemberName": "Name",
   "you": "You",
   "yourName": "Your name",
-  "youRequired": "Please enter your name"
+  "youRequired": "Please enter your name",
+
+  "pageNotFound": "Page not found",
+  "goBack": "Go back",
+  "expenseNotFound": "This expense no longer exists",
+  "settlementDetailsMissing": "Settlement details are missing. Please choose a debt to settle again.",
+  "errorDatabase": "Could not access saved data. Please try again.",
+  "errorMemberNotFound": "A selected member no longer exists",
+  "errorInvalidSplitType": "Invalid split type",
+  "errorInvalidShares": "Shares must be whole numbers greater than zero",
+  "errorNoParticipants": "Add at least one participant",
+  "errorAmountMustBePositive": "Amount must be greater than zero",
+  "errorGroupNotFound": "This group no longer exists",
+  "errorGroupNameTooShort": "Group name is too short",
+  "errorGroupNameTooLong": "Group name is too long",
+  "errorSettlementNotFound": "This settlement no longer exists",
+  "errorAmountExceedsDebt": "Amount exceeds the outstanding debt",
+  "invalidPercentage": "Enter 0–100",
+  "invalidShares": "Enter a whole number ≥ 1",
+  "exceedsTotal": "Exceeds total",
+  "currencyLockedHint": "Currency can't be changed once the group has expenses",
+  "noIcon": "No icon",
+  "avatarColorOption": "Color {index}",
+  "@avatarColorOption": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  }
 }
