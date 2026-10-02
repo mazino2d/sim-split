@@ -1,45 +1,104 @@
 name: PR Validation
 
+# The workflow always runs so the required "PR Validation" check is always
+# reported. Jobs that don't apply to the changed files are skipped instead,
+# and a skipped job counts as passing for branch protection.
 on:
   pull_request:
     branches: [main]
 
-jobs:
-  validate:
-    name: Lint, Format & Test
-    runs-on: ubuntu-latest
+# A new push to the same PR supersedes the run in progress.
+concurrency:
+  group: pr-validate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      dart: ${{ steps.filter.outputs.dart }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # Only Dart sources and their build inputs affect format/analyze/test.
+          filters: |
+            dart:
+              - "lib/**"
+              - "test/**"
+              - "pubspec.yaml"
+              - "pubspec.lock"
+              - "analysis_options.yaml"
+              - "build.yaml"
+              - "l10n.yaml"
+              - ".github/workflows/pr_validate.yml"
+              - ".github/actions/flutter-setup/**"
+
+  format:
+    name: Format
+    needs: changes
+    if: needs.changes.outputs.dart == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
+      - uses: ./.github/actions/flutter-setup
         with:
-          flutter-version: '3.41.x'
-          channel: 'stable'
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      # Generated files are gitignored, so they must be produced before analyze/test.
-      - name: Run code generation
-        run: dart run build_runner build --delete-conflicting-outputs
-
-      - name: Generate localizations
-        run: flutter gen-l10n
-
-      - name: Analyze
-        run: flutter analyze --fatal-infos
-
+          codegen: "false"
       - name: Format check
         run: dart format --output=none --set-exit-if-changed .
 
+  analyze:
+    name: Analyze
+    needs: changes
+    if: needs.changes.outputs.dart == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/flutter-setup
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+  test:
+    name: Test
+    needs: changes
+    if: needs.changes.outputs.dart == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/flutter-setup
       - name: Run tests with coverage
         run: flutter test --coverage
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: coverage/lcov.info
           fail_ci_if_error: false
+
+  # Single check to mark as required in branch protection. Passes when every
+  # job above succeeded or was skipped; fails if any failed or was cancelled.
+  result:
+    name: PR Validation
+    needs: [changes, format, analyze, test]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check job results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "::error::A validation job did not pass ($r)"
+              exit 1
+            fi
+          done
