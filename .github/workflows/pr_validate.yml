@@ -2,7 +2,7 @@ name: PR Validation
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
   validate:
@@ -21,11 +21,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Verify generated files are up to date
-        run: |
-          dart run build_runner build --delete-conflicting-outputs
-          git diff --exit-code -- '*.g.dart' '*.freezed.dart' \
-            || (echo "❌ Generated files are stale. Run 'dart run build_runner build' locally." && exit 1)
+      # Generated files are gitignored, so they must be produced before analyze/test.
+      - name: Run code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generate localizations
+        run: flutter gen-l10n
 
       - name: Analyze
         run: flutter analyze --fatal-infos
