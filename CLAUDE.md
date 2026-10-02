@@ -226,7 +226,7 @@ This applies everywhere: member count badges, expense form dropdowns, split inpu
 
 | Workflow | Trigger | Result |
 | --- | --- | --- |
-| `pr_validate` | Every PR → `main` / `develop` | Lint + format + tests + stale check |
+| `pr_validate` | Every PR → `main` | Parallel jobs: format, analyze, test (shared setup in `.github/actions/flutter-setup`) |
 | `build_android` | Push → `main` | AAB → Play Store internal track |
 | `build_ios` | Push → `main` | IPA → TestFlight |
 | `release` | `git tag v1.0.0` | Production release to both stores |

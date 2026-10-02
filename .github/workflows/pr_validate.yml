@@ -4,39 +4,43 @@ on:
   pull_request:
     branches: [main]
 
-jobs:
-  validate:
-    name: Lint, Format & Test
-    runs-on: ubuntu-latest
+# A new push to the same PR supersedes the run in progress.
+concurrency:
+  group: pr-validate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
+      - uses: ./.github/actions/flutter-setup
         with:
-          flutter-version: '3.41.x'
-          channel: 'stable'
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      # Generated files are gitignored, so they must be produced before analyze/test.
-      - name: Run code generation
-        run: dart run build_runner build --delete-conflicting-outputs
-
-      - name: Generate localizations
-        run: flutter gen-l10n
-
-      - name: Analyze
-        run: flutter analyze --fatal-infos
-
+          codegen: "false"
       - name: Format check
         run: dart format --output=none --set-exit-if-changed .
 
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/flutter-setup
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/flutter-setup
       - name: Run tests with coverage
         run: flutter test --coverage
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:

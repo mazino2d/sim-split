@@ -123,7 +123,7 @@ lib/
 
 | Workflow | Trigger | Result |
 | --- | --- | --- |
-| `pr_validate` | Every PR → `main` | Code generation + analyze + format + tests |
+| `pr_validate` | Every PR → `main` | Format, analyze and test as parallel jobs; codegen output cached |
 | `build_android` | Manual (`workflow_dispatch`), or called by `release` | Signed AAB → Google Play (track selectable, default `internal`) |
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
 | `release` | Push a `vX.Y.Z` tag | Validates the tag, uploads AAB to the `production` track (as draft), creates a GitHub Release |
