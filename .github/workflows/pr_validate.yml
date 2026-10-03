@@ -12,6 +12,10 @@ concurrency:
   group: pr-validate-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+# Least privilege by default; jobs that need more declare their own block.
+permissions:
+  contents: read
+
 jobs:
   changes:
     name: Detect changes
