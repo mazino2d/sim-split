@@ -24,5 +24,5 @@ SERVER_PID=$!
 trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
 sleep 1
 
-NODE_PATH="$NODE_DIR/node_modules" node .claude/skills/tester/scripts/smoke_web.cjs \
+NODE_PATH="$NODE_DIR/node_modules" node .claude/skills/e2e-tester/scripts/smoke_web.cjs \
   "http://localhost:$PORT/" "$OUT/web-release.png"

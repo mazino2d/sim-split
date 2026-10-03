@@ -1,11 +1,11 @@
 ---
-name: tester
-description: Verify that a SimSplit branch or PR is safe to merge — that it still builds a working app on every platform and every user-facing feature in docs/product/use-cases.md still works end to end. Runs the CI gates, builds web (release) and Android, drives the real app through the integration_test/ journey in Chrome, smoke-loads the release bundle, and reports a go/no-go verdict per use case. Use when the user asks to "test", "QA", "verify before merge", "check the app still works", "is this PR safe to merge", after a dependency or Flutter SDK bump, or invokes /tester.
+name: e2e-tester
+description: Verify that a SimSplit branch or PR is safe to merge — that it still builds a working app on every platform and every user-facing feature in docs/product/use-cases.md still works end to end. Runs the CI gates, builds web (release) and Android, drives the real app through the integration_test/ journey in Chrome, smoke-loads the release bundle, and reports a go/no-go verdict per use case. Use when the user asks to "test", "QA", "verify before merge", "check the app still works", "is this PR safe to merge", after a dependency or Flutter SDK bump, or invokes /e2e-tester.
 argument-hint: "[pr-number|branch] [--quick]"
-allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(.claude/skills/tester/scripts/*), Bash(lsof:*), Bash(kill:*)
+allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(.claude/skills/e2e-tester/scripts/*), Bash(lsof:*), Bash(kill:*)
 ---
 
-# SimSplit tester
+# SimSplit E2E tester
 
 The question this skill answers: **if this merges, does the app still build
 and does every feature still work for a real user?** Unit and widget tests
@@ -51,14 +51,14 @@ flutter test
 
 | Platform | Command | Notes |
 | --- | --- | --- |
-| Web | `.claude/skills/tester/scripts/smoke_web.sh` | Release build, served, loaded in headless Chromium. Fails on JS errors, console errors, failed or 4xx requests. Screenshot at `build/tester/web-release.png` — look at it. |
+| Web | `.claude/skills/e2e-tester/scripts/smoke_web.sh` | Release build, served, loaded in headless Chromium. Fails on JS errors, console errors, failed or 4xx requests. Screenshot at `build/tester/web-release.png` — look at it. |
 | Android | `flutter build apk --debug` | Compile and Gradle check; no signing needed. The signed AAB is built in CI (`build_android`). `PKIX path building failed` means a TLS-inspecting proxy (corporate network, WARP) blocks Gradle downloads: report **skipped (network)**, not failed. |
 | iOS | `flutter build ios --no-codesign` | Needs full Xcode. If only Command Line Tools are installed, report **skipped** — don't treat it as passed. |
 
 ## 4. End-to-end journey
 
 ```bash
-.claude/skills/tester/scripts/e2e_web.sh
+.claude/skills/e2e-tester/scripts/e2e_web.sh
 ```
 
 Runs every `integration_test/*_test.dart` with `flutter drive` in headless

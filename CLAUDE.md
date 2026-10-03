@@ -12,7 +12,7 @@ SimSplit is a Flutter app for tracking and splitting group expenses with friends
 | Task | Skill |
 | --- | --- |
 | Write or change code, tests, l10n | `software-engineer:dev` — rules, commands, architecture, design system, testing |
-| Verify a branch or PR before merge (builds + end-to-end use cases) | `tester` |
+| Verify a branch or PR before merge (builds + end-to-end use cases) | `e2e-tester` |
 | Open a pull request | `software-engineer:write-pr` |
 | Triage ideas, write specs, update the roadmap | `product-owner` — strategy in `docs/product/` (public on GitHub Pages) |
 | App icon, splash, Play Store graphics | `uiux-designer` — SVG masters in `design/` |
