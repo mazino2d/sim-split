@@ -21,7 +21,7 @@ Available on Android (Google Play). iOS and web builds are supported from source
 
 | Concern | Choice |
 | --- | --- |
-| Framework | Flutter 3.41.x (Android, iOS, web) |
+| Framework | Flutter 3.47.x (Android, iOS, web) |
 | State management | Riverpod |
 | Local database | Drift / SQLite (WASM on web) |
 | Architecture | Clean Architecture |
@@ -33,7 +33,7 @@ Available on Android (Google Play). iOS and web builds are supported from source
 
 ### Requirements
 
-- Flutter SDK 3.41.x (stable) — [install guide](https://docs.flutter.dev/get-started/install)
+- Flutter SDK 3.47.x (stable) — [install guide](https://docs.flutter.dev/get-started/install)
 - Android Studio / Android SDK (for Android)
 - Xcode (for iOS)
 - `curl` (used by `scripts/setup.sh` to fetch the web database assets)
