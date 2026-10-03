@@ -5,7 +5,6 @@ TÍNH NĂNG:
 • Thêm chi tiêu và chia theo 4 kiểu: đều nhau, theo %, số tiền cụ thể, hoặc tỉ lệ
 • Xem ai nợ ai ngay lập tức với thuật toán tối giản giao dịch
 • Ghi nhận khi các khoản nợ đã được thanh toán
-• Xuất tóm tắt chi tiêu để chia sẻ với nhóm
 • Hỗ trợ VND, USD, EUR và nhiều loại tiền tệ khác
 • Có sẵn bằng Tiếng Việt và Tiếng Anh
 

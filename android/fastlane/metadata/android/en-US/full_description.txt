@@ -5,7 +5,6 @@ FEATURES:
 • Add expenses and split them equally, by percentage, by exact amount, or by shares
 • See who owes whom at a glance with automatic debt simplification
 • Record settlements when debts are paid
-• Export expense summaries to share with the group
 • Supports VND, USD, EUR, and more
 • Available in Vietnamese and English
 
