@@ -240,3 +240,4 @@ To open a pull request, use the `/write-pr` skill (`.claude/skills/write-pr/`).
 
 Product strategy, design principles, use cases and the roadmap live in `docs/product/` (published on GitHub Pages — keep it public-safe).
 For feature triage, specs and roadmap changes, use the `/product-owner` skill (`.claude/skills/product-owner/`).
+For the app icon, splash and Play Store graphics, use the `/design-assets` skill (`.claude/skills/design-assets/`); SVG masters live in `design/`.
