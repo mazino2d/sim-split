@@ -5,6 +5,29 @@ description: Implement a change in the SimSplit Flutter codebase — features, f
 
 # SimSplit development
 
+## Critical rules
+
+1. **Clean Architecture is strict:** `lib/domain/` is pure Dart — no Flutter, Drift, Riverpod or go_router imports.
+2. **Money is `int` cents, never `double`.**
+3. **Errors are `Either<Failure, T>`** (fpdart), not exceptions, in domain and data.
+4. **Never hand-edit generated files** (`*.g.dart`, `*.freezed.dart`).
+5. **Never commit secrets:** `android/key.properties`, `*.jks`, `AuthKey_*.p8`.
+6. **`group.members` is always empty** — read members with `memberListProvider(groupId)`.
+
+## Commands
+
+```bash
+bash scripts/setup.sh                                      # bootstrap once after installing Flutter
+dart run build_runner build --delete-conflicting-outputs   # after changing models / DAOs / providers
+flutter gen-l10n                                           # after changing ARB files
+flutter analyze --fatal-infos                              # ┐
+dart format --output=none --set-exit-if-changed .          # ├ what CI runs on every PR
+flutter test --coverage                                    # ┘
+flutter run                                                # run the app (-d chrome for web)
+```
+
+## References
+
 Read the reference that matches the layer you touch before writing code:
 
 | Touching | Read |
