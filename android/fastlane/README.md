@@ -17,11 +17,12 @@ and recorded below so it can be re-entered or audited.
 
 - PRs touching `metadata/` run `scripts/play_metadata.py check` (text limits,
   image sizes, 2–8 screenshots per type, max 2:1 aspect ratio).
-- Syncing on push is **off** until the repo variable `PLAY_METADATA_AUTO_SYNC`
-  is set to `true` (Settings → Secrets and variables → Actions → Variables).
-  Until then, run the workflow manually.
-- Preview a sync without changing Play: Actions → **Play Store Metadata** → Run
-  workflow with `dry_run` checked (the default).
+- Plan / apply, like Terraform:
+  - **PR** touching `metadata/` → a dry run against Play is posted as a PR
+    comment ("Would change: …") and updated on every push. Same-repo PRs only;
+    the sync script always comes from `main`, the PR only supplies files.
+  - **Merge to `main`** → the listing is synced to Play automatically.
+  - **Manual run** → dry run by default; runs outside `main` are always dry runs.
 - Only images present in the repo are synced; an image type with no files here
   is left untouched on Play. Pushing the listing replaces what was edited by
   hand in Play Console for the same fields.
