@@ -77,36 +77,30 @@ variants unless the user wants them kept) and derive siblings from it — e.g.
 the adaptive foreground and monochrome layers are the icon glyph without the
 background, scaled into the 61% safe zone.
 
-Export every PNG with (add `--opaque` for anything Play or iOS must not
-receive with alpha: app icon, Play icon, feature graphic, screenshots):
+Then regenerate every output from the sources with **one command**:
 
 ```bash
-.claude/skills/design-assets/scripts/render.sh <in.svg> <out.png> <w> <h> [--opaque]
+python3 design/build.py                  # capture screens + all outputs
+python3 design/build.py --skip-capture   # reuse captures (icon/caption-only changes)
+python3 design/build.py --only icons     # or store | appstore | landing
 ```
 
-Then, depending on scope:
+`design/build.py` is the single pipeline. Its sources are `design/icon/*.svg`,
+`design/store/feature_graphic.<lang>.svg`, `design/store/capture_test.dart`
+(sample data + screens) and `design/shots.json` (shot list + EN/VI captions).
+It writes:
 
-- **Launcher icon:** export `app_icon.png`, `app_icon_foreground.png`,
-  `app_icon_monochrome.png` (see specs). Update `flutter_launcher_icons` in
-  `pubspec.yaml` (`adaptive_icon_background`, `adaptive_icon_monochrome`,
-  `adaptive_icon_foreground_inset: 0`, `remove_alpha_ios: true`), run `dart run flutter_launcher_icons`, and
-  export the 512 px Play icon to both `en-US` and `vi`.
-- **Splash:** export `splash_logo.png` (and a dark variant if needed),
-  align `flutter_native_splash` colours with `AppTheme` surfaces, run
-  `dart run flutter_native_splash:create`.
-- **Feature graphic:** masters are `design/store/feature_graphic.<lang>.svg`;
-  render each to `<lang>/images/featureGraphic.png` with `--opaque`.
-- **Screenshots:** edit the sample data or shots in
-  `design/store/capture_test.dart` and the captions in
-  `design/store/build_screenshots.py`, then:
+- app icons and splash (`assets/`, then `flutter_launcher_icons` and
+  `flutter_native_splash` for Android, iOS and web),
+- Play icon, feature graphic and phone / 7" / 10" screenshots
+  (`android/fastlane/metadata/android/<lang>/images/`),
+- App Store iPhone 6.9" and iPad 13" screenshots (`ios/fastlane/screenshots/<lang>/`),
+- the landing page icon and screens (`docs/assets/`).
 
-  ```bash
-  flutter test design/store/capture_test.dart --update-goldens
-  python3 design/store/build_screenshots.py
-  python3 scripts/play_metadata.py check
-  ```
-
-  This replaces phone, 7" and 10" screenshots for both locales.
+To add or change a screenshot: add the screen to `capture_test.dart` (its
+capture name is the shot id) and the shot to `shots.json`. Never edit an
+output by hand. For a one-off render use
+`.claude/skills/design-assets/scripts/render.sh <in> <out> <w> <h> [--opaque]`.
 
 ### 5. Verify
 

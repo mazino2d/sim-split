@@ -48,8 +48,18 @@ produce every graphic for **both** languages.
 | `images/phoneScreenshots/NN_name.png` | 1080×1920 or 1080×2340 | 2–8 shots, 9:16 to 9:21. Framed shot = app capture + caption, caption ≤ 6 words, localised. |
 | `images/sevenInchScreenshots/`, `images/tenInchScreenshots/` | tablet | Optional; reuse phone captures centred on a larger canvas. |
 
-Raw app captures come from the golden-preview harness (`flutter test
-<preview> --update-goldens`) with realistic data, or from a device.
+## App Store screenshots
+
+Locales `en-US` and `vi` under `ios/fastlane/screenshots/`; `deliver`
+detects the device from the image size.
+
+| Output | Size | Notes |
+| --- | --- | --- |
+| `<lang>/NN_name_iphone69.png` | 1320×2868 | iPhone 6.9"; required. No alpha. |
+| `<lang>/NN_name_ipad13.png` | 2064×2752 | iPad 13"; required because the app supports iPad. No alpha. |
+
+Raw app captures come from `design/store/capture_test.dart` (realistic
+sample data, EN and VI); `design/build.py` frames them for every target.
 
 ## Design tokens (from `lib/presentation/theme/app_theme.dart`)
 

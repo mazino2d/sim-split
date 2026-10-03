@@ -1,0 +1,37 @@
+{
+  "_comment": "Store and landing-page screenshots. Each shot is a capture from design/store/capture_test.dart plus a caption per locale. Run `python3 design/build.py` after editing.",
+  "shots": [
+    {
+      "id": "01_home",
+      "dark": false,
+      "caption": {
+        "en": "Who owes whom, at a glance",
+        "vi": "Ai nợ ai, nhìn là biết"
+      }
+    },
+    {
+      "id": "02_add_expense",
+      "dark": false,
+      "caption": {
+        "en": "Log an expense in seconds",
+        "vi": "Ghi một khoản trong vài giây"
+      }
+    },
+    {
+      "id": "03_settle_up",
+      "dark": false,
+      "caption": {
+        "en": "Settle up in the fewest transfers",
+        "vi": "Trả nợ với ít lần chuyển nhất"
+      }
+    },
+    {
+      "id": "04_dark",
+      "dark": true,
+      "caption": {
+        "en": "Works offline. No sign-up.",
+        "vi": "Không cần mạng, không cần tài khoản"
+      }
+    }
+  ]
+}
