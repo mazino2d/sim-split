@@ -153,7 +153,9 @@ Workload Identity Federation as
 `gha-play-publisher@mazino2d-as-se1-dev.iam.gserviceaccount.com`, defined in
 [everything-as-code](https://github.com/mazino2d/everything-as-code/blob/main/terraform/gcp/mazino2d-as-se1-dev/github_actions.tf).
 Only `main` and `vX.Y.Z` tags can use it. The account must be invited in Play
-Console → Users and permissions with release permissions for SimSplit.
+Console → Users and permissions with the app permissions listed in
+[android/fastlane/README.md](android/fastlane/README.md#play-console-access-for-ci)
+(release + Manage store presence).
 
 **iOS (not needed until the Apple account is active):**
 

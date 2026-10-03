@@ -27,8 +27,25 @@ and recorded below so it can be re-entered or audited.
   hand in Play Console for the same fields.
 - Credentials: keyless Workload Identity Federation as
   `gha-play-publisher@mazino2d-as-se1-dev.iam.gserviceaccount.com`
-  (see `mazino2d/everything-as-code`). In Play Console → Users and permissions
-  it needs **Release** permissions and **Manage store presence**.
+  (see `mazino2d/everything-as-code`).
+
+## Play Console access for CI
+
+Granted by hand (the Play API supports it, but only community Terraform
+providers exist and they need an admin-level JSON key):
+Play Console → **Users and permissions** → `gha-play-publisher@…` →
+**App permissions** → **SimSplit**.
+
+| Section | Permission | Why |
+| --- | --- | --- |
+| Releases | Release to production, exclude devices, and use Play App Signing | `release.yml` |
+| Releases | Release apps to testing tracks | `build_android.yml` |
+| Releases | Manage testing tracks and edit tester lists | testing tracks |
+| Store presence | Manage store presence | `play_metadata.yml` |
+
+Leave everything else unticked, in particular **Edit and delete draft apps**
+(lets the account delete an unpublished app; not needed for uploads or
+listing sync) and any account-level/admin permission.
 
 ## Set by hand in Play Console (no API)
 
