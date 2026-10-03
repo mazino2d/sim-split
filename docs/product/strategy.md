@@ -8,16 +8,19 @@ Last reviewed: 2026-10-03
 
 ## Vision
 
-The calmest way for a group of friends on a trip to know who owes whom — no account, no
-signal, no arguments.
+The calmest way for a group of friends on a trip to know who owes whom — everyone sees
+the same numbers, no arguments.
 
 ## Primary persona — the trip bookkeeper
 
 - Vietnamese friend group of 3–8 people on a trip or a night out; amounts in VND.
-- **One person holds the phone** and logs for everyone. The others never install the app.
+- **One person usually holds the phone** and logs for most expenses. Other members may
+  install the app, join the shared group, see balances and add their own expenses
+  (co-members), but the default path is still built around the bookkeeper.
 - Usage is **episodic**: intense for 2–7 days, then the group is settled and goes quiet.
   A dormant group after settle-up is success, not churn.
-- Often on poor mobile data (mountains, islands, abroad).
+- Often on poor mobile data (mountains, islands, abroad) — after the first sign-in the
+  app must keep working offline and sync when the signal returns.
 
 Secondary users (served only when it costs the primary persona nothing): housemates,
 couples, international travellers.
@@ -45,22 +48,36 @@ an explicit reason to exist.
 
 ## Non-negotiable
 
-- **Fully offline core.** Creating groups, logging expenses, viewing balances and recording
-  settlements must work with no network, forever. Network features may exist only as
-  optional additions that degrade gracefully (e.g. exchange rates).
+- **One shared truth per group.** Every member of a shared group sees the same expenses,
+  balances and settlements, and no recorded data is ever lost or silently altered by sync.
+- **Full trust, always auditable.** Every member can do everything in a group — no roles,
+  no approvals. In return, every change (create, edit, delete) is recorded with who, when
+  and what changed, and any member can review that history. The history cannot be edited
+  or deleted.
+- **Free to run at small scale.** The backend must cost nothing for up to ~100 active
+  users; any design that needs a paid plan at that scale is rejected.
+
+*Changed 2026-10-03:* the former "Fully offline core" non-negotiable was narrowed to enable
+online shared groups ([R-3](specs/R-3-online-shared-groups.md)). The app requires sign-in
+and a network for first use; after that, offline use is a strong default (below).
 
 ## Strong defaults (can be challenged, with a written reason)
 
-- No account or sign-up.
+- Sign-in is a single tap (Google or Apple) — no passwords, no profile setup.
+- Offline after sign-in: creating groups, logging expenses, viewing balances and recording
+  settlements work with no network and sync later.
 - No ads and no third-party analytics SDK.
-- Data stays on the device.
+- Data is stored only to sync groups between their members — never sold, profiled or
+  used for anything else; deleting the account deletes the user's cloud data.
+
+These replaced "No account or sign-up" and "Data stays on the device" on 2026-10-03
+(see R-3).
 
 These are not red lines, but anything that weakens them must go through triage with the
 trade-off written down in the roadmap entry.
 
 ## Non-goals (for now)
 
-- Real-time multi-device collaboration.
 - Budgeting, personal finance tracking, or bank integration.
 - Monetisation (Pro tier, subscriptions, ads).
 - Recurring expenses and long-running household features — these serve the secondary

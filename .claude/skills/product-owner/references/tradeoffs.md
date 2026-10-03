@@ -38,6 +38,10 @@ the case at hand. Don't lecture the whole file.
   clunky; (d) is smooth but breaks the non-negotiable for any flow that depends on it and
   the "no account" default. For the trip persona, one bookkeeper + shared summary (UC-5)
   usually covers the need at a fraction of the cost.
+- **Decided 2026-10-03:** option (d) chosen — mandatory Google/Apple sign-in, Firebase
+  sync, invite links; Drift stays local source of truth with an outbox so the app works
+  offline after first sign-in (R-3). Revisit only if the free
+  tier or sign-in friction proves wrong in testing.
 
 ### Analytics vs privacy
 
