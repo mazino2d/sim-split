@@ -36,10 +36,17 @@ on:
       ANDROID_KEY_ALIAS:
         required: true
 
+# Never run two uploads for the same ref at once (Play rejects concurrent
+# edits), but don't cancel one that is already uploading.
+concurrency:
+  group: build-android-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-android:
     name: Build & Upload AAB
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       id-token: write # OIDC token for Workload Identity Federation
@@ -51,21 +58,10 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
+          cache: gradle
 
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.41.x"
-          channel: "stable"
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Run code generation
-        run: dart run build_runner build --delete-conflicting-outputs
-
-      - name: Generate localizations
-        run: flutter gen-l10n
+      # Flutter SDK + pub cache, and build_runner output cached by source hash.
+      - uses: ./.github/actions/flutter-setup
 
       # Secrets are passed through env vars (never interpolated into the script)
       # so special characters cannot break or inject into the shell.
