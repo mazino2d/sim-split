@@ -4,7 +4,7 @@
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",
-    "theme_color": "#1976D2",
+    "theme_color": "#0A0A0A",
     "description": "Track and split group expenses offline.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,

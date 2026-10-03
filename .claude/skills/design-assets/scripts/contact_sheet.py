@@ -11,6 +11,7 @@ import html
 import pathlib
 import subprocess
 import sys
+import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 out = pathlib.Path(sys.argv[1]).resolve()
@@ -43,7 +44,7 @@ for v in variants:
 
 width = 1900
 height = 60 + len(variants) * 300
-page = out.with_suffix(".html")
+page = pathlib.Path(tempfile.mkdtemp()) / "sheet.html"
 page.write_text(f"""<!doctype html><html><head><style>
 @font-face{{font-family:BVP;src:url("file://{FONT}")}}
 body{{margin:0;background:#fff;font-family:BVP;width:{width}px}}

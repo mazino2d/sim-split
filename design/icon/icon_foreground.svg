@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Android adaptive foreground: glyph only, inside the 61% safe zone. Derived from icon.svg; keep the glyph in sync. -->
+  <g fill="#0A0A0A" transform="translate(512 512) scale(0.72) translate(-512 -512)">
+    <path d="M488 262A250 250 0 0 0 488 762Z"/>
+    <path fill-rule="evenodd" d="M536 262A250 250 0 0 1 536 762ZM536 330V694A182 182 0 0 0 536 330Z"/>
+  </g>
+</svg>

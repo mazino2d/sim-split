@@ -18,7 +18,6 @@ for every item.
 | ID | Item | Serves | I | C | E | Score | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | R-2 | Timed audit of UC-1 against the 10 s / 4 tap bar | UC-1.1 | 2 | 1.0 | 0.5 | 4.0 | Baseline measurement; output feeds new items. |
-| R-3 | Refresh Play Store screenshots and feature graphic for the monochrome redesign | Store listing | 1 | 1.0 | 0.5 | 2.0 | Current screenshots show the old blue Material UI. |
 | R-1 | Share balance summary as text to messaging apps | UC-5, store listing | 1 | 0.8 | 1 | 0.8 | The Play listing already promises "Export expense summaries to share with the group" — ship it or remove the claim. |
 
 ## Next

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1152" height="1152" viewBox="0 0 1152 1152">
+  <!-- Splash logo on the dark surface. Derived from icon.svg; keep the glyph in sync. -->
+  <g fill="#F5F5F5" transform="translate(576 576) scale(0.8) translate(-512 -512)">
+    <path d="M488 262A250 250 0 0 0 488 762Z"/>
+    <path fill-rule="evenodd" d="M536 262A250 250 0 0 1 536 762ZM536 330V694A182 182 0 0 0 536 330Z"/>
+  </g>
+</svg>

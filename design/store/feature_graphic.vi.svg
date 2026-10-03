@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <!-- Play feature graphic (vi). Render directly (not via <img>) so the fonts load. -->
+  <style>
+    @font-face { font-family: BVP; font-weight: 700; src: url("../../assets/fonts/BeVietnamPro-Bold.ttf"); }
+    @font-face { font-family: BVP; font-weight: 500; src: url("../../assets/fonts/BeVietnamPro-Medium.ttf"); }
+    @font-face { font-family: BVP; font-weight: 400; src: url("../../assets/fonts/BeVietnamPro-Regular.ttf"); }
+    text { font-family: BVP; }
+  </style>
+  <rect width="1024" height="500" fill="#FFFFFF"/>
+  <g fill="#0A0A0A" transform="translate(250 250) scale(0.42) translate(-512 -512)">
+    <path d="M488 262A250 250 0 0 0 488 762Z"/>
+    <path fill-rule="evenodd" d="M536 262A250 250 0 0 1 536 762ZM536 330V694A182 182 0 0 0 536 330Z"/>
+  </g>
+  <text x="430" y="196" font-size="80" font-weight="700" fill="#0A0A0A" letter-spacing="-2">SimSplit</text>
+  <text x="432" y="262" font-size="34" font-weight="500" fill="#0A0A0A">Chia chi phí dễ dàng.</text>
+  <text x="432" y="308" font-size="34" font-weight="500" fill="#6B6B6B">Kết bạn không lo nợ.</text>
+  <text x="432" y="370" font-size="22" font-weight="400" fill="#6B6B6B">Không tài khoản.  Không internet.  Chỉ cần chia tiền.</text>
+</svg>

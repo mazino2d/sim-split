@@ -77,10 +77,11 @@ variants unless the user wants them kept) and derive siblings from it — e.g.
 the adaptive foreground and monochrome layers are the icon glyph without the
 background, scaled into the 61% safe zone.
 
-Export every PNG with:
+Export every PNG with (add `--opaque` for anything Play or iOS must not
+receive with alpha: app icon, Play icon, feature graphic, screenshots):
 
 ```bash
-.claude/skills/design-assets/scripts/render.sh <in.svg> <out.png> <w> <h>
+.claude/skills/design-assets/scripts/render.sh <in.svg> <out.png> <w> <h> [--opaque]
 ```
 
 Then, depending on scope:
@@ -93,9 +94,19 @@ Then, depending on scope:
 - **Splash:** export `splash_logo.png` (and a dark variant if needed),
   align `flutter_native_splash` colours with `AppTheme` surfaces, run
   `dart run flutter_native_splash:create`.
-- **Feature graphic / screenshots:** export to both locale folders. For
-  screenshots, capture screens with the preview harness, compose each into a
-  framed SVG/HTML with its caption, render at 1080×2340.
+- **Feature graphic:** masters are `design/store/feature_graphic.<lang>.svg`;
+  render each to `<lang>/images/featureGraphic.png` with `--opaque`.
+- **Screenshots:** edit the sample data or shots in
+  `design/store/capture_test.dart` and the captions in
+  `design/store/build_screenshots.py`, then:
+
+  ```bash
+  flutter test design/store/capture_test.dart --update-goldens
+  python3 design/store/build_screenshots.py
+  python3 scripts/play_metadata.py check
+  ```
+
+  This replaces phone, 7" and 10" screenshots for both locales.
 
 ### 5. Verify
 
