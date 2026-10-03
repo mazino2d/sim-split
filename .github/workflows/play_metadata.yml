@@ -1,0 +1,73 @@
+name: Play Store Metadata
+
+# Syncs the store listing (text, icon, feature graphic, screenshots, contact
+# details) from android/fastlane/metadata/android to Google Play.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/fastlane/metadata/android/**"
+      - "scripts/play_metadata.py"
+      - ".github/workflows/play_metadata.yml"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only report what would change"
+        type: boolean
+        default: true
+      data_safety:
+        description: "Also upload data_safety.csv"
+        type: boolean
+        default: false
+
+concurrency:
+  group: play-metadata
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync store listing
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # OIDC token for Workload Identity Federation
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install --quiet google-api-python-client google-auth
+
+      # Same keyless identity as build_android.yml; it also needs "Manage store
+      # presence" in Play Console → Users and permissions.
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/238020767329/locations/global/workloadIdentityPools/github/providers/sim-split
+          service_account: gha-play-publisher@mazino2d-as-se1-dev.iam.gserviceaccount.com
+
+      # On push, re-upload the Data safety form only when its CSV changed.
+      - name: Detect Data safety change
+        id: data-safety
+        if: github.event_name == 'push'
+        run: |
+          if git diff --quiet HEAD~1 HEAD -- android/fastlane/metadata/android/data_safety.csv; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          DATA_SAFETY: ${{ inputs.data_safety || steps.data-safety.outputs.changed == 'true' }}
+        run: |
+          args=()
+          [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
+          [ "$DATA_SAFETY" = "true" ] && args+=(--data-safety)
+          python scripts/play_metadata.py sync "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"

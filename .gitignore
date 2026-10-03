@@ -74,3 +74,6 @@ Thumbs.db
 # drift_worker.js and sqlite3.wasm are committed
 web/drift_worker.js.map
 web/drift_worker.js.deps
+
+# Python
+__pycache__/

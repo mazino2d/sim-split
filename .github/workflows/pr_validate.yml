@@ -21,6 +21,7 @@ jobs:
       pull-requests: read
     outputs:
       dart: ${{ steps.filter.outputs.dart }}
+      metadata: ${{ steps.filter.outputs.metadata }}
     steps:
       - uses: dorny/paths-filter@v3
         id: filter
@@ -37,6 +38,10 @@ jobs:
               - "l10n.yaml"
               - ".github/workflows/pr_validate.yml"
               - ".github/actions/flutter-setup/**"
+            metadata:
+              - "android/fastlane/metadata/**"
+              - "scripts/play_metadata.py"
+              - ".github/workflows/pr_validate.yml"
 
   format:
     name: Format
@@ -82,11 +87,23 @@ jobs:
           file: coverage/lcov.info
           fail_ci_if_error: false
 
+  store-metadata:
+    name: Store metadata
+    needs: changes
+    if: needs.changes.outputs.metadata == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # Offline: text lengths, image sizes and screenshot counts (stdlib only).
+      - name: Check store metadata
+        run: python3 scripts/play_metadata.py check
+
   # Single check to mark as required in branch protection. Passes when every
   # job above succeeded or was skipped; fails if any failed or was cancelled.
   result:
     name: PR Validation
-    needs: [changes, format, analyze, test]
+    needs: [changes, format, analyze, test, store-metadata]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

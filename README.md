@@ -127,6 +127,7 @@ lib/
 | `build_android` | Manual (`workflow_dispatch`), or called by `release` | Signed AAB → Google Play (track selectable, default `internal`) |
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
 | `release` | Push a `vX.Y.Z` tag | Validates the tag, uploads AAB to the `production` track (as draft), creates a GitHub Release |
+| `play_metadata` | Push to `main` touching `android/fastlane/metadata/**`, or manual (dry run by default) | Syncs the Play store listing, images, contact details and Data safety form — see [android/fastlane/README.md](android/fastlane/README.md) |
 
 Pushing to `main` does **not** upload anything to Google Play.
 
