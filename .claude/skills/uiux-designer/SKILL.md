@@ -1,8 +1,8 @@
 ---
-name: design-assets
-description: Design SimSplit's brand assets — the launcher icon (iOS, Android adaptive and themed), the splash logo, and Play Store graphics (hi-res icon, feature graphic, framed screenshots in EN and VI). Works from hand-written SVG masters in design/, renders 2–3 variants on a review sheet for the user to pick, then exports PNGs and regenerates platform icons. Use when the user asks to design, redesign or update the app icon, splash, feature graphic, store screenshots or "brand assets", or invokes /design-assets.
+name: uiux-designer
+description: Design SimSplit's brand assets — the launcher icon (iOS, Android adaptive and themed), the splash logo, and Play Store graphics (hi-res icon, feature graphic, framed screenshots in EN and VI). Works from hand-written SVG masters in design/, renders 2–3 variants on a review sheet for the user to pick, then exports PNGs and regenerates platform icons. Use when the user asks to design, redesign or update the app icon, splash, feature graphic, store screenshots or "brand assets", or invokes /uiux-designer.
 argument-hint: "[icon|splash|feature-graphic|screenshots] <brief>"
-allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion, Bash(.claude/skills/design-assets/scripts/*), Bash(python3 .claude/skills/design-assets/scripts/*), Bash(dart run flutter_launcher_icons*), Bash(dart run flutter_native_splash*), Bash(flutter test*), Bash(git status*), Bash(git diff*)
+allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion, Bash(.claude/skills/uiux-designer/scripts/*), Bash(python3 .claude/skills/uiux-designer/scripts/*), Bash(dart run flutter_launcher_icons*), Bash(dart run flutter_native_splash*), Bash(flutter test*), Bash(git status*), Bash(git diff*)
 ---
 
 # Design SimSplit assets
@@ -57,7 +57,7 @@ and paths only.
 ### 3. Review sheet
 
 ```bash
-python3 .claude/skills/design-assets/scripts/contact_sheet.py \
+python3 .claude/skills/uiux-designer/scripts/contact_sheet.py \
   design/<asset>/review.png design/<asset>/variants/*.svg
 ```
 
@@ -100,7 +100,7 @@ It writes:
 To add or change a screenshot: add the screen to `capture_test.dart` (its
 capture name is the shot id) and the shot to `shots.json`. Never edit an
 output by hand. For a one-off render use
-`.claude/skills/design-assets/scripts/render.sh <in> <out> <w> <h> [--opaque]`.
+`.claude/skills/uiux-designer/scripts/render.sh <in> <out> <w> <h> [--opaque]`.
 
 ### 5. Verify
 
