@@ -14,6 +14,26 @@ chrome="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 [[ -x "$chrome" ]] || { echo "Chrome not found; set CHROME=/path/to/chrome" >&2; exit 1; }
 
 abs_in="$(cd "$(dirname "$in")" && pwd)/$(basename "$in")"
+
+# Chrome draws an SVG at its own width/height, so a 1024 master rendered into
+# a 512 window would be cropped, not scaled. When the sizes differ, wrap the
+# SVG in a page that scales it. (Fonts don't load inside <img>, so SVGs with
+# text must be rendered at their own size — as the feature graphics are.)
+if [[ "$abs_in" == *.svg ]]; then
+  intrinsic="$(python3 - "$abs_in" <<'PY'
+import re, sys
+head = open(sys.argv[1], encoding="utf-8").read(2000)
+m = re.search(r'<svg[^>]*\bwidth="(\d+)"[^>]*\bheight="(\d+)"', head)
+print(f"{m.group(1)}x{m.group(2)}" if m else "")
+PY
+)"
+  if [[ "$intrinsic" != "${w}x${h}" ]]; then
+    wrapper="$(mktemp -d)/scaled.html"
+    printf '<!doctype html><html><body style="margin:0"><img src="file://%s" style="display:block;width:%spx;height:%spx"></body></html>' \
+      "$abs_in" "$w" "$h" > "$wrapper"
+    abs_in="$wrapper"
+  fi
+fi
 mkdir -p "$(dirname "$out")"
 abs_out="$(cd "$(dirname "$out")" && pwd)/$(basename "$out")"
 
