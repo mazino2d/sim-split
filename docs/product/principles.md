@@ -49,7 +49,8 @@ default instead.
 
 ## Always-on constraints (not traded off)
 
-- **Offline core** — see [strategy](strategy.md#non-negotiable).
+- **One shared truth per group** — see [strategy](strategy.md#non-negotiable).
+- **Offline after sign-in** — see [strategy](strategy.md#strong-defaults-can-be-challenged-with-a-written-reason).
 - **Trust in numbers** — see [strategy](strategy.md#baseline-guardrail--trust-in-numbers).
 - **Bilingual** — every user-facing string exists in English and Vietnamese; Vietnamese
   copy is written natively, not translated word for word.
