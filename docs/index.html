@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SimSplit — split group expenses, offline</title>
+  <meta name="description" content="SimSplit tracks and splits group expenses for trips and dinners. Fully offline, no account, no ads. Log an expense in seconds and settle up in the fewest transfers." />
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/png" href="assets/icon.png" />
+  <link rel="apple-touch-icon" href="assets/icon.png" />
+  <meta property="og:title" content="SimSplit — split expenses, stay friends" />
+  <meta property="og:description" content="Track and split group expenses. Fully offline. No account." />
+  <meta property="og:image" content="assets/icon.png" />
+  <style>
+    /* Self-hosted Be Vietnam Pro (OFL) — no third-party requests. */
+    @font-face { font-family: "Be Vietnam Pro"; font-weight: 400; font-display: swap; src: url("assets/fonts/BeVietnamPro-Regular.ttf") format("truetype"); }
+    @font-face { font-family: "Be Vietnam Pro"; font-weight: 500; font-display: swap; src: url("assets/fonts/BeVietnamPro-Medium.ttf") format("truetype"); }
+    @font-face { font-family: "Be Vietnam Pro"; font-weight: 700; font-display: swap; src: url("assets/fonts/BeVietnamPro-Bold.ttf") format("truetype"); }
+
+    /* Tokens mirror lib/presentation/theme/app_theme.dart. */
+    :root {
+      --bg: #FFFFFF;
+      --surface: #F7F7F7;
+      --surface-2: #F2F2F2;
+      --ink: #0A0A0A;
+      --muted: #6B6B6B;
+      --line: #EBEBEB;
+      --on-ink: #FFFFFF;
+      --owed: #067647;
+      --owe: #C4320A;
+      --radius-m: 16px;
+      --radius-l: 24px;
+      --gutter: 20px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0B0B0B; --surface: #141414; --surface-2: #1A1A1A; --ink: #F5F5F5;
+        --muted: #A3A3A3; --line: #242424; --on-ink: #0B0B0B; --owed: #47CD89; --owe: #F97066;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0B0B0B; --surface: #141414; --surface-2: #1A1A1A; --ink: #F5F5F5;
+      --muted: #A3A3A3; --line: #242424; --on-ink: #0B0B0B; --owed: #47CD89; --owe: #F97066;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+    body {
+      overflow-x: hidden;
+      font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { display: block; max-width: 100%; height: auto; }
+    a { color: inherit; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--gutter); }
+
+    /* Nav */
+    nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+    nav .wrap { display: flex; align-items: center; gap: 12px; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; text-decoration: none; letter-spacing: -0.2px; }
+    .brand svg { width: 28px; height: 28px; }
+    nav .spacer { flex: 1; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); font-family: inherit; font-size: 14px; font-weight: 500; line-height: 1; text-decoration: none; cursor: pointer; }
+    .pill:hover { background: var(--surface-2); }
+    .lang button { border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 500; cursor: pointer; padding: 0 2px; }
+    .lang button[aria-pressed="true"] { color: var(--ink); font-weight: 700; }
+
+    /* Hero */
+    .hero { padding-top: 72px; padding-bottom: 56px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 48px; align-items: center; }
+    .eyebrow { display: inline-block; font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 16px; }
+    h1 { font-size: clamp(40px, 6vw, 68px); line-height: 1.05; letter-spacing: -2px; font-weight: 700; text-wrap: balance; }
+    h1 .soft { color: var(--muted); }
+    .lead { margin-top: 20px; font-size: 19px; color: var(--muted); max-width: 30em; text-wrap: pretty; }
+    .cta { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .btn { display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 24px; border-radius: 999px; font-weight: 700; font-size: 15px; text-decoration: none; border: 1px solid transparent; }
+    .btn-primary { background: var(--ink); color: var(--on-ink); }
+    .btn-ghost { border-color: var(--line); }
+    .btn-ghost:hover { background: var(--surface-2); }
+    .btn svg { width: 20px; height: 20px; }
+    .note { margin-top: 14px; font-size: 14px; color: var(--muted); }
+    .chips { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { font-size: 13px; font-weight: 500; padding: 7px 12px; border-radius: 999px; background: var(--surface-2); }
+
+    /* Phones */
+    .phones { position: relative; height: 620px; }
+    .phone { position: absolute; width: 270px; border-radius: 36px; overflow: hidden; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 24px 60px -24px rgba(0,0,0,.25); }
+    .phone img { width: 100%; }
+    .phone.a { left: 0; top: 40px; transform: rotate(-4deg); }
+    .phone.b { right: 0; top: 0; transform: rotate(3deg); }
+
+    /* Sections */
+    section { padding: 80px 0; border-top: 1px solid var(--line); }
+    h2 { font-size: clamp(30px, 4vw, 44px); line-height: 1.12; letter-spacing: -1px; font-weight: 700; max-width: 18em; text-wrap: balance; }
+    .sub { margin-top: 12px; color: var(--muted); font-size: 18px; max-width: 34em; }
+    .grid { margin-top: 40px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .card { background: var(--surface); border-radius: var(--radius-m); padding: 24px; }
+    .card .ic { width: 44px; height: 44px; border-radius: 14px; background: var(--surface-2); display: grid; place-items: center; margin-bottom: 18px; }
+    .card .ic svg { width: 22px; height: 22px; }
+    .card h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.2px; }
+    .card p { margin-top: 6px; color: var(--muted); font-size: 15px; }
+
+    .tour { margin-top: 48px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+    .step .shot { border-radius: 28px; overflow: hidden; background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+    .step .num { margin-top: 20px; font-size: 13px; font-weight: 700; color: var(--muted); }
+    .step h3 { margin-top: 4px; font-size: 20px; letter-spacing: -0.3px; }
+    .step p { margin-top: 6px; color: var(--muted); font-size: 15px; }
+
+    .privacy { background: var(--ink); color: var(--on-ink); border-radius: var(--radius-l); padding: 56px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; }
+    .privacy h2 { color: inherit; }
+    .privacy .sub { color: inherit; opacity: .7; }
+    .privacy ul { list-style: none; display: grid; gap: 14px; }
+    .privacy li { display: flex; gap: 12px; align-items: flex-start; font-size: 16px; }
+    .privacy li svg { flex: none; width: 22px; height: 22px; margin-top: 1px; }
+
+    .final { text-align: center; }
+    .final h2 { margin: 0 auto; }
+    .final .sub { margin: 12px auto 0; }
+    .final .cta { justify-content: center; }
+    .final .mark { width: 72px; height: 72px; margin: 0 auto 24px; }
+
+    footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; }
+    footer .spacer { flex: 1; }
+    footer a { text-decoration: none; }
+    footer a:hover { color: var(--ink); }
+
+    [data-lang] { display: none; }
+    html[lang="en"] [data-lang="en"], html[lang="vi"] [data-lang="vi"] { display: revert; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: minmax(0, 1fr); padding-top: 48px; }
+      .phones { height: 480px; max-width: 460px; width: 100%; margin: 0 auto; }
+      .phone { width: 210px; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tour { grid-template-columns: minmax(0, 1fr); max-width: 420px; }
+      .privacy { grid-template-columns: minmax(0, 1fr); padding: 36px 24px; }
+      section { padding: 64px 0; }
+    }
+    @media (max-width: 520px) {
+      .grid { grid-template-columns: minmax(0, 1fr); }
+      .phones { height: 400px; }
+      .phone { width: 170px; border-radius: 26px; }
+      nav .gh-label { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <!-- The brand mark: a split coin, one half paid (solid), one half owed (outline). -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="mark" viewBox="238 262 548 500">
+      <path d="M488 262A250 250 0 0 0 488 762Z" fill="currentColor"/>
+      <path fill-rule="evenodd" fill="currentColor" d="M536 262A250 250 0 0 1 536 762ZM536 330V694A182 182 0 0 0 536 330Z"/>
+    </symbol>
+  </svg>
+
+  <nav>
+    <div class="wrap">
+      <a class="brand" href="#top"><svg aria-hidden="true"><use href="#mark"/></svg>SimSplit</a>
+      <span class="spacer"></span>
+      <span class="lang pill" role="group" aria-label="Language">
+        <button type="button" data-set-lang="en" aria-pressed="true">EN</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" data-set-lang="vi" aria-pressed="false">VI</button>
+      </span>
+      <a class="pill" href="https://github.com/mazino2d/sim-split">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.51-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        <span class="gh-label">GitHub</span>
+      </a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <div class="wrap hero">
+      <div>
+        <span class="eyebrow">
+          <span data-lang="en">For trips, dinners and shared houses</span>
+          <span data-lang="vi">Cho chuyến đi, bữa ăn và nhà chung</span>
+        </span>
+        <h1>
+          <span data-lang="en">Split expenses.<br><span class="soft">Stay friends.</span></span>
+          <span data-lang="vi">Chia tiền gọn gàng.<br><span class="soft">Không lo mất lòng.</span></span>
+        </h1>
+        <p class="lead">
+          <span data-lang="en">One person logs, everyone knows who owes whom. SimSplit works fully offline, needs no account and keeps every number exact to the last đồng.</span>
+          <span data-lang="vi">Một người ghi, cả nhóm biết ai nợ ai. SimSplit chạy hoàn toàn offline, không cần tài khoản và tính chính xác tới từng đồng.</span>
+        </p>
+        <div class="cta">
+          <span class="btn btn-primary" aria-disabled="true">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.6 1.8 13.8 12 3.6 22.2c-.4-.2-.6-.6-.6-1.1V2.9c0-.5.2-.9.6-1.1Zm11.6 11.6 2.6 2.6-11.5 6.6 8.9-9.2Zm4.3-3.1 2.6 1.5c.6.4.6 1.3 0 1.7l-2.6 1.5-2.9-2.9 2.9-2.8ZM6.3 1.4l11.5 6.6-2.6 2.6-8.9-9.2Z"/></svg>
+            <span data-lang="en">Coming soon to Google Play</span>
+            <span data-lang="vi">Sắp có trên Google Play</span>
+          </span>
+          <a class="btn btn-ghost" href="https://github.com/mazino2d/sim-split">
+            <span data-lang="en">View the source</span>
+            <span data-lang="vi">Xem mã nguồn</span>
+          </a>
+        </div>
+        <p class="note">
+          <span data-lang="en">Android now in closed testing · iOS and web build from source.</span>
+          <span data-lang="vi">Android đang thử nghiệm kín · iOS và web build từ mã nguồn.</span>
+        </p>
+        <div class="chips">
+          <span class="chip"><span data-lang="en">Offline</span><span data-lang="vi">Offline</span></span>
+          <span class="chip"><span data-lang="en">No account</span><span data-lang="vi">Không tài khoản</span></span>
+          <span class="chip"><span data-lang="en">No ads</span><span data-lang="vi">Không quảng cáo</span></span>
+          <span class="chip"><span data-lang="en">English · Tiếng Việt</span><span data-lang="vi">Tiếng Việt · English</span></span>
+        </div>
+      </div>
+      <div class="phones" aria-hidden="true">
+        <div class="phone a"><img data-shot="01_home" alt="" width="540" height="900"></div>
+        <div class="phone b"><img data-shot="02_add_expense" alt="" width="540" height="900"></div>
+      </div>
+    </div>
+
+    <section id="features">
+      <div class="wrap">
+        <h2>
+          <span data-lang="en">Built for the person holding the phone.</span>
+          <span data-lang="vi">Làm cho người cầm máy ghi chép.</span>
+        </h2>
+        <p class="sub">
+          <span data-lang="en">Everything you need on a trip, nothing that gets in the way.</span>
+          <span data-lang="vi">Đủ mọi thứ cần cho một chuyến đi, không gì cản đường.</span>
+        </p>
+        <div class="grid">
+          <div class="card">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg></div>
+            <h3><span data-lang="en">Log in seconds</span><span data-lang="vi">Ghi trong vài giây</span></h3>
+            <p><span data-lang="en">Type the amount, tap Save. The payer defaults to whoever paid last; add a description tonight with a swipe.</span><span data-lang="vi">Gõ số tiền, bấm Lưu. Người trả mặc định là người vừa trả; tối về vuốt để thêm mô tả.</span></p>
+          </div>
+          <div class="card">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5.5 6.5-5.5s5.7 2.1 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18.5 14.8c1.7.8 2.7 2.6 3 5.2"/></svg></div>
+            <h3><span data-lang="en">Split your way</span><span data-lang="vi">Chia theo ý bạn</span></h3>
+            <p><span data-lang="en">Equally among just the people who joined, or by percentage, exact amounts or shares.</span><span data-lang="vi">Chia đều cho đúng những người tham gia, hoặc theo %, số tiền cụ thể hay tỉ lệ.</span></p>
+          </div>
+          <div class="card">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13"/><path d="m14 4 3 3-3 3"/><path d="M20 17H7"/><path d="m10 14-3 3 3 3"/></svg></div>
+            <h3><span data-lang="en">Fewest transfers</span><span data-lang="vi">Ít lần chuyển nhất</span></h3>
+            <p><span data-lang="en">Debts are simplified so the group settles with as few payments as possible.</span><span data-lang="vi">Nợ được rút gọn để cả nhóm thanh toán với ít lần chuyển khoản nhất.</span></p>
+          </div>
+          <div class="card">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 4.2-2.5"/><path d="M19 12.9a10 10 0 0 0-2-1.4"/><path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M10.7 5a15 15 0 0 1 11.3 3.8"/><circle cx="12" cy="20" r="0.6" fill="currentColor"/></svg></div>
+            <h3><span data-lang="en">No signal needed</span><span data-lang="vi">Không cần sóng</span></h3>
+            <p><span data-lang="en">Mountains, islands, abroad — everything works offline, always.</span><span data-lang="vi">Trên núi, ngoài đảo hay nước ngoài — mọi thứ đều chạy offline.</span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tour">
+      <div class="wrap">
+        <h2>
+          <span data-lang="en">From the first coffee to settling up.</span>
+          <span data-lang="vi">Từ ly cà phê đầu tiên tới lúc thanh toán.</span>
+        </h2>
+        <div class="tour">
+          <div class="step">
+            <div class="shot"><img data-shot="02_add_expense" alt="" loading="lazy" width="540" height="900"></div>
+            <div class="num">01</div>
+            <h3><span data-lang="en">Log as you go</span><span data-lang="vi">Ghi ngay khi chi</span></h3>
+            <p><span data-lang="en">Amount first, everything else optional.</span><span data-lang="vi">Số tiền trước, còn lại tuỳ chọn.</span></p>
+          </div>
+          <div class="step">
+            <div class="shot"><img data-shot="01_home" alt="" loading="lazy" width="540" height="900"></div>
+            <div class="num">02</div>
+            <h3><span data-lang="en">See where you stand</span><span data-lang="vi">Biết mình đang ở đâu</span></h3>
+            <p><span data-lang="en">What you're owed and what you owe, across every group.</span><span data-lang="vi">Bạn được nhận và đang nợ bao nhiêu, trên mọi nhóm.</span></p>
+          </div>
+          <div class="step">
+            <div class="shot"><img data-shot="03_settle_up" alt="" loading="lazy" width="540" height="900"></div>
+            <div class="num">03</div>
+            <h3><span data-lang="en">Settle up</span><span data-lang="vi">Thanh toán</span></h3>
+            <p><span data-lang="en">Who pays whom, one tap to record it.</span><span data-lang="vi">Ai trả ai, một chạm để ghi nhận.</span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy">
+      <div class="wrap">
+        <div class="privacy">
+          <div>
+            <h2>
+              <span data-lang="en">Your money talk stays on your phone.</span>
+              <span data-lang="vi">Chuyện tiền nong ở yên trong máy bạn.</span>
+            </h2>
+            <p class="sub">
+              <span data-lang="en">SimSplit has no servers to send your data to. That's the whole design.</span>
+              <span data-lang="vi">SimSplit không có máy chủ nào để gửi dữ liệu của bạn. Thiết kế là vậy.</span>
+            </p>
+          </div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">No sign-up, no email, no password</span><span data-lang="vi">Không đăng ký, không email, không mật khẩu</span></span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">No ads and no tracking SDKs</span><span data-lang="vi">Không quảng cáo, không SDK theo dõi</span></span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">Data stored only on your device</span><span data-lang="vi">Dữ liệu chỉ lưu trên thiết bị của bạn</span></span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">Open source — read every line</span><span data-lang="vi">Mã nguồn mở — đọc được từng dòng</span></span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="wrap">
+        <svg class="mark" aria-hidden="true"><use href="#mark"/></svg>
+        <h2>
+          <span data-lang="en">Next trip, let the app do the maths.</span>
+          <span data-lang="vi">Chuyến đi tới, để app lo phần tính toán.</span>
+        </h2>
+        <p class="sub">
+          <span data-lang="en">Free, with no in-app purchases. Built with care, not for profit.</span>
+          <span data-lang="vi">Miễn phí, không mua trong app. Làm bằng tâm huyết, không vì lợi nhuận.</span>
+        </p>
+        <div class="cta">
+          <a class="btn btn-ghost" href="https://github.com/mazino2d/sim-split">
+            <span data-lang="en">Follow on GitHub</span>
+            <span data-lang="vi">Theo dõi trên GitHub</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>© SimSplit</span>
+      <span class="spacer"></span>
+      <a href="privacy-policy.html"><span data-lang="en">Privacy policy</span><span data-lang="vi">Chính sách quyền riêng tư</span></a>
+      <a href="product/strategy.html"><span data-lang="en">Product strategy</span><span data-lang="vi">Chiến lược sản phẩm</span></a>
+      <a href="https://github.com/mazino2d/sim-split">GitHub</a>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var saved = null;
+      try { saved = localStorage.getItem('simsplit-lang'); } catch (e) {}
+      var query = new URLSearchParams(location.search).get('lang');
+      var browser = (navigator.language || 'en').toLowerCase().startsWith('vi') ? 'vi' : 'en';
+      setLang(query || saved || browser);
+
+      document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          setLang(b.getAttribute('data-set-lang'));
+          try { localStorage.setItem('simsplit-lang', root.lang); } catch (e) {}
+        });
+      });
+
+      function setLang(lang) {
+        lang = lang === 'vi' ? 'vi' : 'en';
+        root.lang = lang;
+        document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b.getAttribute('data-set-lang') === lang));
+        });
+        // App screenshots follow the language.
+        document.querySelectorAll('img[data-shot]').forEach(function (img) {
+          img.src = 'assets/screens/' + lang + '/' + img.getAttribute('data-shot') + '.webp';
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

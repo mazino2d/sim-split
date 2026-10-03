@@ -1,7 +1,8 @@
 // Captures raw app screens for the Play Store screenshots.
 //
-//   flutter test design/store/capture_test.dart --update-goldens
-//   python3 design/store/build_screenshots.py
+//   python3 design/build.py   (runs this test, then frames the shots)
+//
+// Capture names must match the ids in design/shots.json.
 //
 // Not part of the CI test suite (it lives outside test/), so the analyzer
 // does not treat it as a test.
