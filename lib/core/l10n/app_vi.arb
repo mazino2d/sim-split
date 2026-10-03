@@ -4,7 +4,7 @@
 
   "groupsTitle": "Nhóm",
   "noGroups": "Chưa có nhóm nào",
-  "noGroupsHint": "Nhấn + để tạo nhóm đầu tiên",
+  "noGroupsHint": "Tạo nhóm cho một chuyến đi, một bữa ăn hay nhà chung.",
   "createGroup": "Tạo nhóm",
   "editGroup": "Sửa nhóm",
   "saveChanges": "Lưu thay đổi",
@@ -222,5 +222,38 @@
     "placeholders": {
       "index": { "type": "int" }
     }
-  }
+  },
+
+  "totalOwedToYou": "Bạn được nhận",
+  "totalYouOwe": "Bạn đang nợ",
+  "allSettledHome": "Bạn không nợ ai",
+  "newGroup": "Nhóm mới",
+  "peopleCount": "{count} người",
+  "statusOwedToYou": "bạn được nhận",
+  "statusYouOwe": "bạn nợ",
+  "statusSettled": "đã xong",
+  "totalSpent": "Tổng chi",
+  "yourShare": "Phần của bạn",
+  "whoPaysWhom": "Ai trả ai",
+  "noExpensesHint": "Ghi khoản đầu tiên — chỉ mất vài giây.",
+  "shareYouOwe": "bạn nợ {amount}",
+  "shareYouGet": "bạn được {amount}",
+  "whatFor": "Chi cho việc gì?",
+  "splitBetween": "Chia cho",
+  "everyone": "Tất cả",
+  "perPerson": "{amount} mỗi người",
+  "splitUnevenly": "Chia không đều",
+  "untitledExpense": "Khoản chi",
+  "categoryFood": "Ăn uống",
+  "categoryTransport": "Di chuyển",
+  "categoryAccommodation": "Chỗ ở",
+  "categoryEntertainment": "Vui chơi",
+  "categoryShopping": "Mua sắm",
+  "categoryHealth": "Sức khỏe",
+  "categoryOther": "Khác",
+  "appearance": "Giao diện",
+  "themeSystem": "Theo máy",
+  "themeLight": "Sáng",
+  "themeDark": "Tối",
+  "addMembersFirst": "Thêm người trong nhóm trước đã"
 }

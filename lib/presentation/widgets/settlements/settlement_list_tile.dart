@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
-import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
+import 'package:simsplit/presentation/widgets/common/money_text.dart';
 
 /// One recorded payment in the settlement history: "A paid B", its date and
 /// optional note, and the amount.
@@ -21,7 +21,8 @@ class SettlementListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     String nameOf(String memberId) {
       final member = members.where((m) => m.id == memberId).firstOrNull;
@@ -35,24 +36,31 @@ class SettlementListTile extends StatelessWidget {
     final note = settlement.note;
 
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: colorScheme.secondaryContainer,
-        child: Icon(Icons.payments_outlined,
-            color: colorScheme.onSecondaryContainer),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainer,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(Icons.check_rounded, size: 20, color: cs.onSurface),
       ),
-      title: Text(l10n.paidTo(
-        nameOf(settlement.fromMemberId),
-        nameOf(settlement.toMemberId),
-      )),
+      title: Text(
+        l10n.paidTo(
+          nameOf(settlement.fromMemberId),
+          nameOf(settlement.toMemberId),
+        ),
+        style: theme.textTheme.bodyLarge,
+      ),
       subtitle: Text(
         note == null || note.isEmpty ? date : '$date · $note',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: colorScheme.onSurfaceVariant),
       ),
-      trailing: Text(
-        formatMoney(settlement.amountCents, settlement.currencyCode),
-        style: const TextStyle(fontWeight: FontWeight.bold),
+      trailing: MoneyText(
+        settlement.amountCents,
+        settlement.currencyCode,
+        style: theme.textTheme.titleSmall,
       ),
     );
   }

@@ -14,8 +14,8 @@ import 'package:simsplit/presentation/notifiers/member_notifier.dart';
 import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
-import 'package:simsplit/presentation/utils/member_initial.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
+import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
 
 const _currencies = ['VND', 'USD', 'EUR', 'SGD', 'THB'];
 
@@ -1297,16 +1297,7 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
         children: [
           _AvatarTapTarget(
             onTap: _pickEmoji,
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Color(member.avatarColorValue),
-              child: member.emoji != null
-                  ? Text(member.emoji!, style: const TextStyle(fontSize: 16))
-                  : Text(
-                      nameInitial(member.name),
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                    ),
-            ),
+            child: MemberAvatar(member: member, size: 36),
           ),
           const SizedBox(width: 10),
           Expanded(
