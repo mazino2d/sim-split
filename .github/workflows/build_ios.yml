@@ -31,6 +31,10 @@ on:
       ASC_PRIVATE_KEY_BASE64:
         required: false
 
+# Least privilege by default; jobs that need more declare their own block.
+permissions:
+  contents: read
+
 jobs:
   build-ios:
     name: Build iOS (unsigned)
