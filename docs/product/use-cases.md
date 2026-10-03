@@ -36,5 +36,5 @@ nothing.
 | --- | --- | --- |
 | UC-3 | Set up a group and its members | Works offline; no contacts permission; members can be added mid-trip. |
 | UC-4 | Record a settlement | Settled debts disappear from balances; history is visible. |
-| UC-5 | Share the result with the group | Plain-text or image summary to any messaging app. *(Not built yet — see roadmap.)* |
+| UC-5 | Share the result with the group | Plain-text or image summary to any messaging app. *(Not built.)* |
 | UC-6 | Manage settings (language, theme) | Changes apply without restart. |
