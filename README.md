@@ -127,6 +127,7 @@ lib/
 | `build_android` | Manual (`workflow_dispatch`), or called by `release` | Signed AAB → Google Play (track selectable, default `internal`) |
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
 | `release` | Push a `vX.Y.Z` tag | Validates the tag, uploads AAB to the `production` track (as draft), creates a GitHub Release |
+| `play_metadata` | Push to `main` touching `android/fastlane/metadata/**`, or manual (dry run by default) | Syncs the Play store listing, images, contact details and Data safety form — see [android/fastlane/README.md](android/fastlane/README.md) |
 
 Pushing to `main` does **not** upload anything to Google Play.
 
@@ -152,7 +153,9 @@ Workload Identity Federation as
 `gha-play-publisher@mazino2d-as-se1-dev.iam.gserviceaccount.com`, defined in
 [everything-as-code](https://github.com/mazino2d/everything-as-code/blob/main/terraform/gcp/mazino2d-as-se1-dev/github_actions.tf).
 Only `main` and `vX.Y.Z` tags can use it. The account must be invited in Play
-Console → Users and permissions with release permissions for SimSplit.
+Console → Users and permissions with the app permissions listed in
+[android/fastlane/README.md](android/fastlane/README.md#play-console-access-for-ci)
+(release + Manage store presence).
 
 **iOS (not needed until the Apple account is active):**
 

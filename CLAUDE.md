@@ -230,5 +230,6 @@ This applies everywhere: member count badges, expense form dropdowns, split inpu
 | `build_android` | Push → `main` | AAB → Play Store internal track |
 | `build_ios` | Push → `main` | IPA → TestFlight |
 | `release` | `git tag v1.0.0` | Production release to both stores |
+| `play_metadata` | Push → `main` touching `android/fastlane/metadata/**`, or manual (dry run) | Syncs Play store listing, images, contact, Data safety (see `android/fastlane/README.md`) |
 
 To open a pull request, use the `/write-pr` skill (`.claude/skills/write-pr/`).
