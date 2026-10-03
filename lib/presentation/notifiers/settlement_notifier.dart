@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/use_cases/settlements/delete_settlement.dart';
 import 'package:simsplit/domain/use_cases/settlements/settle_debt.dart';
 
 part 'settlement_notifier.g.dart';
@@ -35,6 +36,19 @@ class SettlementNotifier extends _$SettlementNotifier {
       note: note,
       settledAt: settledAt,
     ));
+    if (ref.mounted) {
+      state = result.fold(
+        (failure) => AsyncError(failure, StackTrace.current),
+        (_) => const AsyncData(null),
+      );
+    }
+    return result;
+  }
+
+  Future<Either<Failure, Unit>> deleteSettlement(String id) async {
+    state = const AsyncLoading();
+    final useCase = ref.read(deleteSettlementProvider);
+    final result = await useCase(DeleteSettlementParams(id: id));
     if (ref.mounted) {
       state = result.fold(
         (failure) => AsyncError(failure, StackTrace.current),

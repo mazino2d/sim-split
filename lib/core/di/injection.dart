@@ -33,6 +33,7 @@ import 'package:simsplit/domain/use_cases/members/list_members.dart';
 import 'package:simsplit/domain/use_cases/members/remove_member.dart';
 import 'package:simsplit/domain/use_cases/members/update_member.dart';
 import 'package:simsplit/domain/use_cases/settlements/calculate_debts.dart';
+import 'package:simsplit/domain/use_cases/settlements/delete_settlement.dart';
 import 'package:simsplit/domain/use_cases/settlements/list_settlements.dart';
 import 'package:simsplit/domain/use_cases/settlements/settle_debt.dart';
 
@@ -169,4 +170,8 @@ SettleDebt settleDebt(Ref ref) => SettleDebt(
 
 @riverpod
 ListSettlements listSettlements(Ref ref) => ListSettlements(
+    settlementRepository: ref.watch(settlementRepositoryProvider));
+
+@riverpod
+DeleteSettlement deleteSettlement(Ref ref) => DeleteSettlement(
     settlementRepository: ref.watch(settlementRepositoryProvider));
