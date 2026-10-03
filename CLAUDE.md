@@ -233,3 +233,10 @@ This applies everywhere: member count badges, expense form dropdowns, split inpu
 | `play_metadata` | Push → `main` touching `android/fastlane/metadata/**`, or manual (dry run) | Syncs Play store listing, images, contact, Data safety (see `android/fastlane/README.md`) |
 
 To open a pull request, use the `/write-pr` skill (`.claude/skills/write-pr/`).
+
+---
+
+## Product
+
+Product strategy, design principles, use cases and the roadmap live in `docs/product/` (published on GitHub Pages — keep it public-safe).
+For feature triage, specs and roadmap changes, use the `/product-owner` skill (`.claude/skills/product-owner/`).
