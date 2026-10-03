@@ -8,7 +8,7 @@ and recorded below so it can be re-entered or audited.
 
 | What | Source | Applied by |
 | --- | --- | --- |
-| Listing text (en-US, vi-VN) | `metadata/android/<lang>/{title,short_description,full_description}.txt` | `play_metadata.yml` on push to `main` |
+| Listing text (`en-US`, `vi` — folder names must be Play language codes, e.g. `vi` not `vi-VN`) | `metadata/android/<lang>/{title,short_description,full_description}.txt` | `play_metadata.yml` on push to `main` |
 | Icon, feature graphic | `metadata/android/<lang>/images/{icon,featureGraphic}.png` | `play_metadata.yml` |
 | Phone / 7" / 10" screenshots | `metadata/android/<lang>/images/{phone,sevenInch,tenInch}Screenshots/` | `play_metadata.yml` |
 | Default language, contact email, website | `metadata/android/play.json` | `play_metadata.yml` |
