@@ -52,9 +52,9 @@ jobs:
       id-token: write # OIDC token for Workload Identity Federation
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: "temurin"
           java-version: "17"
@@ -99,7 +99,7 @@ jobs:
           flutter build appbundle --release --build-number="$BUILD_NUMBER"
 
       - name: Upload AAB artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: simsplit-release.aab
           path: build/app/outputs/bundle/release/app-release.aab

@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Flutter SDK + pub cache, and build_runner output cached by source hash.
       - uses: ./.github/actions/flutter-setup
@@ -49,7 +49,7 @@ jobs:
         run: flutter build ios --release --no-codesign
 
       - name: Upload .app artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: simsplit-ios-unsigned.app
           path: build/ios/iphoneos/Runner.app
