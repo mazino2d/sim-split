@@ -27,7 +27,7 @@ runs:
     - name: Restore generated sources
       if: inputs.codegen == 'true'
       id: codegen-cache
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           lib/**/*.g.dart

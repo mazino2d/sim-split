@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 5
     steps:
       # Only pubspec.yaml is needed to compare versions.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: pubspec.yaml
           sparse-checkout-cone-mode: false
@@ -58,12 +58,12 @@ jobs:
     # No checkout: the release is created from the pushed tag via the API.
     steps:
       - name: Download AAB artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: simsplit-release.aab
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: app-release.aab
           generate_release_notes: true
