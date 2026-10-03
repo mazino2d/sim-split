@@ -5,7 +5,7 @@
 
   "groupsTitle": "Groups",
   "noGroups": "No groups yet",
-  "noGroupsHint": "Tap + to create your first group",
+  "noGroupsHint": "Create one for a trip, a dinner or a shared house.",
   "createGroup": "Create Group",
   "editGroup": "Edit Group",
   "saveChanges": "Save changes",
@@ -223,5 +223,59 @@
     "placeholders": {
       "index": { "type": "int" }
     }
-  }
+  },
+
+  "totalOwedToYou": "You're owed",
+  "totalYouOwe": "You owe",
+  "allSettledHome": "You're all square",
+  "newGroup": "New group",
+  "peopleCount": "{count, plural, =1{1 person} other{{count} people}}",
+  "@peopleCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "statusOwedToYou": "you get back",
+  "statusYouOwe": "you owe",
+  "statusSettled": "settled",
+  "totalSpent": "Total spent",
+  "yourShare": "Your share",
+  "whoPaysWhom": "Who pays whom",
+  "noExpensesHint": "Log the first one — it only takes a few seconds.",
+  "shareYouOwe": "you owe {amount}",
+  "@shareYouOwe": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "shareYouGet": "you get {amount}",
+  "@shareYouGet": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "whatFor": "What was it for?",
+  "splitBetween": "Split between",
+  "everyone": "Everyone",
+  "perPerson": "{amount} each",
+  "@perPerson": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "splitUnevenly": "Split unevenly",
+  "untitledExpense": "Expense",
+  "categoryFood": "Food & drink",
+  "categoryTransport": "Transport",
+  "categoryAccommodation": "Stay",
+  "categoryEntertainment": "Fun",
+  "categoryShopping": "Shopping",
+  "categoryHealth": "Health",
+  "categoryOther": "Other",
+  "appearance": "Appearance",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "addMembersFirst": "Add the people in this group first",
+  "addPersonHint": "Add a person…"
 }

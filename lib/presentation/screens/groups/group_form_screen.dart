@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
@@ -14,8 +16,11 @@ import 'package:simsplit/presentation/notifiers/member_notifier.dart';
 import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
+import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/utils/member_initial.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
+import 'package:simsplit/presentation/widgets/common/section_label.dart';
+import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
 
 const _currencies = ['VND', 'USD', 'EUR', 'SGD', 'THB'];
 
@@ -105,9 +110,12 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
 
   // ── Create mode — pending other members ─────────────────────────────────
   final List<_MemberDraft> _memberDrafts = [];
-  bool _addingNew = false;
   final _newNameController = TextEditingController();
+  final _newFocusNode = FocusNode();
   String? _newEmoji;
+
+  /// Remembers "my" name so new groups start with it filled in.
+  static const _myNameKey = 'my_member_name';
 
   // ── Edit mode — renames of existing members not yet persisted ───────────
   // Keyed by member id. Flushed on form save, and on dispose as a fallback so
@@ -124,7 +132,36 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     _nameController = TextEditingController();
     _nameController.addListener(() => setState(() => _isDirty = true));
     _meNameController.addListener(() => setState(() => _isDirty = true));
-    if (isEdit) _loadExistingGroup();
+    if (isEdit) {
+      _loadExistingGroup();
+    } else {
+      _prefillMyName();
+    }
+  }
+
+  Future<void> _prefillMyName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString(_myNameKey);
+    if (!mounted || name == null || _meNameController.text.isNotEmpty) return;
+    _meNameController.text = name;
+    setState(() => _isDirty = false);
+  }
+
+  /// Moves the typed name into the member list and readies the field for the
+  /// next person.
+  void _addDraft() {
+    final name = _newNameController.text.trim();
+    if (name.isEmpty) return;
+    HapticFeedback.lightImpact();
+    final draft = _MemberDraft()..emoji = _newEmoji;
+    draft.controller.text = name;
+    setState(() {
+      _memberDrafts.add(draft);
+      _newNameController.clear();
+      _newEmoji = null;
+      _isDirty = true;
+    });
+    _newFocusNode.requestFocus();
   }
 
   Future<void> _loadExistingGroup() async {
@@ -174,6 +211,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     _nameController.dispose();
     _meNameController.dispose();
     _newNameController.dispose();
+    _newFocusNode.dispose();
     for (final d in _memberDrafts) {
       d.dispose();
     }
@@ -307,6 +345,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
       context.pop();
     } else {
       // ── Create mode ────────────────────────────────────────────────────
+      // A name typed but not yet added with + still counts.
+      _addDraft();
       final createResult = await groupNotifier.createGroup(
         name: _nameController.text.trim(),
         currencyCode: _currency,
@@ -342,6 +382,9 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
         );
         failure ??= result.fold<Failure?>((f) => f, (_) => null);
       }
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_myNameKey, _meNameController.text.trim());
 
       if (!mounted) return;
       if (failure != null) _showFailure(messenger, failure);
@@ -446,7 +489,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     // Watching keeps the auto-dispose notifiers alive while the form is open.
     // Both watches must run on every build: if `||` short-circuited them once
     // `_isLoading` is true, Riverpod would dispose the notifiers mid-save and
@@ -461,6 +505,14 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                 .value
                 ?.isNotEmpty ??
             true);
+    final otherCount = isEdit
+        ? (ref
+                .watch(memberListProvider(widget.editGroupId!))
+                .value
+                ?.where((m) => !m.isMe)
+                .length ??
+            0)
+        : _memberDrafts.length;
 
     return PopScope(
       canPop: !_isDirty,
@@ -471,204 +523,199 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(isEdit ? l10n.editGroup : l10n.createGroup),
+          leading: CloseButton(onPressed: () => Navigator.maybePop(context)),
+          title: Text(isEdit ? l10n.editGroup : l10n.newGroup),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.check),
-              tooltip: l10n.save,
-              onPressed: saving ? null : _save,
-            ),
+            if (isEdit)
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: l10n.deleteGroup,
+                onPressed: saving ? null : _confirmDeleteGroup,
+              ),
+            const SizedBox(width: 8),
           ],
         ),
-        body: _isLoading
-            ? const AppLoadingWidget()
-            : Form(
-                key: _formKey,
+        body: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.only(top: 8, bottom: 24),
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   children: [
-                    // ── Group icon + name (inline) ─────────────────────
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Tooltip(
-                          message: l10n.chooseIcon,
-                          child: InkWell(
-                            onTap: () => _showEmojiPicker(
-                              options: _groupEmojiOptions,
-                              currentEmoji: _emoji,
-                              onSelected: (e) => setState(() {
-                                _emoji = e;
-                                _isDirty = true;
-                              }),
+                    // ── Icon + name ───────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.gutter),
+                      child: Row(
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            width: 64,
+                            height: 64,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(12),
+                            child: _emoji != null
+                                ? Text(_emoji!,
+                                    style: const TextStyle(fontSize: 32))
+                                : Icon(Icons.group_outlined,
+                                    size: 28,
+                                    color: colorScheme.onSurfaceVariant),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _nameController,
+                              autofocus: !isEdit,
+                              textCapitalization: TextCapitalization.sentences,
+                              textInputAction: TextInputAction.next,
+                              style: theme.textTheme.titleLarge,
+                              decoration: InputDecoration(
+                                hintText: l10n.groupNameHint,
                               ),
-                              child: Center(
-                                child: _emoji != null
-                                    ? Text(_emoji!,
-                                        style: const TextStyle(fontSize: 26))
-                                    : Icon(Icons.add_photo_alternate_outlined,
-                                        size: 24,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant),
-                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? l10n.groupNameRequired
+                                  : null,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _nameController,
-                            decoration: InputDecoration(
-                              labelText: l10n.groupName,
-                              hintText: l10n.groupNameHint,
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _EmojiStrip(
+                      options: _groupEmojiOptions,
+                      selected: _emoji,
+                      onSelected: (e) => setState(() {
+                        _emoji = e == _emoji ? null : e;
+                        _isDirty = true;
+                      }),
+                    ),
+
+                    // ── Currency ──────────────────────────────────────
+                    SectionLabel(l10n.groupCurrency),
+                    SizedBox(
+                      height: 40,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.gutter),
+                        children: [
+                          for (final c in {..._currencies, _currency})
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(c),
+                                labelStyle: TextStyle(
+                                  color: c == _currency
+                                      ? colorScheme.onPrimary
+                                      : colorScheme.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                selected: c == _currency,
+                                onSelected: currencyLocked
+                                    ? null
+                                    : (_) => setState(() {
+                                          _currency = c;
+                                          _isDirty = true;
+                                        }),
+                              ),
                             ),
-                            validator: (v) => (v == null || v.trim().isEmpty)
-                                ? l10n.groupNameRequired
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // ── Currency ───────────────────────────────────────
-                    DropdownButtonFormField<String>(
-                      // Re-create when the loaded group's currency arrives.
-                      key: ValueKey('currency-$_currency'),
-                      initialValue: _currency,
-                      decoration: InputDecoration(
-                        labelText: l10n.groupCurrency,
-                        helperText:
-                            currencyLocked ? l10n.currencyLockedHint : null,
+                        ],
                       ),
-                      items: {..._currencies, _currency}
-                          .map(
-                              (c) => DropdownMenuItem(value: c, child: Text(c)))
-                          .toList(),
-                      onChanged: currencyLocked
-                          ? null
-                          : (v) => setState(() {
-                                if (v == null) return;
-                                _currency = v;
-                                _isDirty = true;
-                              }),
                     ),
-                    const SizedBox(height: 28),
-
-                    // ── "Tôi" section (always shown) ───────────────────
-                    _SectionHeader(
-                      icon: Icons.person,
-                      label: l10n.you,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(height: 8),
-                    _MeRow(
-                      nameController: _meNameController,
-                      emoji: _meEmoji,
-                      onEmojiTap: () => _showEmojiPicker(
-                        options: _memberEmojiOptions,
-                        currentEmoji: _meEmoji,
-                        onSelected: (e) => setState(() => _meEmoji = e),
+                    if (currencyLocked)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                            AppTheme.gutter, 8, AppTheme.gutter, 0),
+                        child: Text(
+                          l10n.currencyLockedHint,
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
                       ),
-                      l10n: l10n,
-                    ),
-                    const SizedBox(height: 28),
 
-                    // ── Other members ──────────────────────────────────
-                    _SectionHeader(
-                      icon: Icons.group_outlined,
-                      label: l10n.members,
-                    ),
-                    const SizedBox(height: 8),
-
-                    if (isEdit)
-                      // Edit mode: stream-backed member list (non-me)
-                      _EditModeMembersSection(
-                        groupId: widget.editGroupId!,
-                        onPendingRename: _onPendingRename,
-                        onRenameSaved: (memberId) =>
-                            _pendingRenames.remove(memberId),
-                        onShowEmojiPicker: (current, onSelected) =>
-                            _showEmojiPicker(
+                    // ── You ───────────────────────────────────────────
+                    SectionLabel(l10n.you),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.gutter),
+                      child: _MeRow(
+                        nameController: _meNameController,
+                        emoji: _meEmoji,
+                        onEmojiTap: () => _showEmojiPicker(
                           options: _memberEmojiOptions,
-                          currentEmoji: current,
-                          onSelected: onSelected,
-                        ),
-                      )
-                    else
-                      // Create mode: local draft list
-                      _CreateModeMembersSection(
-                        drafts: _memberDrafts,
-                        addingNew: _addingNew,
-                        newNameController: _newNameController,
-                        newEmoji: _newEmoji,
-                        onAddTap: () => setState(() {
-                          _addingNew = true;
-                          _newNameController.clear();
-                          _newEmoji = null;
-                        }),
-                        onNewEmojiTap: () => _showEmojiPicker(
-                          options: _memberEmojiOptions,
-                          currentEmoji: _newEmoji,
-                          onSelected: (e) => setState(() => _newEmoji = e),
-                        ),
-                        onNewSave: () {
-                          final name = _newNameController.text.trim();
-                          if (name.isEmpty) {
-                            setState(() => _addingNew = false);
-                            return;
-                          }
-                          final draft = _MemberDraft()..emoji = _newEmoji;
-                          draft.controller.text = name;
-                          setState(() {
-                            _memberDrafts.add(draft);
-                            _addingNew = false;
+                          currentEmoji: _meEmoji,
+                          onSelected: (e) => setState(() {
+                            _meEmoji = e;
                             _isDirty = true;
-                          });
-                        },
-                        onNewCancel: () => setState(() => _addingNew = false),
-                        onDraftEmojiTap: (draft) => _showEmojiPicker(
-                          options: _memberEmojiOptions,
-                          currentEmoji: draft.emoji,
-                          onSelected: (e) => setState(() => draft.emoji = e),
+                          }),
                         ),
-                        onDraftDelete: (draft) {
-                          draft.dispose();
-                          setState(() => _memberDrafts.remove(draft));
-                        },
+                        l10n: l10n,
                       ),
+                    ),
 
-                    // ── Delete group (edit mode) ───────────────────────
-                    if (isEdit) ...[
-                      const SizedBox(height: 32),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: TextButton.icon(
-                          style: TextButton.styleFrom(
-                              foregroundColor: colorScheme.error),
-                          icon: const Icon(Icons.delete_outline),
-                          label: Text(l10n.deleteGroup),
-                          onPressed: saving ? null : _confirmDeleteGroup,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                    // ── Other members ─────────────────────────────────
+                    SectionLabel(
+                      l10n.members,
+                      trailing: otherCount == 0 ? null : Text('$otherCount'),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.gutter),
+                      child: isEdit
+                          ? _EditModeMembersSection(
+                              groupId: widget.editGroupId!,
+                              onPendingRename: _onPendingRename,
+                              onRenameSaved: (memberId) =>
+                                  _pendingRenames.remove(memberId),
+                              onShowEmojiPicker: (current, onSelected) =>
+                                  _showEmojiPicker(
+                                options: _memberEmojiOptions,
+                                currentEmoji: current,
+                                onSelected: onSelected,
+                              ),
+                            )
+                          : _CreateModeMembersSection(
+                              drafts: _memberDrafts,
+                              newNameController: _newNameController,
+                              newFocusNode: _newFocusNode,
+                              newEmoji: _newEmoji,
+                              onNewEmojiTap: () => _showEmojiPicker(
+                                options: _memberEmojiOptions,
+                                currentEmoji: _newEmoji,
+                                onSelected: (e) =>
+                                    setState(() => _newEmoji = e),
+                              ),
+                              onAdd: _addDraft,
+                              onDraftEmojiTap: (draft) => _showEmojiPicker(
+                                options: _memberEmojiOptions,
+                                currentEmoji: draft.emoji,
+                                onSelected: (e) =>
+                                    setState(() => draft.emoji = e),
+                              ),
+                              onDraftDelete: (draft) {
+                                setState(() => _memberDrafts.remove(draft));
+                                WidgetsBinding.instance.addPostFrameCallback(
+                                    (_) => draft.dispose());
+                              },
+                            ),
+                    ),
                   ],
                 ),
               ),
+              _BottomAction(
+                label: isEdit ? l10n.save : l10n.createGroup,
+                loading: saving,
+                onPressed: saving ? null : _save,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -676,26 +723,61 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.icon, required this.label, this.color});
-  final IconData icon;
-  final String label;
-  final Color? color;
+/// One-tap emoji choice for the group icon; tapping the selected one clears
+/// it.
+class _EmojiStrip extends StatelessWidget {
+  const _EmojiStrip({
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<String> options;
+  final String? selected;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? Theme.of(context).colorScheme.onSurfaceVariant;
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: c),
-        const SizedBox(width: 6),
-        Text(label,
-            style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
-                color: c,
-                letterSpacing: 0.3)),
-      ],
+    final cs = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 48,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
+        itemCount: options.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (context, i) {
+          final e = options[i];
+          final isSelected = e == selected;
+          return Semantics(
+            button: true,
+            selected: isSelected,
+            label: e,
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onSelected(e);
+              },
+              borderRadius: BorderRadius.circular(14),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                width: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isSelected ? cs.surfaceContainerHighest : null,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected ? cs.onSurface : cs.outlineVariant,
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                ),
+                child: Text(e, style: const TextStyle(fontSize: 22)),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -722,11 +804,13 @@ class _EmojiCell extends StatelessWidget {
       label: emoji ?? AppLocalizations.of(context)!.noIcon,
       excludeSemantics: true,
       child: Material(
-        color: selected ? colorScheme.primaryContainer : Colors.transparent,
+        color:
+            selected ? colorScheme.surfaceContainerHighest : Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(14),
           side: BorderSide(
-            color: selected ? colorScheme.primary : colorScheme.outlineVariant,
+            color:
+                selected ? colorScheme.onSurface : colorScheme.outlineVariant,
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -766,33 +850,116 @@ class _AvatarTapTarget extends StatelessWidget {
   }
 }
 
-/// Lightweight icon tap button — no circular border.
-class _FlatIconButton extends StatelessWidget {
-  const _FlatIconButton({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-    required this.tooltip,
-  });
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  final String tooltip;
+/// Neutral avatar for a person not saved yet: their emoji, else the initial
+/// of the typed name, else a placeholder icon.
+class _DraftAvatar extends StatelessWidget {
+  const _DraftAvatar({required this.emoji, this.name = ''});
+
+  final String? emoji;
+  final String name;
+
+  static const size = 40.0;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Semantics(
-        button: true,
-        label: tooltip,
-        excludeSemantics: true,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(4),
-          child: Padding(
-            padding: const EdgeInsets.all(6),
-            child: Icon(icon, size: 20, color: color),
+    final cs = Theme.of(context).colorScheme;
+    final trimmed = name.trim();
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHigh,
+        shape: BoxShape.circle,
+      ),
+      child: emoji != null
+          ? Text(emoji!, style: TextStyle(fontSize: size * 0.48))
+          : trimmed.isNotEmpty
+              ? Text(
+                  nameInitial(trimmed),
+                  style: TextStyle(
+                    fontSize: size * 0.4,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                  ),
+                )
+              : Icon(Icons.person_outline,
+                  size: size * 0.5, color: cs.onSurfaceVariant),
+    );
+  }
+}
+
+/// Square icon button used at the end of member rows.
+class _RowIconButton extends StatelessWidget {
+  const _RowIconButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.filled = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return filled
+        ? IconButton.filled(
+            icon: Icon(icon),
+            tooltip: tooltip,
+            onPressed: onPressed,
+          )
+        : IconButton(
+            icon: Icon(icon),
+            tooltip: tooltip,
+            onPressed: onPressed,
+          );
+  }
+}
+
+/// Full-width primary action pinned above the keyboard.
+class _BottomAction extends StatelessWidget {
+  const _BottomAction({
+    required this.label,
+    required this.loading,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool loading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(top: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppTheme.gutter, 12, AppTheme.gutter, 12),
+          child: SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onPressed,
+              child: loading
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: cs.onPrimary,
+                      ),
+                    )
+                  : Text(label),
+            ),
           ),
         ),
       ),
@@ -818,34 +985,86 @@ class _MeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _AvatarTapTarget(
           onTap: onEmojiTap,
-          child: CircleAvatar(
-            radius: 22,
-            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-            child: emoji != null
-                ? Text(emoji!, style: const TextStyle(fontSize: 20))
-                : Icon(Icons.person,
-                    size: 22, color: Theme.of(context).colorScheme.primary),
+          child: ListenableBuilder(
+            listenable: nameController,
+            builder: (context, _) =>
+                _DraftAvatar(emoji: emoji, name: nameController.text),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: TextFormField(
             controller: nameController,
-            decoration: InputDecoration(
-              hintText: l10n.yourName,
-              isDense: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            ),
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(hintText: l10n.yourName),
             validator: (v) =>
                 (v == null || v.trim().isEmpty) ? l10n.youRequired : null,
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── "Add a person" field ─────────────────────────────────────────────────────
+
+/// Always-visible input for adding people. Enter or + adds the name, clears
+/// the field and keeps focus so the next name can be typed straight away.
+class _AddMemberField extends StatelessWidget {
+  const _AddMemberField({
+    required this.controller,
+    required this.focusNode,
+    required this.emoji,
+    required this.onEmojiTap,
+    required this.onAdd,
+    this.busy = false,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String? emoji;
+  final VoidCallback onEmojiTap;
+  final VoidCallback onAdd;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final hasText = controller.text.trim().isNotEmpty;
+        return Row(
+          children: [
+            _AvatarTapTarget(
+              onTap: onEmojiTap,
+              child: _DraftAvatar(emoji: emoji, name: controller.text),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                focusNode: focusNode,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(hintText: l10n.addPersonHint),
+                onSubmitted: (_) => onAdd(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _RowIconButton(
+              icon: Icons.add,
+              tooltip: l10n.addMember,
+              filled: true,
+              onPressed: hasText && !busy ? onAdd : null,
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -873,24 +1092,22 @@ class _EditModeMembersSection extends ConsumerStatefulWidget {
 
 class _EditModeMembersSectionState
     extends ConsumerState<_EditModeMembersSection> {
-  bool _addingNew = false;
   bool _savingNew = false;
   final _newNameController = TextEditingController();
+  final _newFocusNode = FocusNode();
   String? _newEmoji;
 
   @override
   void dispose() {
     _newNameController.dispose();
+    _newFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _saveNew() async {
     if (_savingNew) return;
     final name = _newNameController.text.trim();
-    if (name.isEmpty) {
-      setState(() => _addingNew = false);
-      return;
-    }
+    if (name.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _savingNew = true);
@@ -902,15 +1119,18 @@ class _EditModeMembersSectionState
     if (!mounted) return;
     setState(() => _savingNew = false);
     result.fold(
-      // Keep the row open with the typed name so the user can retry.
+      // Keep the typed name so the user can retry.
       (failure) => messenger.showSnackBar(
         SnackBar(content: Text(failureMessage(failure, l10n))),
       ),
-      (_) => setState(() {
-        _addingNew = false;
-        _newNameController.clear();
-        _newEmoji = null;
-      }),
+      (_) {
+        HapticFeedback.lightImpact();
+        setState(() {
+          _newNameController.clear();
+          _newEmoji = null;
+        });
+        _newFocusNode.requestFocus();
+      },
     );
   }
 
@@ -923,32 +1143,7 @@ class _EditModeMembersSectionState
       data: (allMembers) {
         final others = allMembers.where((m) => !m.isMe).toList();
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            OutlinedButton.icon(
-              icon: const Icon(Icons.person_add),
-              label: Text(l10n.addMember),
-              onPressed: () => setState(() {
-                _addingNew = true;
-                _newNameController.clear();
-                _newEmoji = null;
-              }),
-            ),
-            const SizedBox(height: 8),
-            if (_addingNew) ...[
-              _NewMemberRow(
-                nameController: _newNameController,
-                emoji: _newEmoji,
-                onEmojiTap: () => widget.onShowEmojiPicker(
-                  _newEmoji,
-                  (e) => setState(() => _newEmoji = e),
-                ),
-                onSave: _saveNew,
-                onCancel: () => setState(() => _addingNew = false),
-                l10n: l10n,
-              ),
-              const SizedBox(height: 4),
-            ],
             for (final member in others)
               _ExistingMemberRow(
                 key: ValueKey('member-${member.id}'),
@@ -957,12 +1152,24 @@ class _EditModeMembersSectionState
                 onPendingRename: widget.onPendingRename,
                 onRenameSaved: widget.onRenameSaved,
               ),
+            const SizedBox(height: 4),
+            _AddMemberField(
+              controller: _newNameController,
+              focusNode: _newFocusNode,
+              emoji: _newEmoji,
+              busy: _savingNew,
+              onEmojiTap: () => widget.onShowEmojiPicker(
+                _newEmoji,
+                (e) => setState(() => _newEmoji = e),
+              ),
+              onAdd: _saveNew,
+            ),
           ],
         );
       },
       loading: () => const Padding(
         padding: EdgeInsets.all(16),
-        child: CircularProgressIndicator(),
+        child: AppLoadingWidget(),
       ),
       error: (e, _) => Text(failureMessage(e, l10n)),
     );
@@ -974,25 +1181,21 @@ class _EditModeMembersSectionState
 class _CreateModeMembersSection extends StatelessWidget {
   const _CreateModeMembersSection({
     required this.drafts,
-    required this.addingNew,
     required this.newNameController,
+    required this.newFocusNode,
     required this.newEmoji,
-    required this.onAddTap,
     required this.onNewEmojiTap,
-    required this.onNewSave,
-    required this.onNewCancel,
+    required this.onAdd,
     required this.onDraftEmojiTap,
     required this.onDraftDelete,
   });
 
   final List<_MemberDraft> drafts;
-  final bool addingNew;
   final TextEditingController newNameController;
+  final FocusNode newFocusNode;
   final String? newEmoji;
-  final VoidCallback onAddTap;
   final VoidCallback onNewEmojiTap;
-  final VoidCallback onNewSave;
-  final VoidCallback onNewCancel;
+  final VoidCallback onAdd;
   final void Function(_MemberDraft) onDraftEmojiTap;
   final void Function(_MemberDraft) onDraftDelete;
 
@@ -1000,99 +1203,22 @@ class _CreateModeMembersSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        OutlinedButton.icon(
-          icon: const Icon(Icons.person_add),
-          label: Text(l10n.addMember),
-          onPressed: onAddTap,
-        ),
-        const SizedBox(height: 8),
-        if (addingNew) ...[
-          _NewMemberRow(
-            nameController: newNameController,
-            emoji: newEmoji,
-            onEmojiTap: onNewEmojiTap,
-            onSave: onNewSave,
-            onCancel: onNewCancel,
-            l10n: l10n,
-          ),
-          const SizedBox(height: 4),
-        ],
         for (final draft in drafts)
           _DraftMemberRow(
+            key: ObjectKey(draft),
             draft: draft,
             onEmojiTap: () => onDraftEmojiTap(draft),
             onDelete: () => onDraftDelete(draft),
             l10n: l10n,
           ),
-      ],
-    );
-  }
-}
-
-// ── New member row (being typed) ─────────────────────────────────────────────
-
-class _NewMemberRow extends StatelessWidget {
-  const _NewMemberRow({
-    required this.nameController,
-    required this.emoji,
-    required this.onEmojiTap,
-    required this.onSave,
-    required this.onCancel,
-    required this.l10n,
-  });
-
-  final TextEditingController nameController;
-  final String? emoji;
-  final VoidCallback onEmojiTap;
-  final VoidCallback onSave;
-  final VoidCallback onCancel;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _AvatarTapTarget(
-          onTap: onEmojiTap,
-          child: CircleAvatar(
-            radius: 18,
-            backgroundColor:
-                Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: emoji != null
-                ? Text(emoji!, style: const TextStyle(fontSize: 16))
-                : Icon(Icons.person_outline,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: TextFormField(
-            controller: nameController,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: l10n.addMemberName,
-              isDense: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            ),
-            onFieldSubmitted: (_) => onSave(),
-          ),
-        ),
-        const SizedBox(width: 6),
-        _FlatIconButton(
-          icon: Icons.check,
-          color: Theme.of(context).colorScheme.primary,
-          onTap: onSave,
-          tooltip: l10n.save,
-        ),
-        _FlatIconButton(
-          icon: Icons.close,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          onTap: onCancel,
-          tooltip: l10n.cancel,
+        const SizedBox(height: 4),
+        _AddMemberField(
+          controller: newNameController,
+          focusNode: newFocusNode,
+          emoji: newEmoji,
+          onEmojiTap: onNewEmojiTap,
+          onAdd: onAdd,
         ),
       ],
     );
@@ -1103,6 +1229,7 @@ class _NewMemberRow extends StatelessWidget {
 
 class _DraftMemberRow extends StatelessWidget {
   const _DraftMemberRow({
+    super.key,
     required this.draft,
     required this.onEmojiTap,
     required this.onDelete,
@@ -1117,40 +1244,30 @@ class _DraftMemberRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
           _AvatarTapTarget(
             onTap: onEmojiTap,
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor:
-                  Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: draft.emoji != null
-                  ? Text(draft.emoji!, style: const TextStyle(fontSize: 16))
-                  : Icon(Icons.person_outline,
-                      size: 18,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+            child: ListenableBuilder(
+              listenable: draft.controller,
+              builder: (context, _) =>
+                  _DraftAvatar(emoji: draft.emoji, name: draft.controller.text),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: TextFormField(
               controller: draft.controller,
-              decoration: InputDecoration(
-                hintText: l10n.memberName,
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(hintText: l10n.memberName),
             ),
           ),
-          const SizedBox(width: 6),
-          _FlatIconButton(
-            icon: Icons.delete_outline,
-            color: Theme.of(context).colorScheme.error,
-            onTap: onDelete,
+          const SizedBox(width: 8),
+          _RowIconButton(
+            icon: Icons.close,
             tooltip: l10n.removeMember,
+            onPressed: onDelete,
           ),
         ],
       ),
@@ -1292,43 +1409,48 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
     final member = widget.member;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
           _AvatarTapTarget(
             onTap: _pickEmoji,
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Color(member.avatarColorValue),
-              child: member.emoji != null
-                  ? Text(member.emoji!, style: const TextStyle(fontSize: 16))
-                  : Text(
-                      nameInitial(member.name),
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                    ),
-            ),
+            child: MemberAvatar(member: member, size: 40),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: TextFormField(
               controller: _nameController,
-              decoration: InputDecoration(
-                hintText: l10n.memberName,
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(hintText: l10n.memberName),
               onChanged: (v) => widget.onPendingRename(member, v),
               onEditingComplete: _saveName,
-              onTapOutside: (_) => _saveName(),
             ),
           ),
-          const SizedBox(width: 6),
-          _FlatIconButton(
-            icon: Icons.delete_outline,
-            color: Theme.of(context).colorScheme.error,
-            onTap: _confirmDelete,
-            tooltip: l10n.removeMember,
+          const SizedBox(width: 8),
+          // ✓ appears only while a rename is pending; otherwise remove.
+          ListenableBuilder(
+            listenable: _nameController,
+            builder: (context, _) {
+              final typed = _nameController.text.trim();
+              final renamed = typed.isNotEmpty && typed != member.name;
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 150),
+                child: renamed
+                    ? _RowIconButton(
+                        key: const ValueKey('save'),
+                        icon: Icons.check,
+                        tooltip: l10n.save,
+                        filled: true,
+                        onPressed: _saving ? null : _saveName,
+                      )
+                    : _RowIconButton(
+                        key: const ValueKey('remove'),
+                        icon: Icons.close,
+                        tooltip: l10n.removeMember,
+                        onPressed: _confirmDelete,
+                      ),
+              );
+            },
           ),
         ],
       ),

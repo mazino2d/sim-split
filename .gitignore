@@ -77,3 +77,6 @@ web/drift_worker.js.deps
 
 # Python
 __pycache__/
+
+# Raw screen captures for store screenshots (intermediate)
+design/store/captures/

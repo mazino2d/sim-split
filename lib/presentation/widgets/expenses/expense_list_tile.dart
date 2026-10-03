@@ -4,6 +4,9 @@ import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/presentation/theme/app_theme.dart';
+import 'package:simsplit/presentation/utils/expense_category_ui.dart';
+import 'package:simsplit/presentation/widgets/common/money_text.dart';
 
 class ExpenseListTile extends StatelessWidget {
   const ExpenseListTile({
@@ -17,100 +20,104 @@ class ExpenseListTile extends StatelessWidget {
   final Expense expense;
   final List<Member> members;
 
-  /// The member marked as "me" in this group. If null, the "my share" row
-  /// is omitted from the trailing column.
+  /// The member marked as "me" in this group. If null, the "my share" line
+  /// is omitted.
   final Member? meMember;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final paidBy =
         members.where((m) => m.id == expense.paidByMemberId).firstOrNull;
-    final amountDisplay =
-        formatMoney(expense.amountCents, expense.currencyCode);
+    final effect = _myEffectCents();
 
-    // Compute "my share"
-    final myShare = _computeMyShare();
+    final payer = paidBy == null
+        ? null
+        : l10n.paidByLabel(
+            paidBy.isMe ? '${paidBy.name} ${l10n.meLabel}' : paidBy.name);
 
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        child: Icon(
-          _categoryIcon(expense.category),
-          color: Theme.of(context).colorScheme.onPrimaryContainer,
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.gutter,
+          vertical: 10,
         ),
-      ),
-      title: Text(expense.title),
-      subtitle: Text(
-        paidBy != null
-            ? l10n.paidByLabel(
-                paidBy.isMe ? '${paidBy.name} ${l10n.meLabel}' : paidBy.name)
-            : '',
-        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-      ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            amountDisplay,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          if (myShare != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              myShare.label,
-              style: TextStyle(
-                fontSize: 12,
-                color: myShare.isPositive
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.error,
-                fontWeight: FontWeight.w500,
+        child: Row(
+          children: [
+            CategoryTile(category: expense.category),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    expense.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    [
+                      if (payer != null) payer,
+                      l10n.peopleCount(expense.splits.length),
+                    ].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                MoneyText(
+                  expense.amountCents,
+                  expense.currencyCode,
+                  style: theme.textTheme.titleSmall,
+                ),
+                if (effect != null && effect != 0) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    effect > 0
+                        ? l10n.shareYouGet(
+                            formatMoney(effect, expense.currencyCode))
+                        : l10n.shareYouOwe(
+                            formatMoney(-effect, expense.currencyCode)),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: context.money.forSign(effect, cs),
+                      fontFeatures: tabularFigures,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ],
-        ],
+        ),
       ),
-      onTap: onTap,
     );
   }
 
-  _MyShare? _computeMyShare() {
+  /// How this expense moves "my" balance: positive when I paid for others,
+  /// negative when someone else paid for me, null when I'm not in the group.
+  int? _myEffectCents() {
     final me = meMember;
     if (me == null) return null;
-
-    final mySplit =
-        expense.splits.where((s) => s.memberId == me.id).firstOrNull;
-    final myShareCents = mySplit?.amountCents ?? 0;
-    if (myShareCents == 0) return null;
-
-    final label = formatMoney(myShareCents, expense.currencyCode);
-
-    if (expense.paidByMemberId == me.id) {
-      // I paid — I'm owed back my net (total - my split)
-      final owedBack = expense.amountCents - myShareCents;
-      if (owedBack <= 0) return null;
-      return _MyShare('+${formatMoney(owedBack, expense.currencyCode)}', true);
-    } else {
-      // Someone else paid — I owe my share
-      return _MyShare('-$label', false);
-    }
+    final myShare = expense.splits
+            .where((s) => s.memberId == me.id)
+            .firstOrNull
+            ?.amountCents ??
+        0;
+    return expense.paidByMemberId == me.id
+        ? expense.amountCents - myShare
+        : -myShare;
   }
-
-  IconData _categoryIcon(ExpenseCategory category) => switch (category) {
-        ExpenseCategory.food => Icons.restaurant,
-        ExpenseCategory.transport => Icons.directions_car,
-        ExpenseCategory.accommodation => Icons.hotel,
-        ExpenseCategory.entertainment => Icons.movie,
-        ExpenseCategory.shopping => Icons.shopping_bag,
-        ExpenseCategory.health => Icons.local_hospital,
-        ExpenseCategory.other => Icons.receipt_long,
-      };
-}
-
-class _MyShare {
-  const _MyShare(this.label, this.isPositive);
-  final String label;
-  final bool isPositive;
 }

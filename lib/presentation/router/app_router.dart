@@ -68,7 +68,10 @@ final appRouter = GoRouter(
                 final groupId = state.pathParameters['groupId']!;
                 final expenseId = state.pathParameters['expenseId']!;
                 return ExpenseFormScreen(
-                    groupId: groupId, editExpenseId: expenseId);
+                  groupId: groupId,
+                  editExpenseId: expenseId,
+                  focusTitle: state.uri.queryParameters['focus'] == 'title',
+                );
               },
             ),
             GoRoute(

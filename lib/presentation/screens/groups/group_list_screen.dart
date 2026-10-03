@@ -6,8 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/providers/settlement_providers.dart';
+import 'package:simsplit/presentation/theme/app_theme.dart';
+import 'package:simsplit/presentation/widgets/common/empty_state.dart';
 import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
+import 'package:simsplit/presentation/widgets/common/money_text.dart';
+import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/presentation/widgets/groups/group_card.dart';
 
 class GroupListScreen extends ConsumerStatefulWidget {
@@ -32,72 +37,184 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final groupsAsync = ref.watch(groupListProvider);
+    final activeGroups =
+        groupsAsync.value?.where((g) => !g.isArchived).toList() ?? const [];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.appTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: l10n.settings,
-            onPressed: () => context.push('/settings'),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            toolbarHeight: 72,
+            titleSpacing: AppTheme.gutter,
+            title: Text(
+              l10n.appTitle,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings_outlined),
+                tooltip: l10n.settings,
+                onPressed: () => context.push('/settings'),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          ...groupsAsync.when(
+            data: (_) => activeGroups.isEmpty
+                ? [
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: EmptyState(
+                        icon: Icons.luggage_outlined,
+                        title: l10n.noGroups,
+                        message: l10n.noGroupsHint,
+                        actionLabel: l10n.createGroup,
+                        onAction: () => context.push('/groups/form'),
+                      ),
+                    ),
+                  ]
+                : [
+                    SliverToBoxAdapter(
+                      child: _BalanceSummary(groups: activeGroups),
+                    ),
+                    SliverToBoxAdapter(child: SectionLabel(l10n.groupsTitle)),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
+                          AppTheme.gutter, 0, AppTheme.gutter, 120),
+                      sliver: SliverList.separated(
+                        itemCount: activeGroups.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) =>
+                            GroupCard(group: activeGroups[index]),
+                      ),
+                    ),
+                  ],
+            loading: () => const [
+              SliverFillRemaining(child: AppLoadingWidget()),
+            ],
+            error: (e, _) => [
+              SliverFillRemaining(
+                child: AppErrorWidget(
+                  error: e,
+                  onRetry: () => ref.invalidate(groupListProvider),
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      body: groupsAsync.when(
-        data: (groups) => _GroupListBody(groups: groups),
-        loading: () => const AppLoadingWidget(),
-        error: (e, _) => AppErrorWidget(
-          error: e,
-          onRetry: () => ref.invalidate(groupListProvider),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/groups/form'),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: activeGroups.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => context.push('/groups/form'),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.newGroup),
+            ),
     );
   }
 }
 
-class _GroupListBody extends StatelessWidget {
-  const _GroupListBody({required this.groups});
+/// What "me" is owed and owes across all groups, per currency. Owed and owing
+/// amounts are shown separately rather than netted: they involve different
+/// people, so netting them would hide who needs to pay.
+class _BalanceSummary extends ConsumerWidget {
+  const _BalanceSummary({required this.groups});
 
   final List<Group> groups;
 
   @override
-  Widget build(BuildContext context) {
-    final activeGroups = groups.where((g) => !g.isArchived).toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
-    if (activeGroups.isEmpty) {
-      final l10n = AppLocalizations.of(context)!;
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.group_outlined,
-                size: 80,
-                color: Theme.of(context).colorScheme.onSurfaceVariant),
-            const SizedBox(height: 16),
-            Text(
-              l10n.noGroups,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.noGroupsHint,
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          ],
-        ),
-      );
+    final owed = <String, int>{};
+    final owe = <String, int>{};
+    var hasMe = false;
+    for (final g in groups) {
+      final me = ref
+          .watch(memberListProvider(g.id))
+          .value
+          ?.where((m) => m.isMe)
+          .firstOrNull;
+      if (me == null) continue;
+      hasMe = true;
+      final net = ref
+              .watch(debtSummaryProvider(g.id, g.currencyCode))
+              .value
+              ?.balances
+              .where((b) => b.member.id == me.id)
+              .firstOrNull
+              ?.netAmountCents ??
+          0;
+      owed.update(g.currencyCode, (v) => v + (net > 0 ? net : 0),
+          ifAbsent: () => net > 0 ? net : 0);
+      owe.update(g.currencyCode, (v) => v + (net < 0 ? -net : 0),
+          ifAbsent: () => net < 0 ? -net : 0);
     }
+    if (!hasMe) return const SizedBox.shrink();
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: activeGroups.length,
-      itemBuilder: (context, index) => GroupCard(group: activeGroups[index]),
+    final currencies =
+        owed.keys.where((c) => owed[c]! != 0 || owe[c]! != 0).toList()..sort();
+
+    final labelStyle =
+        theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant);
+    final amountStyle = theme.textTheme.headlineSmall;
+
+    Widget column(String label, int cents, String currency, Color? color) =>
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: labelStyle),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: MoneyText(cents, currency,
+                    style: amountStyle,
+                    color: cents == 0 ? cs.onSurfaceVariant : color),
+              ),
+            ],
+          ),
+        );
+
+    return Padding(
+      padding:
+          const EdgeInsets.fromLTRB(AppTheme.gutter, 8, AppTheme.gutter, 0),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        ),
+        child: currencies.isEmpty
+            ? Row(
+                children: [
+                  Icon(Icons.check_circle_rounded,
+                      color: context.money.positive),
+                  const SizedBox(width: 12),
+                  Text(l10n.allSettledHome, style: theme.textTheme.titleMedium),
+                ],
+              )
+            : Column(
+                children: [
+                  for (final (i, c) in currencies.indexed) ...[
+                    if (i > 0) const Divider(height: 32),
+                    Row(
+                      children: [
+                        column(l10n.totalOwedToYou, owed[c]!, c,
+                            context.money.positive),
+                        const SizedBox(width: 16),
+                        column(l10n.totalYouOwe, owe[c]!, c,
+                            context.money.negative),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+      ),
     );
   }
 }
