@@ -29,6 +29,8 @@ gh pr view --json url,state 2>/dev/null   # an open PR already exists → offer 
 
 ## 2. Review the diff against repo rules
 
+The rules are explained in the `dev` skill (`../dev/references/`); this is the checklist.
+
 Flag every violation in the PR's **Notes for reviewers** section (or fix it first if the user agrees):
 
 | Check | How |
