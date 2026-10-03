@@ -31,7 +31,7 @@ from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DESIGN = ROOT / "design"
-RENDER = ROOT / ".claude/skills/design-assets/scripts/render.sh"
+RENDER = ROOT / ".claude/skills/uiux-designer/scripts/render.sh"
 CAPTURES = DESIGN / "store/captures"
 PLAY = ROOT / "android/fastlane/metadata/android"
 APPSTORE = ROOT / "ios/fastlane/screenshots"

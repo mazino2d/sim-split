@@ -85,7 +85,7 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  # Masters are in design/icon/; export with the design-assets skill.
+  # Masters are in design/icon/; export with the uiux-designer skill.
   image_path: "assets/icons/app_icon.png"
   remove_alpha_ios: true
   min_sdk_android: 21
