@@ -9,8 +9,13 @@ jobs:
   validate-version:
     name: Validate tag matches pubspec version
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
+      # Only pubspec.yaml is needed to compare versions.
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: pubspec.yaml
+          sparse-checkout-cone-mode: false
       - name: Check version
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"          # strip 'v' prefix
@@ -47,11 +52,11 @@ jobs:
     name: Create GitHub Release
     needs: [build-android]            # removed build-ios until Apple account is ready
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
+    # No checkout: the release is created from the pushed tag via the API.
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download AAB artifact
         uses: actions/download-artifact@v4
         with:

@@ -35,21 +35,13 @@ jobs:
   build-ios:
     name: Build iOS (unsigned)
     runs-on: macos-14  # Apple Silicon — required for iOS builds
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.41.x'
-          channel: 'stable'
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Run code generation
-        run: dart run build_runner build --delete-conflicting-outputs
+      # Flutter SDK + pub cache, and build_runner output cached by source hash.
+      - uses: ./.github/actions/flutter-setup
 
       - name: Build iOS (no codesign)
         # --no-codesign: skips cert/provisioning — free, no Apple account needed.
