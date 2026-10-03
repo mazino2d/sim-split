@@ -70,6 +70,7 @@ jobs:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
           DATA_SAFETY: ${{ inputs.data_safety || steps.data-safety.outputs.changed == 'true' }}
         run: |
+          set -o pipefail
           args=()
           [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
           [ "$DATA_SAFETY" = "true" ] && args+=(--data-safety)
