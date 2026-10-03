@@ -276,5 +276,6 @@
   "themeSystem": "System",
   "themeLight": "Light",
   "themeDark": "Dark",
-  "addMembersFirst": "Add the people in this group first"
+  "addMembersFirst": "Add the people in this group first",
+  "addPersonHint": "Add a person…"
 }

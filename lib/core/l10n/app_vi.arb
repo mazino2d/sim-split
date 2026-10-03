@@ -255,5 +255,6 @@
   "themeSystem": "Theo máy",
   "themeLight": "Sáng",
   "themeDark": "Tối",
-  "addMembersFirst": "Thêm người trong nhóm trước đã"
+  "addMembersFirst": "Thêm người trong nhóm trước đã",
+  "addPersonHint": "Thêm người…"
 }
