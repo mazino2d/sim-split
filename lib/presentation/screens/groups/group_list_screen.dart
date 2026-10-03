@@ -43,8 +43,14 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
-            title: Text(l10n.appTitle),
+          SliverAppBar(
+            pinned: true,
+            toolbarHeight: 72,
+            titleSpacing: AppTheme.gutter,
+            title: Text(
+              l10n.appTitle,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             actions: [
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
