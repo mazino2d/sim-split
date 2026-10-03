@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Only report what would change"
+        description: "Only report what would change (always on outside main)"
         type: boolean
         default: true
       data_safety:
@@ -27,9 +27,7 @@ concurrency:
 jobs:
   sync:
     name: Sync store listing
-    # Push-triggered syncs are opt-in via the PLAY_METADATA_AUTO_SYNC repo
-    # variable, so merging metadata never changes Play by surprise.
-    if: github.event_name == 'workflow_dispatch' || vars.PLAY_METADATA_AUTO_SYNC == 'true'
+    # Every merge to main that touches the listing syncs it to Play.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -67,7 +65,8 @@ jobs:
 
       - name: Sync
         env:
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          # Only main may change Play; manual runs on other branches are previews.
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) || github.ref != 'refs/heads/main' }}
           DATA_SAFETY: ${{ inputs.data_safety || steps.data-safety.outputs.changed == 'true' }}
         run: |
           set -o pipefail
