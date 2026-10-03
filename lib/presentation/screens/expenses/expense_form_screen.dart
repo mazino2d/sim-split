@@ -33,10 +33,15 @@ class ExpenseFormScreen extends ConsumerStatefulWidget {
     super.key,
     required this.groupId,
     this.editExpenseId,
+    this.focusTitle = false,
   });
 
   final String groupId;
   final String? editExpenseId;
+
+  /// Opens with the description focused — for filling in descriptions later
+  /// on expenses that were logged with just an amount.
+  final bool focusTitle;
 
   @override
   ConsumerState<ExpenseFormScreen> createState() => _ExpenseFormScreenState();
@@ -45,6 +50,7 @@ class ExpenseFormScreen extends ConsumerStatefulWidget {
 class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
+  final _titleFocusNode = FocusNode();
   final _amountController = TextEditingController();
   SplitType _splitType = SplitType.equal;
   ExpenseCategory _category = ExpenseCategory.other;
@@ -95,6 +101,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   @override
   void dispose() {
     _titleController.dispose();
+    _titleFocusNode.dispose();
     _amountController.dispose();
     for (final c in _splitControllers.values) {
       c.dispose();
@@ -192,8 +199,25 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     }
     // Reset dirty after loading existing data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() => _isDirty = false);
+      if (!mounted) return;
+      setState(() => _isDirty = false);
+      if (widget.focusTitle) _focusTitle();
     });
+  }
+
+  /// Focuses the description. A title the app filled in (the category name
+  /// or "Expense") is selected so typing replaces it.
+  void _focusTitle() {
+    final l10n = AppLocalizations.of(context)!;
+    final text = _titleController.text;
+    final autoTitles = {
+      l10n.untitledExpense,
+      for (final c in ExpenseCategory.values) c.label(l10n),
+    };
+    _titleFocusNode.requestFocus();
+    _titleController.selection = autoTitles.contains(text)
+        ? TextSelection(baseOffset: 0, extentOffset: text.length)
+        : TextSelection.collapsed(offset: text.length);
   }
 
   // ── Parsing helpers ───────────────────────────────────────────────────────
@@ -633,6 +657,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                           horizontal: AppTheme.gutter),
                       child: TextFormField(
                         controller: _titleController,
+                        focusNode: _titleFocusNode,
                         textCapitalization: TextCapitalization.sentences,
                         textInputAction: TextInputAction.done,
                         decoration: InputDecoration(

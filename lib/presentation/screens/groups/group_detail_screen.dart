@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -382,7 +385,9 @@ class _ExpensesTab extends ConsumerWidget {
 
 // ── Swipeable Expense Tile ────────────────────────────────────────────────────
 
-/// Tap opens the detail; swipe left deletes after confirmation.
+/// Tap opens the detail; swipe right edits with the description focused
+/// (for naming expenses logged with just an amount); swipe left deletes
+/// after confirmation.
 class _SwipeableExpenseTile extends ConsumerWidget {
   const _SwipeableExpenseTile({
     required this.expense,
@@ -401,8 +406,17 @@ class _SwipeableExpenseTile extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     return Dismissible(
       key: ValueKey('expense-${expense.id}'),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (_) async {
+      direction: DismissDirection.horizontal,
+      dismissThresholds: const {DismissDirection.startToEnd: 0.25},
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          unawaited(HapticFeedback.selectionClick());
+          // Let the row spring back while the form opens.
+          unawaited(context.push(
+            '/groups/${group.id}/expenses/${expense.id}/edit?focus=title',
+          ));
+          return false;
+        }
         final confirmed = await _confirmDestructive(
           context,
           title: l10n.deleteExpenseConfirmTitle,
@@ -420,12 +434,32 @@ class _SwipeableExpenseTile extends ConsumerWidget {
         );
         return false;
       },
-      background: const _DeleteBackground(),
+      background: const _EditBackground(),
+      secondaryBackground: const _DeleteBackground(),
       child: ExpenseListTile(
         expense: expense,
         members: members,
         meMember: meMember,
         onTap: () => context.push('/groups/${group.id}/expenses/${expense.id}'),
+      ),
+    );
+  }
+}
+
+class _EditBackground extends StatelessWidget {
+  const _EditBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: cs.primary,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 24),
+          child: Icon(Icons.edit_note_rounded, color: cs.onPrimary, size: 28),
+        ),
       ),
     );
   }

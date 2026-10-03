@@ -40,6 +40,7 @@ void main() {
   Future<_MockAddExpense> pump(
     WidgetTester tester, {
     List<Expense> expenses = const [],
+    Widget form = const ExpenseFormScreen(groupId: 'g1'),
   }) async {
     final addExpense = _MockAddExpense();
     when(() => addExpense(any())).thenAnswer(
@@ -54,7 +55,7 @@ void main() {
           routes: [
             GoRoute(
               path: 'add',
-              builder: (_, __) => const ExpenseFormScreen(groupId: 'g1'),
+              builder: (_, __) => form,
             ),
           ],
         ),
@@ -139,5 +140,42 @@ void main() {
 
     verifyNever(() => addExpense(any()));
     expect(find.text('Add at least one participant'), findsOneWidget);
+  });
+
+  testWidgets(
+      'opening an expense to name it focuses the description and selects '
+      'the auto-filled title', (tester) async {
+    final expense = testExpense(
+      paidBy: 'a',
+      splits: [
+        for (final id in ['a', 'b'])
+          ExpenseSplit(
+            id: 's$id',
+            expenseId: 'e1',
+            memberId: id,
+            value: 5000,
+            amountCents: 5000,
+          ),
+      ],
+    ).copyWith(title: 'Transport', category: ExpenseCategory.transport);
+
+    await pump(
+      tester,
+      expenses: [expense],
+      form: const ExpenseFormScreen(
+        groupId: 'g1',
+        editExpenseId: 'e1',
+        focusTitle: true,
+      ),
+    );
+
+    final field = tester.widget<TextField>(
+      find.widgetWithText(TextField, 'Transport'),
+    );
+    expect(field.focusNode!.hasFocus, isTrue);
+    expect(
+      field.controller!.selection,
+      const TextSelection(baseOffset: 0, extentOffset: 9),
+    );
   });
 }
