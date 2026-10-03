@@ -1,8 +1,20 @@
 name: Play Store Metadata
 
 # Syncs the store listing (text, icon, feature graphic, screenshots, contact
-# details) from android/fastlane/metadata/android to Google Play.
+# details) from android/fastlane/metadata/android to Google Play, plan/apply
+# style:
+#   - pull request → dry run against Play, result posted as a PR comment
+#   - push to main  → real sync
+#   - manual run    → dry run by default; a real sync only from main
 on:
+  # pull_request_target runs with the base ref (main), which is what the
+  # Workload Identity provider accepts. The plan job therefore must never run
+  # code from the PR: it checks out main and copies in only the PR's metadata
+  # files as data.
+  pull_request_target:
+    branches: [main]
+    paths:
+      - "android/fastlane/metadata/android/**"
   push:
     branches: [main]
     paths:
@@ -20,14 +32,108 @@ on:
         type: boolean
         default: false
 
-concurrency:
-  group: play-metadata
-  cancel-in-progress: false
+env:
+  METADATA: android/fastlane/metadata/android
 
 jobs:
-  sync:
+  plan:
+    name: Plan store listing
+    # Same-repo PRs only: fork PRs must not get a token for the Play account.
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    concurrency:
+      group: play-metadata-plan-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # OIDC token for Workload Identity Federation
+      pull-requests: write # sticky plan comment
+    steps:
+      # Trusted code: the base branch, not the PR.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Use the PR's metadata files (data only)
+        id: metadata
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+          if git diff --quiet HEAD "$HEAD_SHA" -- "$METADATA/data_safety.csv"; then
+            echo "data_safety=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "data_safety=true" >> "$GITHUB_OUTPUT"
+          fi
+          rm -rf "$METADATA"
+          git checkout "$HEAD_SHA" -- "$METADATA"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install --quiet google-api-python-client google-auth
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/238020767329/locations/global/workloadIdentityPools/github/providers/sim-split
+          service_account: gha-play-publisher@mazino2d-as-se1-dev.iam.gserviceaccount.com
+
+      - name: Dry run
+        id: plan
+        env:
+          DATA_SAFETY: ${{ steps.metadata.outputs.data_safety }}
+        run: |
+          args=(--dry-run)
+          [ "$DATA_SAFETY" = "true" ] && args+=(--data-safety)
+          status=0
+          python scripts/play_metadata.py sync "${args[@]}" > plan.txt 2>&1 || status=$?
+          cat plan.txt
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Comment the plan on the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          STATUS: ${{ steps.plan.outputs.status }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          marker='<!-- play-metadata-plan -->'
+          {
+            echo "$marker"
+            if [ "$STATUS" = "0" ]; then
+              echo "### Google Play listing — dry run"
+              echo "Merging this PR will apply the changes below to Google Play."
+            else
+              echo "### Google Play listing — dry run failed"
+            fi
+            echo
+            echo '```'
+            cat plan.txt
+            echo '```'
+            echo "<sub>Metadata at ${HEAD_SHA:0:7}; sync script from \`main\`.</sub>"
+          } > comment.md
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@comment.md > /dev/null
+          else
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@comment.md > /dev/null
+          fi
+          exit "$STATUS"
+
+  apply:
     name: Sync store listing
-    # Every merge to main that touches the listing syncs it to Play.
+    if: github.event_name != 'pull_request_target'
+    # Applies queue up in order and are never cancelled half-way.
+    concurrency:
+      group: play-metadata-apply
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -57,7 +163,7 @@ jobs:
         id: data-safety
         if: github.event_name == 'push'
         run: |
-          if git diff --quiet HEAD~1 HEAD -- android/fastlane/metadata/android/data_safety.csv; then
+          if git diff --quiet HEAD~1 HEAD -- "$METADATA/data_safety.csv"; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
