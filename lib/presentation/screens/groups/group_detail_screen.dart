@@ -8,7 +8,10 @@ import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/debt.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:simsplit/presentation/notifiers/expense_notifier.dart';
+import 'package:simsplit/presentation/notifiers/settlement_notifier.dart';
 import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/providers/settlement_providers.dart';
@@ -16,6 +19,7 @@ import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
+import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/presentation/utils/member_initial.dart';
 
@@ -425,39 +429,55 @@ class _SettlementsTab extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final debtAsync =
         ref.watch(debtSummaryProvider(group.id, group.currencyCode));
+    final settlementsAsync = ref.watch(settlementListProvider(group.id));
+    final members = ref.watch(memberListProvider(group.id)).value ?? [];
 
     return debtAsync.when(
       data: (summary) {
-        if (summary.suggestions.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle_outline,
-                    size: 80, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 16),
-                Text(l10n.settledUp, style: const TextStyle(fontSize: 20)),
-              ],
-            ),
-          );
-        }
-
+        final settlements = settlementsAsync.value ?? const <Settlement>[];
         return ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           children: [
-            for (final debt in summary.suggestions)
-              DebtCard(
-                debt: debt,
-                currencyCode: group.currencyCode,
-                onSettle: () => context.push(
-                  '/groups/${group.id}/settle',
-                  extra: {
-                    'fromMemberId': debt.from.id,
-                    'toMemberId': debt.to.id,
-                    'amountCents': debt.amountCents,
-                  },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: summary.suggestions.isEmpty
+                  ? const _SettledUpCard()
+                  : Column(
+                      children: [
+                        for (final debt in summary.suggestions)
+                          DebtCard(
+                            debt: debt,
+                            currencyCode: group.currencyCode,
+                            onSettle: () => context.push(
+                              '/groups/${group.id}/settle',
+                              extra: {
+                                'fromMemberId': debt.from.id,
+                                'toMemberId': debt.to.id,
+                                'amountCents': debt.amountCents,
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+            _SectionTitle(l10n.settlementHistory),
+            if (settlementsAsync.isLoading)
+              const AppLoadingWidget()
+            else if (settlements.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  l10n.noSettlements,
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
-              ),
+              )
+            else
+              for (final settlement in settlements)
+                _SwipeableSettlementTile(
+                  settlement: settlement,
+                  members: members,
+                ),
           ],
         );
       },
@@ -467,6 +487,113 @@ class _SettlementsTab extends ConsumerWidget {
         onRetry: () =>
             ref.invalidate(debtSummaryProvider(group.id, group.currencyCode)),
       ),
+    );
+  }
+}
+
+class _SettledUpCard extends StatelessWidget {
+  const _SettledUpCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.check_circle_outline,
+                size: 32, color: colorScheme.primary),
+            const SizedBox(width: 12),
+            Text(AppLocalizations.of(context)!.settledUp,
+                style: const TextStyle(fontSize: 18)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.title);
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      ),
+    );
+  }
+}
+
+/// Settlement history row. Swipe left to delete a payment recorded by
+/// mistake; there is no edit — delete and record it again instead.
+class _SwipeableSettlementTile extends ConsumerWidget {
+  const _SwipeableSettlementTile({
+    required this.settlement,
+    required this.members,
+  });
+
+  final Settlement settlement;
+  final List<Member> members;
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: Text(l10n.deleteSettlementConfirmTitle),
+        content: Text(l10n.deleteSettlementConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dCtx).colorScheme.error,
+              foregroundColor: Theme.of(dCtx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(dCtx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await ref
+        .read(settlementProvider.notifier)
+        .deleteSettlement(settlement.id);
+    result.fold(
+      (failure) => messenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(failure, l10n))),
+      ),
+      (_) {},
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Dismissible(
+      key: ValueKey('settlement-${settlement.id}'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) async {
+        await _confirmDelete(context, ref);
+        return false;
+      },
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        color: colorScheme.error,
+        child: Icon(Icons.delete_outline, color: colorScheme.onError),
+      ),
+      child: SettlementListTile(settlement: settlement, members: members),
     );
   }
 }

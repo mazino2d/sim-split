@@ -150,6 +150,15 @@
   "settlementRecorded": "Settlement recorded",
   "settlementHistory": "Settlement history",
   "noSettlements": "No settlements yet",
+  "paidTo": "{from} paid {to}",
+  "@paidTo": {
+    "placeholders": {
+      "from": { "type": "String" },
+      "to": { "type": "String" }
+    }
+  },
+  "deleteSettlementConfirmTitle": "Delete settlement?",
+  "deleteSettlementConfirmMessage": "The debt it paid off will be owed again. This action cannot be undone.",
 
   "exportGroup": "Export summary",
 

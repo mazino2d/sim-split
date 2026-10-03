@@ -149,6 +149,15 @@
   "settlementRecorded": "Đã ghi nhận thanh toán",
   "settlementHistory": "Lịch sử thanh toán",
   "noSettlements": "Chưa có thanh toán nào",
+  "paidTo": "{from} đã trả {to}",
+  "@paidTo": {
+    "placeholders": {
+      "from": { "type": "String" },
+      "to": { "type": "String" }
+    }
+  },
+  "deleteSettlementConfirmTitle": "Xoá thanh toán?",
+  "deleteSettlementConfirmMessage": "Khoản nợ đã trả sẽ được tính lại. Hành động này không thể hoàn tác.",
 
   "exportGroup": "Xuất tóm tắt",
 
