@@ -17,6 +17,9 @@ and recorded below so it can be re-entered or audited.
 
 - PRs touching `metadata/` run `scripts/play_metadata.py check` (text limits,
   image sizes, 2–8 screenshots per type, max 2:1 aspect ratio).
+- Syncing on push is **off** until the repo variable `PLAY_METADATA_AUTO_SYNC`
+  is set to `true` (Settings → Secrets and variables → Actions → Variables).
+  Until then, run the workflow manually.
 - Preview a sync without changing Play: Actions → **Play Store Metadata** → Run
   workflow with `dry_run` checked (the default).
 - Only images present in the repo are synced; an image type with no files here

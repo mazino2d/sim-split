@@ -27,6 +27,9 @@ concurrency:
 jobs:
   sync:
     name: Sync store listing
+    # Push-triggered syncs are opt-in via the PLAY_METADATA_AUTO_SYNC repo
+    # variable, so merging metadata never changes Play by surprise.
+    if: github.event_name == 'workflow_dispatch' || vars.PLAY_METADATA_AUTO_SYNC == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
