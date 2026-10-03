@@ -150,6 +150,7 @@ def sync(dry_run: bool, data_safety: bool) -> None:
         remote_listings = {
             l["language"]: l for l in edits.listings().list(**ids).execute().get("listings", [])
         }
+        print(f"Play listings: {', '.join(sorted(remote_listings)) or 'none'}")
         for lang in languages():
             wanted = {
                 field: (ROOT / lang / name).read_text().strip()
@@ -157,7 +158,7 @@ def sync(dry_run: bool, data_safety: bool) -> None:
             }
             current = remote_listings.get(lang, {})
             if any(current.get(k, "") != v for k, v in wanted.items()):
-                changes.append(f"{lang} listing")
+                changes.append(f"{lang} listing" + ("" if current else " (new)"))
                 if not dry_run:
                     edits.listings().update(**ids, language=lang, body=wanted).execute()
 
@@ -165,8 +166,12 @@ def sync(dry_run: bool, data_safety: bool) -> None:
                 local = images_for(lang, image_type)
                 if not local:
                     continue  # not managed in the repo; leave Play's copy untouched
-                remote = edits.images().list(**ids, language=lang, imageType=image_type).execute()
-                remote_hashes = [i.get("sha256") for i in remote.get("images", [])]
+                # Images can't be listed for a language whose listing doesn't exist
+                # yet (404); it has none, and the listing update above creates it.
+                remote_hashes = []
+                if lang in remote_listings:
+                    remote = edits.images().list(**ids, language=lang, imageType=image_type).execute()
+                    remote_hashes = [i.get("sha256") for i in remote.get("images", [])]
                 if remote_hashes == [sha256(p) for p in local]:
                     continue
                 changes.append(f"{lang} {image_type} ({len(local)})")
