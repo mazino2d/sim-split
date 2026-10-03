@@ -1,0 +1,23 @@
+# Version updates. Security updates for vulnerable dependencies are enabled in
+# the repo settings (managed in mazino2d/everything-as-code) and use this file
+# for grouping.
+version: 2
+updates:
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      pub-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
