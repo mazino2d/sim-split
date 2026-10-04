@@ -122,6 +122,9 @@ Status: draft | ready | shipped   ·   Serves: <UC ids>   ·   Roadmap: <horizon
    leaving them blank.
 5. Set the roadmap row's Notes to link the spec. Do not write code in this mode — hand off
    to normal implementation (and `/write-pr` later).
+6. The spec says *what* must be true, never *how*. Architecture, phases and technical
+   decisions belong to the software engineer in `docs/implementations/<R-id>-<slug>.md`
+   (same slug as the spec) — link to it, don't write it.
 
 ## Mode 3 — Roadmap and backlog review
 

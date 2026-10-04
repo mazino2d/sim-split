@@ -36,6 +36,16 @@ Read the reference that matches the layer you touch before writing code:
 | `lib/presentation/` (screens, widgets, providers, theme) | [references/presentation.md](references/presentation.md) |
 | `.github/workflows/`, releases, store metadata | [references/ci.md](references/ci.md) |
 
+## Implementation plans
+
+A roadmap item big enough to span several PRs gets a plan in
+`docs/implementations/<R-id>-<slug>.md`, using the same slug as its spec in
+`docs/product/specs/` (the spec is owned by the `product-owner` skill and says *what*; the plan
+says *how*). Header: `Status · Spec link · date`. Then sections for decisions (with
+why), architecture, phases (one or two PRs each, mapped to spec ACs, with effort in days),
+manual steps and risks. Update the phase table as phases ship. Never change acceptance
+criteria here — raise spec changes with the product owner.
+
 ## Workflow
 
 1. **Locate.** Find the use case, repository, provider and screen involved.

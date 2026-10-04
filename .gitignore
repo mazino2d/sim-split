@@ -80,3 +80,7 @@ __pycache__/
 
 # Raw screen captures for store screenshots (intermediate)
 design/store/captures/
+
+# Firebase CLI cache and emulator logs
+.firebase/
+*-debug.log

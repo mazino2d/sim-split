@@ -36,9 +36,8 @@ with no network and no account.** All data stays on the device.
 | Settings | Language (EN, VI) and theme. |
 | Platforms | Android (Google Play), plus web and iOS builds. |
 
-Architecture: Flutter with Clean Architecture. The domain layer is pure Dart, with
-`Either` failures from fpdart. Data is stored locally with Drift (SQLite) and uses UUID
-text IDs. State is managed with Riverpod.
+How it was built (architecture, algorithms, PR history):
+[R-1 implementation](../../implementations/R-1-offline-app.md).
 
 ## Timeline
 

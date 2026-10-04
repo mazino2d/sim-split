@@ -1,0 +1,39 @@
+name: Firebase Deploy
+
+# Deploys Firestore rules, indexes and Hosting (firebase.json) to the
+# simsplit-as-se1-prd project when they change on main.
+on:
+  push:
+    branches: [main]
+    paths:
+      - firebase.json
+      - .firebaserc
+      - firebase/**
+      - .github/workflows/firebase_deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Keyless auth via Workload Identity Federation, managed in
+      # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-prd/github_actions.tf).
+      # Only main and vX.Y.Z tags of this repo can impersonate the account.
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/113980760756/locations/global/workloadIdentityPools/github/providers/sim-split
+          service_account: gha-firebase-deployer@simsplit-as-se1-prd.iam.gserviceaccount.com
+
+      - name: Deploy Firestore and Hosting
+        run: npx --yes firebase-tools@14 deploy --only firestore,hosting --non-interactive
