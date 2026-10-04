@@ -27,7 +27,7 @@ and recorded below so it can be re-entered or audited.
   is left untouched on Play. Pushing the listing replaces what was edited by
   hand in Play Console for the same fields.
 - Credentials: keyless Workload Identity Federation as
-  `gha-play-publisher@mazino2d-as-se1-dev.iam.gserviceaccount.com`
+  `gha-play-publisher@simsplit-as-se1-prd.iam.gserviceaccount.com`
   (see `mazino2d/everything-as-code`).
 
 ## Play Console access for CI
