@@ -54,10 +54,8 @@ cases, not revenue. Polish counts as real work.
 
 ### 4. Safety net for change
 
-- A security policy, Dependabot, CodeQL and a read-only `GITHUB_TOKEN` (#21, #27).
-- Flutter 3.47 and dependency upgrades (#22–#26, #28).
-- An end-to-end suite that drives the real app in Chrome, one test per use case, plus the
-  `e2e-tester` skill that gives a go/no-go verdict before merging (#29).
+An end-to-end suite now checks every use case before merge (#29), alongside security and
+dependency upkeep. Details: [R-2 implementation](../../implementations/R-2-ux-polish-and-strategy.md).
 
 ## What is left
 
