@@ -14,6 +14,9 @@ class DriftLocalDataRepository implements LocalDataRepository {
     try {
       // Children before parents, so foreign keys never point at a gap.
       await _db.transaction(() async {
+        await _db.delete(_db.outboxEntries).go();
+        await _db.delete(_db.activities).go();
+        await _db.delete(_db.syncStates).go();
         await _db.delete(_db.expenseSplits).go();
         await _db.delete(_db.settlements).go();
         await _db.delete(_db.expenses).go();

@@ -289,5 +289,10 @@
   "signOutConfirmMessage": "Your groups stay in your account. This phone keeps no copy of them.",
   "deleteAccount": "Delete account",
   "deleteAccountConfirmTitle": "Delete your account?",
-  "deleteAccountConfirmMessage": "You'll leave every group, and groups where you're the only member are deleted. This can't be undone."
+  "deleteAccountConfirmMessage": "You'll leave every group, and groups where you're the only member are deleted. This can't be undone.",
+  "errorUnsyncedChanges": "Some changes haven't synced yet. Connect to the internet, wait a moment and try again.",
+  "errorSyncFailed": "Couldn't reach the server. Please try again.",
+  "whoIsMeTitle": "Which one is you?",
+  "whoIsMeHint": "Friends who join this group will see this name as you.",
+  "notNow": "Not now"
 }

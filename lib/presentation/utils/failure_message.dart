@@ -5,6 +5,7 @@ import 'package:simsplit/domain/failures/expense_failure.dart';
 import 'package:simsplit/domain/failures/group_failure.dart';
 import 'package:simsplit/domain/failures/member_failure.dart';
 import 'package:simsplit/domain/failures/settlement_failure.dart';
+import 'package:simsplit/domain/failures/sync_failure.dart';
 
 /// Wraps a domain [Failure] so it can be thrown from reactive providers
 /// (streams/futures) and later mapped back to a localized message.
@@ -60,6 +61,9 @@ String failureMessage(Object? error, AppLocalizations l10n) {
     MemberHasHistory() => l10n.errorMemberHasHistory,
     AuthNoConnection() => l10n.errorNoConnection,
     AuthCancelled() || AuthSignInFailed() => l10n.signInFailed,
+    SyncUnsyncedChanges() => l10n.errorUnsyncedChanges,
+    SyncNoConnection() => l10n.errorNoConnection,
+    SyncServerError() => l10n.errorSyncFailed,
     // Wildcard keeps this compiling when new Failure variants are added.
     _ => l10n.errorUnexpected,
   };

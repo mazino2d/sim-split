@@ -8,9 +8,11 @@ part 'group_dao.g.dart';
 class GroupDao extends DatabaseAccessor<AppDatabase> with _$GroupDaoMixin {
   GroupDao(super.db);
 
-  Stream<List<Group>> watchAllGroups() =>
-      (select(groups)..orderBy([(g) => OrderingTerm.desc(g.createdAt)]))
-          .watch();
+  /// Streams groups that are not deleted, newest first.
+  Stream<List<Group>> watchAllGroups() => (select(groups)
+        ..where((g) => g.deleted.equals(false))
+        ..orderBy([(g) => OrderingTerm.desc(g.createdAt)]))
+      .watch();
 
   Future<Group?> getGroupById(String id) =>
       (select(groups)..where((g) => g.id.equals(id))).getSingleOrNull();
@@ -18,9 +20,17 @@ class GroupDao extends DatabaseAccessor<AppDatabase> with _$GroupDaoMixin {
   Future<void> insertGroup(GroupsCompanion companion) =>
       into(groups).insert(companion);
 
-  Future<bool> updateGroupById(GroupsCompanion companion) =>
-      update(groups).replace(companion);
+  /// Writes only the columns present in [companion].
+  Future<bool> updateGroupById(GroupsCompanion companion) async =>
+      await (update(groups)..where((g) => g.id.equals(companion.id.value)))
+          .write(companion) >
+      0;
 
-  Future<int> deleteGroupById(String id) =>
-      (delete(groups)..where((g) => g.id.equals(id))).go();
+  /// Soft-delete: marks the group as a tombstone so the deletion can sync.
+  Future<int> softDeleteGroup(String id, {String? updatedBy}) =>
+      (update(groups)..where((g) => g.id.equals(id))).write(GroupsCompanion(
+        deleted: const Value(true),
+        updatedAt: Value(DateTime.now()),
+        updatedBy: Value(updatedBy),
+      ));
 }

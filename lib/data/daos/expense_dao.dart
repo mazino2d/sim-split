@@ -53,11 +53,19 @@ class ExpenseDao extends DatabaseAccessor<AppDatabase> with _$ExpenseDaoMixin {
   Future<void> insertExpense(ExpensesCompanion companion) =>
       into(expenses).insert(companion);
 
-  Future<bool> updateExpenseById(ExpensesCompanion companion) =>
-      update(expenses).replace(companion);
+  /// Writes only the columns present in [companion].
+  Future<bool> updateExpenseById(ExpensesCompanion companion) async =>
+      await (update(expenses)..where((e) => e.id.equals(companion.id.value)))
+          .write(companion) >
+      0;
 
   /// Soft-delete: sets isDeleted = true.
-  Future<int> softDeleteExpense(String id) =>
-      (update(expenses)..where((e) => e.id.equals(id)))
-          .write(const ExpensesCompanion(isDeleted: Value(true)));
+  Future<int> softDeleteExpense(String id, {String? updatedBy}) =>
+      (update(expenses)..where((e) => e.id.equals(id))).write(
+        ExpensesCompanion(
+          isDeleted: const Value(true),
+          updatedAt: Value(DateTime.now()),
+          updatedBy: Value(updatedBy),
+        ),
+      );
 }

@@ -1,11 +1,122 @@
 rules_version = '2';
 
-// Deny everything until co-worked groups ship (R-3, phases P3–P5).
-// Spec: docs/product/specs/R-3-online-shared-groups.md
+// R-3 co-worked groups. Spec: docs/product/specs/R-3-online-shared-groups.md
+//
+// A group and everything under it is visible only to its members, the uids
+// in `memberUids` (AC23). Every member may change anything in the group,
+// but not who is in it, except to leave. Activity entries can only be
+// created (AC28); they disappear only with a group whose last member
+// deletes it.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function groupPath(g) {
+      return /databases/$(database)/documents/groups/$(g);
+    }
+
+    // A member before the write (reading, leaving) or after it (a group is
+    // created together with its first records in one batch).
+    function memberBefore(g) {
+      return signedIn() && exists(groupPath(g))
+        && request.auth.uid in get(groupPath(g)).data.memberUids;
+    }
+
+    function memberAfter(g) {
+      return signedIn() && existsAfter(groupPath(g))
+        && request.auth.uid in getAfter(groupPath(g)).data.memberUids;
+    }
+
+    function soleMember(g) {
+      return signedIn() && exists(groupPath(g))
+        && get(groupPath(g)).data.memberUids == [request.auth.uid];
+    }
+
+    // Every synced write names its author and carries the server time, so
+    // the last write to reach the server wins (AC17).
+    function stamped() {
+      return request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function validGroup() {
+      let data = request.resource.data;
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.currencyCode is string
+        && data.memberUids is list && data.ownerUid is string;
+    }
+
+    // Leaving removes only yourself; an owner who leaves hands the group to
+    // a remaining member.
+    function leaving() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let uid = request.auth.uid;
+      return after.memberUids == before.memberUids.removeAll([uid])
+        && after.memberUids.size() > 0
+        && ((before.ownerUid != uid && after.ownerUid == before.ownerUid)
+          || (before.ownerUid == uid && after.ownerUid in after.memberUids));
+    }
+
+    match /groups/{g} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+
+      allow create: if signedIn() && stamped() && validGroup()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid];
+
+      allow update: if signedIn() && request.auth.uid in resource.data.memberUids
+        && stamped() && validGroup()
+        && (!changedKeys().hasAny(['memberUids', 'ownerUid']) || leaving());
+
+      allow delete: if signedIn() && resource.data.memberUids == [request.auth.uid];
+    }
+
+    match /groups/{g}/{collection}/{id} {
+      function synced() {
+        return collection in ['members', 'expenses', 'settlements'];
+      }
+
+      // A member can be claimed only while unclaimed, and only by yourself;
+      // you can only release your own claim.
+      function validClaim() {
+        let before = resource == null ? null : resource.data.get('linkedUid', null);
+        let after = request.resource.data.get('linkedUid', null);
+        return after == before
+          || (before == null && after == request.auth.uid)
+          || (before == request.auth.uid && after == null);
+      }
+
+      // Money is integer cents, never a float (AC21).
+      function validRecord() {
+        let data = request.resource.data;
+        return collection == 'members'
+          ? data.name is string && data.name.size() > 0 && data.name.size() <= 80 && validClaim()
+          : collection == 'expenses'
+            ? data.amountCents is int && data.splits is list && data.splits.size() <= 100
+            : data.amountCents is int;
+      }
+
+      allow read: if synced() && memberBefore(g);
+      allow create, update: if synced() && (memberBefore(g) || memberAfter(g))
+        && stamped() && validRecord();
+      allow delete: if synced() && soleMember(g);
+    }
+
+    match /groups/{g}/activity/{a} {
+      allow read: if memberBefore(g);
+      allow create: if (memberBefore(g) || memberAfter(g))
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.syncedAt == request.time
+        && request.resource.data.clientTime is int;
+      allow delete: if soleMember(g);
     }
   }
 }

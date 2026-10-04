@@ -12,6 +12,7 @@ import 'package:simsplit/data/repositories/drift_group_repository.dart';
 import 'package:simsplit/data/repositories/drift_local_data_repository.dart';
 import 'package:simsplit/data/repositories/drift_member_repository.dart';
 import 'package:simsplit/data/repositories/drift_settlement_repository.dart';
+import 'package:simsplit/data/sync/sync_recorder.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/expense_split.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
@@ -43,22 +44,28 @@ void main() {
 
   setUp(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
+    // Signed out: nothing is recorded for sync.
+    final recorder = SyncRecorder(syncDao: db.syncDao, currentUid: () => null);
     expenses = DriftExpenseRepository(
       expenseDao: db.expenseDao,
       expenseSplitDao: db.expenseSplitDao,
       mapper: const ExpenseMapper(),
+      recorder: recorder,
     );
     members = DriftMemberRepository(
       memberDao: db.memberDao,
       mapper: const MemberMapper(),
+      recorder: recorder,
     );
     settlements = DriftSettlementRepository(
       settlementDao: db.settlementDao,
       mapper: const SettlementMapper(),
+      recorder: recorder,
     );
     final groups = DriftGroupRepository(
       groupDao: db.groupDao,
       mapper: const GroupMapper(),
+      recorder: recorder,
     );
     _right(await groups.createGroup(testGroup()));
     for (final id in ['m1', 'm2', 'm3']) {

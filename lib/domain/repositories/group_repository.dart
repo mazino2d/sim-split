@@ -10,6 +10,7 @@ abstract interface class GroupRepository {
   Future<Either<Failure, Group>> createGroup(Group group);
   Future<Either<Failure, Group>> updateGroup(Group group);
 
-  /// Hard-deletes the group and cascades to members, expenses, settlements.
+  /// Soft-deletes the group (a tombstone that syncs). Its members, expenses
+  /// and settlements are no longer shown.
   Future<Either<Failure, Unit>> deleteGroup(String id);
 }
