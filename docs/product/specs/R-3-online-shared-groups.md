@@ -184,11 +184,12 @@ when a number looks wrong, anyone can see who changed what and when.
 - Roles and permissions beyond "member" and "owner" (the owner can only reset the invite
   link).
 - Per-field merging of conflicting edits.
-- Web app sign-in. The web build can stay a demo or be dropped.
 - Comments, receipts, photos, chat.
 
 ## Follow-ups this spec requires
 
+- Web app sign-in, after sync is stable (plan phase P9). It also gives the web
+  account-deletion path below.
 - Rewrite the Play Store listing (EN + VI): it currently promises "completely offline" and
   "No account needed".
 - Update the Play Data safety form: account info (email, name) and user content are now
