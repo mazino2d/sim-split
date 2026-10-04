@@ -20,6 +20,7 @@ order.
 | Conflict ordering | Last write to reach the server wins; `updatedAt` is `serverTimestamp()` | Device clocks can be wrong, but server arrival order cannot. |
 | Audit | Each change is written in one Firestore batch: the entity plus an `activity` doc | A change can never sync without its history entry (AC29). Rules allow `create` only on `activity`. |
 | Invite links | App Links / Universal Links on Firebase Hosting (`simsplit.web.app/join/<token>`) | Firebase Dynamic Links is shut down. Hosting serves the fallback page and the `.well-known` files. |
+| Firebase config | `lib/firebase_options.dart` is committed (generated from the Firebase Management API, like `flutterfire configure`). Firebase is initialised on Android and iOS only; web and desktop stay local-only | The API keys are app identifiers, not secrets. Access is enforced by security rules, and the keys get restricted to the app's package and bundle in everything-as-code. A web build would need its own Firebase app and is out of scope. |
 | Platforms | Android first if the Apple Developer account is not active in time | Apple sign-in and iOS signing both need the account. |
 
 ## Architecture

@@ -9,6 +9,7 @@ on:
       - firebase.json
       - .firebaserc
       - firebase/**
+      - "!firebase/test/**"
       - .github/workflows/firebase_deploy.yml
   workflow_dispatch:
 
