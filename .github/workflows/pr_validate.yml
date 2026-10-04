@@ -27,6 +27,7 @@ jobs:
       dart: ${{ steps.filter.outputs.dart }}
       metadata: ${{ steps.filter.outputs.metadata }}
       workflows: ${{ steps.filter.outputs.workflows }}
+      firebase: ${{ steps.filter.outputs.firebase }}
     steps:
       - uses: dorny/paths-filter@v4
         id: filter
@@ -50,6 +51,10 @@ jobs:
             workflows:
               - ".github/workflows/**"
               - ".github/actions/**"
+            firebase:
+              - "firebase.json"
+              - "firebase/**"
+              - ".github/workflows/pr_validate.yml"
 
   format:
     name: Format
@@ -107,6 +112,23 @@ jobs:
       - name: Check store metadata
         run: python3 scripts/play_metadata.py check
 
+  # Firestore security rules are the only thing standing between users and
+  # other groups' data, so every rules change is tested on the emulator first.
+  firestore-rules:
+    name: Firestore rules
+    needs: changes
+    if: needs.changes.outputs.firebase == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install test dependencies
+        run: npm ci --prefix firebase/test
+      - name: Test rules on the Firestore emulator
+        run: >-
+          npx --yes firebase-tools@14 emulators:exec --only firestore
+          --project demo-simsplit "npm --prefix firebase/test test"
+
   # Workflow files are otherwise only exercised after merge (or on a tag), so
   # lint them here: syntax, expressions, action inputs, and shellcheck on run:.
   workflows:
@@ -126,7 +148,7 @@ jobs:
   # job above succeeded or was skipped; fails if any failed or was cancelled.
   result:
     name: PR Validation
-    needs: [changes, format, analyze, test, store-metadata, workflows]
+    needs: [changes, format, analyze, test, store-metadata, firestore-rules, workflows]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
