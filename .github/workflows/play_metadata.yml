@@ -81,8 +81,8 @@ jobs:
 
       - uses: google-github-actions/auth@v3
         with:
-          workload_identity_provider: projects/238020767329/locations/global/workloadIdentityPools/github/providers/sim-split
-          service_account: gha-play-publisher@mazino2d-as-se1-dev.iam.gserviceaccount.com
+          workload_identity_provider: projects/113980760756/locations/global/workloadIdentityPools/github/providers/sim-split
+          service_account: gha-play-publisher@simsplit-as-se1-prd.iam.gserviceaccount.com
 
       - name: Dry run
         id: plan
@@ -155,8 +155,8 @@ jobs:
       # presence" in Play Console → Users and permissions.
       - uses: google-github-actions/auth@v3
         with:
-          workload_identity_provider: projects/238020767329/locations/global/workloadIdentityPools/github/providers/sim-split
-          service_account: gha-play-publisher@mazino2d-as-se1-dev.iam.gserviceaccount.com
+          workload_identity_provider: projects/113980760756/locations/global/workloadIdentityPools/github/providers/sim-split
+          service_account: gha-play-publisher@simsplit-as-se1-prd.iam.gserviceaccount.com
 
       # On push, re-upload the Data safety form only when its CSV changed.
       - name: Detect Data safety change
