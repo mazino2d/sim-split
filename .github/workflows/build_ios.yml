@@ -38,7 +38,7 @@ permissions:
 jobs:
   build-ios:
     name: Build iOS (unsigned)
-    runs-on: macos-14  # Apple Silicon — required for iOS builds
+    runs-on: macos-15  # Xcode 16.3+: firebase-ios-sdk 12 needs Swift tools 6.1
     timeout-minutes: 45
 
     steps:
