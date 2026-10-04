@@ -18,6 +18,14 @@ runs:
         channel: stable
         cache: true
 
+    # On macOS, `pub get` copies Swift Package Manager plugins (Firebase) into
+    # build/ios/SourcePackages with rsync, which cannot create the missing
+    # parent directories on a fresh checkout.
+    - name: Prepare Swift package directory
+      if: runner.os == 'macOS'
+      shell: bash
+      run: mkdir -p build/ios/SourcePackages
+
     - name: Install dependencies
       shell: bash
       run: flutter pub get
