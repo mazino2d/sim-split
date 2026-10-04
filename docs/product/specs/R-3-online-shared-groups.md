@@ -25,8 +25,8 @@ when a number looks wrong, anyone can see who changed what and when.
 | Offline | A network is needed only for first sign-in and for joining a group. After that, all core flows (log, edit, balances, settle) work fully offline and sync when back online. |
 | Architecture | Drift stays the local source of truth that the UI reads from. Local writes go to an outbox that pushes to Firestore, and remote changes are pulled into Drift. The domain layer is unchanged. |
 | Existing local data | Uploaded to the user's account automatically on first sign-in. |
-| Platforms | Android and iOS ship together in this release. |
-| Backend | Firebase Auth + Cloud Firestore on the free (Spark) plan. Must stay free for ~100 active users. |
+| Platforms | Android and iOS ship together. If the Apple Developer account is not active in time, Android (Google sign-in only) ships first and iOS follows. |
+| Backend | Firebase Auth (Identity Platform) + Cloud Firestore in a dedicated project, `simsplit-as-se1-prd`, managed as code in `mazino2d/everything-as-code`. It runs on the Blaze plan because Identity Platform needs billing, but the target cost is zero: usage stays within the free quotas, a budget sends alerts, and a kill switch unlinks billing once actual cost reaches the budget. |
 
 ## User stories
 
@@ -147,7 +147,7 @@ when a number looks wrong, anyone can see who changed what and when.
 
 - **AC24** Given a load test that simulates 100 users × 5 app opens/day in groups of 6 with
   200 expenses each, when the daily Firestore usage is measured, then reads, writes and
-  storage stay below the Spark plan limits with ≥ 2× headroom.
+  storage stay below the free quotas with ≥ 2× headroom.
 
 ## Edge cases checklist
 
@@ -205,10 +205,11 @@ when a number looks wrong, anyone can see who changed what and when.
 
 ## Open questions
 
+Decided on 2026-10-03: for conflict ordering, the last write to reach the server wins
+(`updatedAt` is a server timestamp), so device clocks do not matter. See the
+[implementation plan](R-3-implementation-plan.md).
+
 - Should a deleted expense or settlement be restorable from the activity history (one tap
   "Restore", itself logged), or only viewable?
 - Should the bookkeeper be able to remove another member's access? The current answer is
   no (only leave and reset link) to keep things simple.
-- Conflict ordering: last-write-wins needs a reliable order across devices whose clocks
-  may be wrong. Decide in the implementation plan (e.g. server timestamp on write, or a
-  per-record version counter).

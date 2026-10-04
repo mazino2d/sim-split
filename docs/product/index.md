@@ -20,6 +20,6 @@ Each phase has a spec that also records its story.
 | --- | --- | --- |
 | [R-1 Offline app (v1.0)](specs/R-1-offline-app.md) | Shipped | The first app: offline, no account, one bookkeeper logs for the group. |
 | [R-2 UX polish and strategy clarity](specs/R-2-ux-polish-and-strategy.md) | In progress | Faster expense and group flows, a monochrome redesign, and the strategy written down. |
-| [R-3 Co-worked groups](specs/R-3-online-shared-groups.md) | Draft | Friends log expenses together with full trust; every change is auditable. Google/Apple sign-in, sync, invite links, Android + iOS. |
+| [R-3 Co-worked groups](specs/R-3-online-shared-groups.md) | Draft | Friends log expenses together with full trust; every change is auditable. Google/Apple sign-in, sync, invite links, Android + iOS. [Implementation plan](specs/R-3-implementation-plan.md). |
 
 [← Back to SimSplit](../)

@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "simsplit-as-se1-prd"
+  },
+  "targets": {
+    "simsplit-as-se1-prd": {
+      "hosting": {
+        "app": ["simsplit"]
+      }
+    }
+  }
+}
