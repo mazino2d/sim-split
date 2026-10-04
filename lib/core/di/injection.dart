@@ -1,4 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import 'package:simsplit/core/constants/auth_constants.dart';
 
 import 'package:simsplit/data/database/app_database.dart';
 import 'package:simsplit/data/daos/expense_dao.dart';
@@ -11,13 +16,21 @@ import 'package:simsplit/data/mappers/group_mapper.dart';
 import 'package:simsplit/data/mappers/member_mapper.dart';
 import 'package:simsplit/data/mappers/settlement_mapper.dart';
 import 'package:simsplit/data/repositories/drift_expense_repository.dart';
+import 'package:simsplit/data/repositories/drift_local_data_repository.dart';
+import 'package:simsplit/data/repositories/firebase_auth_repository.dart';
 import 'package:simsplit/data/repositories/drift_group_repository.dart';
 import 'package:simsplit/data/repositories/drift_member_repository.dart';
 import 'package:simsplit/data/repositories/drift_settlement_repository.dart';
+import 'package:simsplit/domain/repositories/auth_repository.dart';
 import 'package:simsplit/domain/repositories/expense_repository.dart';
+import 'package:simsplit/domain/repositories/local_data_repository.dart';
 import 'package:simsplit/domain/repositories/group_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
+import 'package:simsplit/domain/use_cases/auth/delete_account.dart';
+import 'package:simsplit/domain/use_cases/auth/sign_in_with_google.dart';
+import 'package:simsplit/domain/use_cases/auth/sign_out.dart';
+import 'package:simsplit/domain/use_cases/auth/watch_current_user.dart';
 import 'package:simsplit/domain/use_cases/expenses/add_expense.dart';
 import 'package:simsplit/domain/use_cases/expenses/calculate_splits.dart';
 import 'package:simsplit/domain/use_cases/expenses/delete_expense.dart';
@@ -43,6 +56,12 @@ part 'injection.g.dart';
 
 @Riverpod(keepAlive: true)
 AppDatabase appDatabase(Ref ref) => AppDatabase();
+
+/// Whether accounts are available: Firebase is initialised on Android and
+/// iOS only (see main.dart). Elsewhere the app stays local-only, with no
+/// sign-in.
+@Riverpod(keepAlive: true)
+bool authAvailable(Ref ref) => Firebase.apps.isNotEmpty;
 
 // ── DAOs ───────────────────────────────────────────────────────────────────
 
@@ -89,6 +108,18 @@ SettlementRepository settlementRepository(Ref ref) => DriftSettlementRepository(
       settlementDao: ref.watch(settlementDaoProvider),
       mapper: const SettlementMapper(),
     );
+
+/// Only read when [authAvailable] is true.
+@Riverpod(keepAlive: true)
+AuthRepository authRepository(Ref ref) => FirebaseAuthRepository(
+      firebaseAuth: FirebaseAuth.instance,
+      googleSignIn: GoogleSignIn.instance,
+      serverClientId: googleServerClientId,
+    );
+
+@Riverpod(keepAlive: true)
+LocalDataRepository localDataRepository(Ref ref) =>
+    DriftLocalDataRepository(database: ref.watch(appDatabaseProvider));
 
 // ── Use Cases ─────────────────────────────────────────────────────────────
 
@@ -175,3 +206,23 @@ ListSettlements listSettlements(Ref ref) => ListSettlements(
 @riverpod
 DeleteSettlement deleteSettlement(Ref ref) => DeleteSettlement(
     settlementRepository: ref.watch(settlementRepositoryProvider));
+
+@riverpod
+WatchCurrentUser watchCurrentUser(Ref ref) =>
+    WatchCurrentUser(authRepository: ref.watch(authRepositoryProvider));
+
+@riverpod
+SignInWithGoogle signInWithGoogle(Ref ref) =>
+    SignInWithGoogle(authRepository: ref.watch(authRepositoryProvider));
+
+@riverpod
+SignOut signOut(Ref ref) => SignOut(
+      authRepository: ref.watch(authRepositoryProvider),
+      localDataRepository: ref.watch(localDataRepositoryProvider),
+    );
+
+@riverpod
+DeleteAccount deleteAccount(Ref ref) => DeleteAccount(
+      authRepository: ref.watch(authRepositoryProvider),
+      localDataRepository: ref.watch(localDataRepositoryProvider),
+    );

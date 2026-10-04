@@ -277,5 +277,17 @@
   "themeLight": "Light",
   "themeDark": "Dark",
   "addMembersFirst": "Add the people in this group first",
-  "addPersonHint": "Add a person…"
+  "addPersonHint": "Add a person…",
+  "signInTagline": "Sign in to keep your groups on every phone and share them with friends.",
+  "continueWithGoogle": "Continue with Google",
+  "signInNeedsConnection": "You need a connection to sign in.",
+  "signInFailed": "Couldn't sign in. Please try again.",
+  "errorNoConnection": "You need a connection for this. Try again when you're online.",
+  "account": "Account",
+  "signOut": "Sign out",
+  "signOutConfirmTitle": "Sign out?",
+  "signOutConfirmMessage": "Your groups stay in your account. This phone keeps no copy of them.",
+  "deleteAccount": "Delete account",
+  "deleteAccountConfirmTitle": "Delete your account?",
+  "deleteAccountConfirmMessage": "You'll leave every group, and groups where you're the only member are deleted. This can't be undone."
 }

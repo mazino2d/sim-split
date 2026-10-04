@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations_en.dart';
+import 'package:simsplit/domain/failures/auth_failure.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/failures/expense_failure.dart';
 import 'package:simsplit/domain/failures/group_failure.dart';
@@ -68,6 +69,17 @@ void main() {
       expect(
         failureMessage(const Failure.unexpected('raw detail'), l10n),
         l10n.errorUnexpected,
+      );
+    });
+
+    test('maps auth failures', () {
+      expect(
+        failureMessage(const AuthFailure.noConnection(), l10n),
+        l10n.errorNoConnection,
+      );
+      expect(
+        failureMessage(const AuthFailure.signInFailed('boom'), l10n),
+        l10n.signInFailed,
       );
     });
   });

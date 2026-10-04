@@ -20,7 +20,7 @@ class SimSplitApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'SimSplit',
       debugShowCheckedModeBanner: false,
-      routerConfig: appRouter,
+      routerConfig: ref.watch(appRouterProvider),
       locale: locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,

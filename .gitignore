@@ -85,3 +85,7 @@ design/store/captures/
 firebase/test/node_modules/
 .firebase/
 *-debug.log
+
+# Firebase Android config: the app reads lib/firebase_options.dart and passes
+# the Web client ID itself (lib/core/constants/auth_constants.dart)
+android/app/google-services.json
