@@ -22,6 +22,11 @@ class Expenses extends Table {
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
+  /// Account uid that created / last changed the row (R-3). Null for rows
+  /// written while signed out (v1 data, web).
+  TextColumn get createdBy => text().nullable()();
+  TextColumn get updatedBy => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

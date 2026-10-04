@@ -68,6 +68,7 @@ dev_dependencies:
 
   # Testing
   mocktail: ^1.0.5
+  fake_cloud_firestore: ^4.3.0
 
 flutter:
   uses-material-design: true

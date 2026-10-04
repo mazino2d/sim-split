@@ -7,17 +7,35 @@ import 'package:simsplit/data/daos/expense_split_dao.dart';
 import 'package:simsplit/data/daos/group_dao.dart';
 import 'package:simsplit/data/daos/member_dao.dart';
 import 'package:simsplit/data/daos/settlement_dao.dart';
+import 'package:simsplit/data/daos/sync_dao.dart';
 import 'package:simsplit/data/models/expense_split_table.dart';
 import 'package:simsplit/data/models/expense_table.dart';
 import 'package:simsplit/data/models/group_table.dart';
 import 'package:simsplit/data/models/member_table.dart';
 import 'package:simsplit/data/models/settlement_table.dart';
+import 'package:simsplit/data/models/sync_tables.dart';
 
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Groups, Members, Expenses, ExpenseSplits, Settlements],
-  daos: [GroupDao, MemberDao, ExpenseDao, ExpenseSplitDao, SettlementDao],
+  tables: [
+    Groups,
+    Members,
+    Expenses,
+    ExpenseSplits,
+    Settlements,
+    Activities,
+    OutboxEntries,
+    SyncStates,
+  ],
+  daos: [
+    GroupDao,
+    MemberDao,
+    ExpenseDao,
+    ExpenseSplitDao,
+    SettlementDao,
+    SyncDao,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -27,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -40,6 +58,24 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('PRAGMA foreign_keys = ON');
           if (from < 2) {
             await m.addColumn(members, members.emoji);
+          }
+          if (from < 3) {
+            // R-3: audit columns, tombstones, claimed members and sync tables.
+            await m.addColumn(groups, groups.createdBy);
+            await m.addColumn(groups, groups.updatedBy);
+            await m.addColumn(groups, groups.deleted);
+            await m.addColumn(members, members.linkedUid);
+            await m.addColumn(members, members.createdBy);
+            await m.addColumn(members, members.updatedBy);
+            await m.addColumn(members, members.deleted);
+            await m.addColumn(expenses, expenses.createdBy);
+            await m.addColumn(expenses, expenses.updatedBy);
+            await m.addColumn(settlements, settlements.createdBy);
+            await m.addColumn(settlements, settlements.updatedBy);
+            await m.addColumn(settlements, settlements.deleted);
+            await m.createTable(activities);
+            await m.createTable(outboxEntries);
+            await m.createTable(syncStates);
           }
         },
         beforeOpen: (details) async {

@@ -26,6 +26,7 @@ import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
+import 'package:simsplit/presentation/widgets/members/who_is_me_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
 
@@ -124,6 +125,7 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
             ],
           ),
           SliverToBoxAdapter(child: _GroupHeader(group: group)),
+          SliverToBoxAdapter(child: WhoIsMeCard(groupId: group.id)),
           SliverPersistentHeader(
             pinned: true,
             delegate: _TabBarDelegate(

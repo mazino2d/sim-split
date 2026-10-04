@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -11,6 +12,7 @@ import 'package:simsplit/data/daos/expense_split_dao.dart';
 import 'package:simsplit/data/daos/group_dao.dart';
 import 'package:simsplit/data/daos/member_dao.dart';
 import 'package:simsplit/data/daos/settlement_dao.dart';
+import 'package:simsplit/data/daos/sync_dao.dart';
 import 'package:simsplit/data/mappers/expense_mapper.dart';
 import 'package:simsplit/data/mappers/group_mapper.dart';
 import 'package:simsplit/data/mappers/member_mapper.dart';
@@ -21,12 +23,17 @@ import 'package:simsplit/data/repositories/firebase_auth_repository.dart';
 import 'package:simsplit/data/repositories/drift_group_repository.dart';
 import 'package:simsplit/data/repositories/drift_member_repository.dart';
 import 'package:simsplit/data/repositories/drift_settlement_repository.dart';
+import 'package:simsplit/data/repositories/firestore_sync_repository.dart';
+import 'package:simsplit/data/sync/firestore_sync_pusher.dart';
+import 'package:simsplit/data/sync/local_data_uploader.dart';
+import 'package:simsplit/data/sync/sync_recorder.dart';
 import 'package:simsplit/domain/repositories/auth_repository.dart';
 import 'package:simsplit/domain/repositories/expense_repository.dart';
 import 'package:simsplit/domain/repositories/local_data_repository.dart';
 import 'package:simsplit/domain/repositories/group_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
+import 'package:simsplit/domain/repositories/sync_repository.dart';
 import 'package:simsplit/domain/use_cases/auth/delete_account.dart';
 import 'package:simsplit/domain/use_cases/auth/sign_in_with_google.dart';
 import 'package:simsplit/domain/use_cases/auth/sign_out.dart';
@@ -49,6 +56,8 @@ import 'package:simsplit/domain/use_cases/settlements/calculate_debts.dart';
 import 'package:simsplit/domain/use_cases/settlements/delete_settlement.dart';
 import 'package:simsplit/domain/use_cases/settlements/list_settlements.dart';
 import 'package:simsplit/domain/use_cases/settlements/settle_debt.dart';
+import 'package:simsplit/domain/use_cases/sync/start_sync.dart';
+import 'package:simsplit/domain/use_cases/sync/stop_sync.dart';
 
 part 'injection.g.dart';
 
@@ -62,6 +71,21 @@ AppDatabase appDatabase(Ref ref) => AppDatabase();
 /// sign-in.
 @Riverpod(keepAlive: true)
 bool authAvailable(Ref ref) => Firebase.apps.isNotEmpty;
+
+/// Only read when [authAvailable] is true. The offline cache is off: Drift
+/// is the cache, and queued writes live in the outbox instead (R-3).
+@Riverpod(keepAlive: true)
+FirebaseFirestore firestore(Ref ref) => FirebaseFirestore.instance
+  ..settings = const Settings(persistenceEnabled: false);
+
+/// Records local changes for sync while an account is signed in.
+@Riverpod(keepAlive: true)
+SyncRecorder syncRecorder(Ref ref) => SyncRecorder(
+      syncDao: ref.watch(syncDaoProvider),
+      currentUid: ref.watch(authAvailableProvider)
+          ? () => FirebaseAuth.instance.currentUser?.uid
+          : () => null,
+    );
 
 // ── DAOs ───────────────────────────────────────────────────────────────────
 
@@ -82,18 +106,23 @@ ExpenseSplitDao expenseSplitDao(Ref ref) =>
 SettlementDao settlementDao(Ref ref) =>
     ref.watch(appDatabaseProvider).settlementDao;
 
+@Riverpod(keepAlive: true)
+SyncDao syncDao(Ref ref) => ref.watch(appDatabaseProvider).syncDao;
+
 // ── Repositories (typed as Domain interfaces) ──────────────────────────────
 
 @Riverpod(keepAlive: true)
 GroupRepository groupRepository(Ref ref) => DriftGroupRepository(
       groupDao: ref.watch(groupDaoProvider),
       mapper: const GroupMapper(),
+      recorder: ref.watch(syncRecorderProvider),
     );
 
 @Riverpod(keepAlive: true)
 MemberRepository memberRepository(Ref ref) => DriftMemberRepository(
       memberDao: ref.watch(memberDaoProvider),
       mapper: const MemberMapper(),
+      recorder: ref.watch(syncRecorderProvider),
     );
 
 @Riverpod(keepAlive: true)
@@ -101,12 +130,14 @@ ExpenseRepository expenseRepository(Ref ref) => DriftExpenseRepository(
       expenseDao: ref.watch(expenseDaoProvider),
       expenseSplitDao: ref.watch(expenseSplitDaoProvider),
       mapper: const ExpenseMapper(),
+      recorder: ref.watch(syncRecorderProvider),
     );
 
 @Riverpod(keepAlive: true)
 SettlementRepository settlementRepository(Ref ref) => DriftSettlementRepository(
       settlementDao: ref.watch(settlementDaoProvider),
       mapper: const SettlementMapper(),
+      recorder: ref.watch(syncRecorderProvider),
     );
 
 /// Only read when [authAvailable] is true.
@@ -116,6 +147,25 @@ AuthRepository authRepository(Ref ref) => FirebaseAuthRepository(
       googleSignIn: GoogleSignIn.instance,
       serverClientId: googleServerClientId,
     );
+
+/// Only read when [authAvailable] is true.
+@Riverpod(keepAlive: true)
+SyncRepository syncRepository(Ref ref) {
+  final database = ref.watch(appDatabaseProvider);
+  final firestore = ref.watch(firestoreProvider);
+  final pusher = FirestoreSyncPusher(
+    syncDao: database.syncDao,
+    firestore: firestore,
+  );
+  ref.onDispose(pusher.stop);
+  return FirestoreSyncRepository(
+    syncDao: database.syncDao,
+    uploader: LocalDataUploader(database: database),
+    pusher: pusher,
+    firestore: firestore,
+    currentUid: () => FirebaseAuth.instance.currentUser?.uid,
+  );
+}
 
 @Riverpod(keepAlive: true)
 LocalDataRepository localDataRepository(Ref ref) =>
@@ -219,10 +269,20 @@ SignInWithGoogle signInWithGoogle(Ref ref) =>
 SignOut signOut(Ref ref) => SignOut(
       authRepository: ref.watch(authRepositoryProvider),
       localDataRepository: ref.watch(localDataRepositoryProvider),
+      syncRepository: ref.watch(syncRepositoryProvider),
     );
 
 @riverpod
 DeleteAccount deleteAccount(Ref ref) => DeleteAccount(
       authRepository: ref.watch(authRepositoryProvider),
       localDataRepository: ref.watch(localDataRepositoryProvider),
+      syncRepository: ref.watch(syncRepositoryProvider),
     );
+
+@riverpod
+StartSync startSync(Ref ref) =>
+    StartSync(syncRepository: ref.watch(syncRepositoryProvider));
+
+@riverpod
+StopSync stopSync(Ref ref) =>
+    StopSync(syncRepository: ref.watch(syncRepositoryProvider));

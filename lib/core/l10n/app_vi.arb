@@ -268,5 +268,10 @@
   "signOutConfirmMessage": "Các nhóm vẫn được lưu trong tài khoản của bạn. Điện thoại này sẽ không giữ bản nào.",
   "deleteAccount": "Xoá tài khoản",
   "deleteAccountConfirmTitle": "Xoá tài khoản của bạn?",
-  "deleteAccountConfirmMessage": "Bạn sẽ rời khỏi mọi nhóm, và các nhóm chỉ có mình bạn sẽ bị xoá. Không thể hoàn tác."
+  "deleteAccountConfirmMessage": "Bạn sẽ rời khỏi mọi nhóm, và các nhóm chỉ có mình bạn sẽ bị xoá. Không thể hoàn tác.",
+  "errorUnsyncedChanges": "Một số thay đổi chưa được đồng bộ. Hãy kết nối mạng, đợi một chút rồi thử lại.",
+  "errorSyncFailed": "Không kết nối được máy chủ. Vui lòng thử lại.",
+  "whoIsMeTitle": "Bạn là ai trong nhóm này?",
+  "whoIsMeHint": "Bạn bè tham gia nhóm sẽ thấy tên này là bạn.",
+  "notNow": "Để sau"
 }

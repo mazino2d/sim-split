@@ -34,15 +34,23 @@ lib/domain      (pure Dart)
   existing use cases unchanged
 
 lib/data
-  Drift (schema v3): every table gains updatedAt, deleted, createdBy, updatedBy;
-                     members gain linkedUid; new outbox and activity tables
-  Drift repositories: each write also inserts an outbox row and an activity row in the
-                      same Drift transaction; hard deletes become soft deletes
-  sync/ pusher:  drains the outbox in order → Firestore batch (entity + activity)
+  Drift (schema v3): groups, members, expenses and settlements gain createdBy, updatedBy
+                     and a tombstone (expenses keep isDeleted); members gain linkedUid;
+                     new activities, outbox_entries and sync_states tables
+  Drift repositories: each write also inserts an activity row (before/after JSON) and an
+                      outbox row in the same Drift transaction (SyncRecorder), only while
+                      signed in; hard deletes become soft deletes
+  sync/ uploader: on first sign-in per account, queues every local record as a create,
+                  in one transaction with its "done" marker (AC7, AC8)
+        pusher:  drains the outbox in order, one group per Firestore batch (entity set
+                 with merge + activity create); a batch the rules reject is resolved by
+                 dropping entries whose activity doc already exists (pushed before a
+                 restart) or setting the oldest entry aside
         puller:  one listener per group, filtered on updatedAt > cursor → upsert into
                  Drift, skipping records that still have pending outbox rows
   Firebase repositories: auth, invites, activity (all behind domain interfaces)
-  Member.isMe: derived in the mapper as linkedUid == current uid
+  Member.isMe: stays a local column. Marking a member as me links it (linkedUid = uid)
+               and releases the previous one; P4 sets isMe from linkedUid when pulling
 
 Firestore
   users/{uid}
@@ -51,14 +59,19 @@ Firestore
   groups/{g}/members/{m}             linkedUid?, updatedAt, deleted
   groups/{g}/expenses/{e}            splits embedded, createdBy, updatedBy, updatedAt, deleted
   groups/{g}/settlements/{s}
-  groups/{g}/activity/{a}            create-only: actor, action, entity, before, after, clientTime
+  groups/{g}/activity/{a}            create-only: actor, action, entity, before, after,
+                                     clientTime, syncedAt
+  Dates are epoch milliseconds; local-only fields (isMe, device updatedAt) are not synced
 ```
 
 Security rules, in short:
 - Only users in `memberUids` can read or write a group and its subcollections.
 - A signed-in user may add only their own uid to `memberUids`, and only when the token
   they send matches the group's current `inviteToken`.
-- `activity` documents can be created but never updated or deleted.
+- `activity` documents can be created but never updated. They are deleted only together
+  with a group whose last member deletes their account (AC6).
+- A member can be claimed only while unclaimed and only by yourself; a member may leave
+  (remove only their own uid) and an owner who leaves hands ownership to a remaining member.
 - Every amount must be an integer.
 
 ## Phases
@@ -67,8 +80,8 @@ Security rules, in short:
 | --- | --- | --- | --- | --- |
 | P0 ✅ | everything-as-code | Done in everything-as-code#214. Firebase stack: project, APIs, Firestore, Identity Platform (Google; Apple once the account is active), Android/iOS apps, Hosting site, WIF deployer, budget, kill switch | — | 2 |
 | P1 ✅ | sim-split | Done in #32 (project config, deploy workflow, deny-all ruleset) and #34. Foundations: fix the iOS bundle id (`com.simsplit.simsplit` → `com.mazino2d.simsplit`), Podfile for iOS 15, Firebase packages, `firebase_options.dart` (from `flutterfire configure`), `firebase.json`, rules + rules tests on the emulator in `pr_validate`, a deploy workflow for rules, indexes and Hosting | AC23 | 2 |
-| P2 | sim-split | Auth: domain interfaces and use cases, Firebase implementation, sign-in screen, the router as a provider with an auth redirect, an account section in Settings, sign-out wipes Drift, delete account. The gate applies only where Firebase is initialised (Android, iOS), so the web e2e journey runs unchanged; sign-in is covered by unit and widget tests. The cloud side of AC6 (leaving groups, deleting groups where the user is the only member) lands with P3, once groups are in Firestore | AC1–AC6 | 3 |
-| P3 | sim-split | Schema v3 and push: migration, soft deletes, outbox and activity tables, the pusher, uploading existing local data on first sign-in, claiming your member, the cloud side of delete account | AC6, AC7, AC8, AC16, AC29 | 4 |
+| P2 ✅ | sim-split | Done in #35. Auth: domain interfaces and use cases, Firebase implementation, sign-in screen, the router as a provider with an auth redirect, an account section in Settings, sign-out wipes Drift, delete account. The gate applies only where Firebase is initialised (Android, iOS), so the web e2e journey runs unchanged; sign-in is covered by unit and widget tests. The cloud side of AC6 (leaving groups, deleting groups where the user is the only member) lands with P3, once groups are in Firestore | AC1–AC6 | 3 |
+| P3 ✅ | sim-split | Done in #36. Schema v3 and push: migration, soft deletes, outbox and activity tables, the pusher, uploading existing local data on first sign-in, claiming your member (an inline "Which one is you?" card, asked once, for groups with several members and no "me"), the cloud side of delete account, Firestore rules for groups. Sign-out refuses while changes are unsynced | AC6, AC7, AC8, AC16, AC29 | 4 |
 | P4 | sim-split | Pull and realtime: listeners, upsert, "not synced yet" mark, convergence | AC15, AC17–AC22 | 3 |
 | P5 | both | Invites: tokens, the join page and `.well-known` files on Hosting, App Links / Universal Links, the join screen, leave, reset link | AC9–AC14 | 3 |
 | P6 | sim-split | Activity screen: the list and an old → new detail view | AC25–AC28, AC30 | 2 |

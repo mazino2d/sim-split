@@ -12,9 +12,14 @@ class MemberDao extends DatabaseAccessor<AppDatabase> with _$MemberDaoMixin {
   MemberDao(super.db);
 
   Stream<List<Member>> watchMembersByGroup(String groupId) => (select(members)
-        ..where((m) => m.groupId.equals(groupId))
+        ..where((m) => m.groupId.equals(groupId) & m.deleted.equals(false))
         ..orderBy([(m) => OrderingTerm.asc(m.createdAt)]))
       .watch();
+
+  Future<List<Member>> getMembersByGroup(String groupId) => (select(members)
+        ..where((m) => m.groupId.equals(groupId) & m.deleted.equals(false))
+        ..orderBy([(m) => OrderingTerm.asc(m.createdAt)]))
+      .get();
 
   Future<Member?> getMemberById(String id) =>
       (select(members)..where((m) => m.id.equals(id))).getSingleOrNull();
@@ -22,15 +27,19 @@ class MemberDao extends DatabaseAccessor<AppDatabase> with _$MemberDaoMixin {
   Future<void> insertMember(MembersCompanion companion) =>
       into(members).insert(companion);
 
-  Future<bool> updateMemberById(MembersCompanion companion) =>
-      update(members).replace(companion);
+  /// Writes only the columns present in [companion].
+  Future<bool> updateMemberById(MembersCompanion companion) async =>
+      await (update(members)..where((m) => m.id.equals(companion.id.value)))
+          .write(companion) >
+      0;
 
-  Future<int> deleteMemberById(String id) =>
-      (delete(members)..where((m) => m.id.equals(id))).go();
-
-  Future<void> clearIsMeForGroup(String groupId) =>
-      (update(members)..where((m) => m.groupId.equals(groupId)))
-          .write(const MembersCompanion(isMe: Value(false)));
+  /// Soft-delete: marks the member as a tombstone so the deletion can sync.
+  Future<int> softDeleteMember(String id, {String? updatedBy}) =>
+      (update(members)..where((m) => m.id.equals(id) & m.deleted.equals(false)))
+          .write(MembersCompanion(
+        deleted: const Value(true),
+        updatedBy: Value(updatedBy),
+      ));
 
   /// Whether the member is referenced as payer of any expense (including
   /// soft-deleted ones), by any expense split, or by any settlement.

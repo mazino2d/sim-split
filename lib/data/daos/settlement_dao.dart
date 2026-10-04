@@ -11,13 +11,23 @@ class SettlementDao extends DatabaseAccessor<AppDatabase>
 
   Stream<List<Settlement>> watchSettlementsByGroup(String groupId) =>
       (select(settlements)
-            ..where((s) => s.groupId.equals(groupId))
+            ..where((s) => s.groupId.equals(groupId) & s.deleted.equals(false))
             ..orderBy([(s) => OrderingTerm.desc(s.settledAt)]))
           .watch();
 
   Future<void> insertSettlement(SettlementsCompanion companion) =>
       into(settlements).insert(companion);
 
-  Future<int> deleteSettlementById(String id) =>
-      (delete(settlements)..where((s) => s.id.equals(id))).go();
+  Future<Settlement?> getSettlementById(String id) =>
+      (select(settlements)..where((s) => s.id.equals(id))).getSingleOrNull();
+
+  /// Soft-delete: marks the settlement as a tombstone so the deletion can
+  /// sync.
+  Future<int> softDeleteSettlement(String id, {String? updatedBy}) =>
+      (update(settlements)..where((s) => s.id.equals(id))).write(
+        SettlementsCompanion(
+          deleted: const Value(true),
+          updatedBy: Value(updatedBy),
+        ),
+      );
 }
