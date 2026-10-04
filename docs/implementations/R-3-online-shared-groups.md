@@ -66,13 +66,13 @@ Security rules, in short:
 | # | Repo | Scope | Spec ACs | Days |
 | --- | --- | --- | --- | --- |
 | P0 ✅ | everything-as-code | Done in everything-as-code#214. Firebase stack: project, APIs, Firestore, Identity Platform (Google; Apple once the account is active), Android/iOS apps, Hosting site, WIF deployer, budget, kill switch | — | 2 |
-| P1 | sim-split | Foundations (project config, rules deploy workflow and a deny-all ruleset landed with this plan): fix the iOS bundle id (`com.simsplit.simsplit` → `com.mazino2d.simsplit`), Podfile for iOS 15, Firebase packages, `firebase_options.dart` (from `flutterfire configure`), `firebase.json`, rules + rules tests on the emulator in `pr_validate`, a deploy workflow for rules, indexes and Hosting | AC23 | 2 |
+| P1 ✅ | sim-split | Done in #32 (project config, deploy workflow, deny-all ruleset) and #34. Foundations: fix the iOS bundle id (`com.simsplit.simsplit` → `com.mazino2d.simsplit`), Podfile for iOS 15, Firebase packages, `firebase_options.dart` (from `flutterfire configure`), `firebase.json`, rules + rules tests on the emulator in `pr_validate`, a deploy workflow for rules, indexes and Hosting | AC23 | 2 |
 | P2 | sim-split | Auth: domain interfaces and use cases, Firebase implementation, sign-in screen, the router as a provider with an auth redirect, an account section in Settings, sign-out wipes Drift, delete account. The e2e suite moves to the Auth emulator | AC1–AC6 | 3 |
 | P3 | sim-split | Schema v3 and push: migration, soft deletes, outbox and activity tables, the pusher, uploading existing local data on first sign-in, claiming your member | AC7, AC8, AC16, AC29 | 4 |
 | P4 | sim-split | Pull and realtime: listeners, upsert, "not synced yet" mark, convergence | AC15, AC17–AC22 | 3 |
 | P5 | both | Invites: tokens, the join page and `.well-known` files on Hosting, App Links / Universal Links, the join screen, leave, reset link | AC9–AC14 | 3 |
 | P6 | sim-split | Activity screen: the list and an old → new detail view | AC25–AC28, AC30 | 2 |
-| P7 | both | iOS: Apple Developer account, Sign in with Apple, signing, TestFlight in `release.yml` | AC1b | 2 |
+| P7 | both | iOS: Apple Developer account, Sign in with Apple, signing, TestFlight in `release.yml`. Move `build_ios.yml` to `macos-15`: firebase-ios-sdk 12 needs Xcode 16.3+ (Swift tools 6.1), so the iOS CI build fails on `macos-14` from P1 onwards | AC1b | 2 |
 | P8 | sim-split | Release: e2e on emulators, the cost load test, a rewritten store listing (EN/VI), Data safety, privacy policy, v2.0.0 | AC20, AC24 | 2 |
 
 The total is about 23 focused days. P5 and P6 can run in parallel after P4. P7 can start
