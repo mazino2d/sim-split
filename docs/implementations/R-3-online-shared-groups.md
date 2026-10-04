@@ -1,6 +1,6 @@
-# R-3 Implementation plan
+# R-3 Co-worked groups — implementation plan
 
-Status: ready   ·   Spec: [R-3 Co-worked groups](R-3-online-shared-groups.md)   ·   Written 2026-10-03
+Status: ready   ·   Spec: [R-3 Co-worked groups](../product/specs/R-3-online-shared-groups.md)   ·   Written 2026-10-03
 
 How R-3 gets built: the architecture, the phases (one or two PRs each) and the decisions
 behind them. The spec defines *what* must be true. This plan defines *how* and in what

@@ -207,7 +207,7 @@ when a number looks wrong, anyone can see who changed what and when.
 
 Decided on 2026-10-03: for conflict ordering, the last write to reach the server wins
 (`updatedAt` is a server timestamp), so device clocks do not matter. See the
-[implementation plan](R-3-implementation-plan.md).
+[implementation plan](../../implementations/R-3-online-shared-groups.md).
 
 - Should a deleted expense or settlement be restorable from the activity history (one tap
   "Restore", itself logged), or only viewable?
