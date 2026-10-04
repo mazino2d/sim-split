@@ -9,6 +9,7 @@ import 'package:simsplit/data/mappers/member_mapper.dart';
 import 'package:simsplit/data/mappers/settlement_mapper.dart';
 import 'package:simsplit/data/repositories/drift_expense_repository.dart';
 import 'package:simsplit/data/repositories/drift_group_repository.dart';
+import 'package:simsplit/data/repositories/drift_local_data_repository.dart';
 import 'package:simsplit/data/repositories/drift_member_repository.dart';
 import 'package:simsplit/data/repositories/drift_settlement_repository.dart';
 import 'package:simsplit/domain/entities/expense.dart';
@@ -233,6 +234,33 @@ void main() {
         leftOf(await members.removeMember('ghost')),
         isA<MemberNotFound>(),
       );
+    });
+  });
+
+  group('DriftLocalDataRepository', () {
+    test('clearAll removes every group, member, expense and settlement',
+        () async {
+      _right(await expenses.addExpense(testExpense(
+        splits: [_split('e1', 'm1', 5000), _split('e1', 'm2', 5000)],
+      )));
+      _right(await settlements.addSettlement(Settlement(
+        id: 's1',
+        groupId: 'g1',
+        fromMemberId: 'm2',
+        toMemberId: 'm1',
+        amountCents: 100,
+        currencyCode: 'VND',
+        settledAt: testDate,
+        createdAt: testDate,
+      )));
+
+      final result = await DriftLocalDataRepository(database: db).clearAll();
+
+      expect(result.isRight(), isTrue);
+      for (final table in db.allTables) {
+        expect(await db.select(table).get(), isEmpty,
+            reason: table.actualTableName);
+      }
     });
   });
 }

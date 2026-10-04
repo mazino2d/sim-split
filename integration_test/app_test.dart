@@ -4,7 +4,6 @@ import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:simsplit/main.dart' as app;
-import 'package:simsplit/presentation/router/app_router.dart';
 
 /// End-to-end journey through the real app: real Drift database, real
 /// router, real providers. Covers the core and supporting use cases in
@@ -120,10 +119,10 @@ void main() {
 }
 
 extension on WidgetTester {
-  /// Starts the app as a cold start would: on the group list. The router is
-  /// a global that outlives runApp, so reset it to '/' first.
+  /// Starts the app as a cold start would: on the group list. Each launch
+  /// gets a fresh ProviderScope, and with it a fresh router at '/'. The web
+  /// build has no Firebase, so there is no sign-in gate.
   Future<void> launch() async {
-    appRouter.go('/');
     app.main();
     await waitFor(find.byTooltip('Settings'));
   }

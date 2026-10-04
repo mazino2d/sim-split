@@ -256,5 +256,17 @@
   "themeLight": "Sáng",
   "themeDark": "Tối",
   "addMembersFirst": "Thêm người trong nhóm trước đã",
-  "addPersonHint": "Thêm người…"
+  "addPersonHint": "Thêm người…",
+  "signInTagline": "Đăng nhập để giữ các nhóm trên mọi điện thoại và chia sẻ với bạn bè.",
+  "continueWithGoogle": "Tiếp tục với Google",
+  "signInNeedsConnection": "Cần có mạng để đăng nhập.",
+  "signInFailed": "Chưa đăng nhập được. Bạn thử lại nhé.",
+  "errorNoConnection": "Việc này cần có mạng. Hãy thử lại khi có kết nối.",
+  "account": "Tài khoản",
+  "signOut": "Đăng xuất",
+  "signOutConfirmTitle": "Đăng xuất?",
+  "signOutConfirmMessage": "Các nhóm vẫn được lưu trong tài khoản của bạn. Điện thoại này sẽ không giữ bản nào.",
+  "deleteAccount": "Xoá tài khoản",
+  "deleteAccountConfirmTitle": "Xoá tài khoản của bạn?",
+  "deleteAccountConfirmMessage": "Bạn sẽ rời khỏi mọi nhóm, và các nhóm chỉ có mình bạn sẽ bị xoá. Không thể hoàn tác."
 }

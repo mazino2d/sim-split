@@ -66,16 +66,16 @@ Security rules, in short:
 | # | Repo | Scope | Spec ACs | Days |
 | --- | --- | --- | --- | --- |
 | P0 ✅ | everything-as-code | Done in everything-as-code#214. Firebase stack: project, APIs, Firestore, Identity Platform (Google; Apple once the account is active), Android/iOS apps, Hosting site, WIF deployer, budget, kill switch | — | 2 |
-| P1 | sim-split | Foundations (project config, rules deploy workflow and a deny-all ruleset landed with this plan): fix the iOS bundle id (`com.simsplit.simsplit` → `com.mazino2d.simsplit`), Podfile for iOS 15, Firebase packages, `firebase_options.dart` (from `flutterfire configure`), `firebase.json`, rules + rules tests on the emulator in `pr_validate`, a deploy workflow for rules, indexes and Hosting | AC23 | 2 |
-| P2 | sim-split | Auth: domain interfaces and use cases, Firebase implementation, sign-in screen, the router as a provider with an auth redirect, an account section in Settings, sign-out wipes Drift, delete account. The e2e suite moves to the Auth emulator | AC1–AC6 | 3 |
-| P3 | sim-split | Schema v3 and push: migration, soft deletes, outbox and activity tables, the pusher, uploading existing local data on first sign-in, claiming your member | AC7, AC8, AC16, AC29 | 4 |
+| P1 ✅ | sim-split | Done in #32 (project config, deploy workflow, deny-all ruleset) and #34. Foundations: fix the iOS bundle id (`com.simsplit.simsplit` → `com.mazino2d.simsplit`), Podfile for iOS 15, Firebase packages, `firebase_options.dart` (from `flutterfire configure`), `firebase.json`, rules + rules tests on the emulator in `pr_validate`, a deploy workflow for rules, indexes and Hosting | AC23 | 2 |
+| P2 | sim-split | Auth: domain interfaces and use cases, Firebase implementation, sign-in screen, the router as a provider with an auth redirect, an account section in Settings, sign-out wipes Drift, delete account. The gate applies only where Firebase is initialised (Android, iOS), so the web e2e journey runs unchanged; sign-in is covered by unit and widget tests. The cloud side of AC6 (leaving groups, deleting groups where the user is the only member) lands with P3, once groups are in Firestore | AC1–AC6 | 3 |
+| P3 | sim-split | Schema v3 and push: migration, soft deletes, outbox and activity tables, the pusher, uploading existing local data on first sign-in, claiming your member, the cloud side of delete account | AC6, AC7, AC8, AC16, AC29 | 4 |
 | P4 | sim-split | Pull and realtime: listeners, upsert, "not synced yet" mark, convergence | AC15, AC17–AC22 | 3 |
 | P5 | both | Invites: tokens, the join page and `.well-known` files on Hosting, App Links / Universal Links, the join screen, leave, reset link | AC9–AC14 | 3 |
 | P6 | sim-split | Activity screen: the list and an old → new detail view | AC25–AC28, AC30 | 2 |
-| P7 | both | iOS: Apple Developer account, Sign in with Apple, signing, TestFlight in `release.yml` | AC1b | 2 |
-| P8 | sim-split | Release: e2e on emulators, the cost load test, a rewritten store listing (EN/VI), Data safety, privacy policy, v2.0.0 | AC20, AC24 | 2 |
+| P7 | both | iOS: Apple Developer account, Sign in with Apple, signing, TestFlight in `release.yml`. Move `build_ios.yml` to `macos-15`: firebase-ios-sdk 12 needs Xcode 16.3+ (Swift tools 6.1), so the iOS CI build fails on `macos-14` from P1 onwards | AC1b | 2 |
+| P8 | both | Release: App Check (register the Android app with the Play Integrity provider in everything-as-code, `firebase_app_check` in the app with the debug provider for debug builds and CI, then enforce on Firestore and Auth; v2.0.0 is the first release that talks to Firebase, so enforcing at launch locks out no installed version; App Attest for iOS once P7 is done), e2e on emulators, the cost load test, a rewritten store listing (EN/VI), Data safety, privacy policy, v2.0.0 | AC20, AC24 | 3 |
 
-The total is about 23 focused days. P5 and P6 can run in parallel after P4. P7 can start
+The total is about 24 focused days. P5 and P6 can run in parallel after P4. P7 can start
 whenever the Apple account is active.
 
 ## Manual steps (no API or Terraform support)
@@ -100,5 +100,6 @@ These are listed in the stack's `_docs/setup.md` in `everything-as-code`:
 | The Apple Developer account is not active in time | Ship Android with Google sign-in first (P7 later). |
 | The kill switch takes the app offline | It only fires at 100 % of a tiny budget. Recovery is a re-apply after fixing the cause (see setup doc). |
 | Budget notifications lag actual spend | Keep reads incremental (`updatedAt > cursor`). The P8 load test checks for ≥ 2× headroom. |
-| The e2e suite breaks once sign-in is required | Move it to the Firebase emulators in P2, before enforcing sign-in. |
+| A script uses the public Firebase config to spam Firestore or Auth, trips the kill switch and takes the backend down for everyone | App Check, enforced on Firestore and Auth from v2.0.0 (P8), rejects requests that do not come from the genuine app. |
+| The e2e suite breaks once sign-in is required | The web build has no Firebase and so no sign-in gate; the e2e journey keeps running there (P2). |
 | Migrating v1 data | Upload with the same IDs, make it resumable, and test with a v2 database fixture (AC7, AC8). |

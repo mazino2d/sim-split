@@ -1,4 +1,5 @@
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/domain/failures/auth_failure.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/failures/expense_failure.dart';
 import 'package:simsplit/domain/failures/group_failure.dart';
@@ -57,6 +58,8 @@ String failureMessage(Object? error, AppLocalizations l10n) {
     MemberNameEmpty() => l10n.errorMemberNameEmpty,
     MemberNotInGroup() => l10n.errorMemberNotInGroup,
     MemberHasHistory() => l10n.errorMemberHasHistory,
+    AuthNoConnection() => l10n.errorNoConnection,
+    AuthCancelled() || AuthSignInFailed() => l10n.signInFailed,
     // Wildcard keeps this compiling when new Failure variants are added.
     _ => l10n.errorUnexpected,
   };
