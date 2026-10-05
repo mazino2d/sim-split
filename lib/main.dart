@@ -45,8 +45,13 @@ Future<void> _initFirebase() async {
   }
   // Settings must be set before Firestore's first use. The offline cache is
   // off: Drift is the cache, and queued writes live in the outbox (R-3).
+  // On web, long-polling replaces the streaming connection, which proxies
+  // that inspect TLS (company networks, Cloudflare WARP) silently stall.
   final firestore = FirebaseFirestore.instance
-    ..settings = const Settings(persistenceEnabled: false);
+    ..settings = const Settings(
+      persistenceEnabled: false,
+      webExperimentalForceLongPolling: true,
+    );
   if (useEmulators) {
     await FirebaseAuth.instance
         .useAuthEmulator(firebaseEmulatorHost, firebaseAuthEmulatorPort);

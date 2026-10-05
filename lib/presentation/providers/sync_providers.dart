@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:simsplit/core/di/injection.dart';
@@ -17,5 +18,6 @@ Future<void> syncRunner(Ref ref) async {
 
   final stopSync = ref.read(stopSyncProvider);
   ref.onDispose(() => stopSync(const NoParams()));
-  await ref.read(startSyncProvider)(user);
+  final result = await ref.read(startSyncProvider)(user);
+  result.fold((failure) => debugPrint('[sync] start failed: $failure'), (_) {});
 }
