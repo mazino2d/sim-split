@@ -286,7 +286,7 @@
   "account": "Account",
   "signOut": "Sign out",
   "signOutConfirmTitle": "Sign out?",
-  "signOutConfirmMessage": "Your groups stay in your account. This phone keeps no copy of them.",
+  "signOutConfirmMessage": "Your groups stay in your account. This device keeps no copy of them.",
   "deleteAccount": "Delete account",
   "deleteAccountConfirmTitle": "Delete your account?",
   "deleteAccountConfirmMessage": "You'll leave every group, and groups where you're the only member are deleted. This can't be undone.",

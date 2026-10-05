@@ -62,7 +62,11 @@ flutter test
 ```
 
 Runs every `integration_test/*_test.dart` with `flutter drive` in headless
-Chrome against the real app. It fetches a chromedriver that matches the
+Chrome against the real app, inside the Firebase Auth and Firestore emulators
+(`firebase-tools` through `npx`; needs Java and Node). The app connects to
+them through `--dart-define=FIREBASE_EMULATOR_HOST=localhost`, on the
+`demo-simsplit` project, and the journey signs in with a fake Google token
+that only the emulator accepts. It fetches a chromedriver that matches the
 installed Chrome into `.dart_tool/chromedriver/` on first use.
 
 [integration_test/app_test.dart](../../../integration_test/app_test.dart) has
@@ -71,11 +75,14 @@ relaunches the app, so later tests also prove that data survives a restart.
 
 | Test | Covers |
 | --- | --- |
-| UC-3 | Create a group with me plus two members on a fresh install |
+| UC-7.1 | A fresh install opens on sign-in; signing in reaches the empty group list |
+| UC-3 | Create a group with me plus two members |
 | UC-1 | Log an expense with the default payer and equal split, check that the shares sum to the total, edit it |
 | UC-2 + UC-4 | Two simplified debts, settle one, it leaves the suggestions |
 | UC-1.5 | Swipe to delete an expense |
 | UC-6 | Switching language and theme takes effect without a restart |
+| UC-7.5 | The group reached Firestore (push sync), then sign-out returns to sign-in |
+| UC-7.6 | Sign in again and delete the account from Settings |
 
 Reading failures:
 

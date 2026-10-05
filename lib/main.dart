@@ -1,9 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:simsplit/app.dart';
+import 'package:simsplit/core/constants/firebase_emulators.dart';
 import 'package:simsplit/firebase_options.dart';
 
 void main() async {
@@ -23,14 +26,35 @@ void main() async {
   );
 }
 
-/// Connects to Firebase on Android and iOS (no network needed). Nothing uses
-/// it yet (R-3), so a failure must not stop the offline app from starting.
+/// Connects to Firebase on Android, iOS and web (no network needed). A
+/// failure must not stop the app from starting: it then stays local-only.
 Future<void> _initFirebase() async {
   final options = DefaultFirebaseOptions.currentPlatform;
-  if (options == null) return;
+  // The e2e journey calls main() once per relaunch.
+  if (options == null || Firebase.apps.isNotEmpty) return;
+  final useEmulators = firebaseEmulatorHost.isNotEmpty;
   try {
-    await Firebase.initializeApp(options: options);
+    await Firebase.initializeApp(
+      options: useEmulators
+          ? options.copyWith(projectId: firebaseEmulatorProjectId)
+          : options,
+    );
   } on FirebaseException catch (e) {
     debugPrint('Firebase init failed: ${e.code} ${e.message}');
+    return;
+  }
+  // Settings must be set before Firestore's first use. The offline cache is
+  // off: Drift is the cache, and queued writes live in the outbox (R-3).
+  // On web, long-polling replaces the streaming connection, which proxies
+  // that inspect TLS (company networks, Cloudflare WARP) silently stall.
+  final firestore = FirebaseFirestore.instance
+    ..settings = const Settings(
+      persistenceEnabled: false,
+      webExperimentalForceLongPolling: true,
+    );
+  if (useEmulators) {
+    await FirebaseAuth.instance
+        .useAuthEmulator(firebaseEmulatorHost, firebaseAuthEmulatorPort);
+    firestore.useFirestoreEmulator(firebaseEmulatorHost, firestoreEmulatorPort);
   }
 }

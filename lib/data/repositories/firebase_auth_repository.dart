@@ -24,7 +24,8 @@ Future<bool> _canReachGoogle() async {
   }
 }
 
-/// Firebase Auth with Google sign-in (Android). The Firebase session is
+/// Firebase Auth with Google sign-in (Android, iOS; web uses
+/// `FirebaseWebAuthRepository`). The Firebase session is
 /// persisted on the device, so a signed-in user stays signed in offline.
 class FirebaseAuthRepository implements AuthRepository {
   FirebaseAuthRepository({

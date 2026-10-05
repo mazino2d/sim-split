@@ -20,9 +20,11 @@ class FirestoreSyncPusher {
     required FirebaseFirestore firestore,
     this.batchSize = 200,
     Duration Function(int attempt)? retryDelay,
+    void Function(String message)? log,
   })  : _syncDao = syncDao,
         _firestore = firestore,
-        _retryDelay = retryDelay ?? _defaultRetryDelay;
+        _retryDelay = retryDelay ?? _defaultRetryDelay,
+        _log = log ?? _noLog;
 
   /// Changes per Firestore batch. Each change is two writes and a batch
   /// holds at most 500.
@@ -32,11 +34,16 @@ class FirestoreSyncPusher {
   final FirebaseFirestore _firestore;
   final Duration Function(int attempt) _retryDelay;
 
+  /// Reports failed and rejected pushes, for debugging.
+  final void Function(String message) _log;
+
   StreamSubscription<int>? _pending;
   Future<void>? _draining;
   bool _again = false;
   Timer? _retry;
   int _attempt = 0;
+
+  static void _noLog(String message) {}
 
   static Duration _defaultRetryDelay(int attempt) =>
       Duration(seconds: (5 * (1 << attempt.clamp(0, 6))).clamp(5, 300));
@@ -100,8 +107,9 @@ class FirestoreSyncPusher {
         await _push(batch);
       }
       _attempt = 0;
-    } catch (_) {
+    } catch (e) {
       // Network or server trouble: try again later, oldest change first.
+      _log('push failed, retrying (attempt ${_attempt + 1}): $e');
       if (!isRunning) return;
       _retry?.cancel();
       _retry = Timer(_retryDelay(_attempt++), _kick);
@@ -110,10 +118,13 @@ class FirestoreSyncPusher {
 
   Future<void> _push(List<(OutboxEntry, Activity)> batch) async {
     try {
+      _log('pushing ${batch.length} changes');
       await _commit(batch);
       await _syncDao.removeEntries(batch.map((e) => e.$1.seq));
+      _log('pushed ${batch.length} changes');
     } on FirebaseException catch (e) {
       if (!_permanentCodes.contains(e.code)) rethrow;
+      _log('push rejected: ${e.code} ${e.message}');
       await _resolveRejected(batch);
     }
   }

@@ -11,15 +11,24 @@ import 'package:flutter/foundation.dart'
 
 class DefaultFirebaseOptions {
   /// Options for the running platform, or null where online features are not
-  /// supported (web, desktop).
+  /// supported (desktop).
   static FirebaseOptions? get currentPlatform {
-    if (kIsWeb) return null;
+    if (kIsWeb) return web;
     return switch (defaultTargetPlatform) {
       TargetPlatform.android => android,
       TargetPlatform.iOS => ios,
       _ => null,
     };
   }
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyAgMmkLJn6-SuhP6zNiqDFtohgbputnOkI',
+    appId: '1:113980760756:web:5e85a6f4f6e0a829592de1',
+    messagingSenderId: '113980760756',
+    projectId: 'simsplit-as-se1-prd',
+    authDomain: 'simsplit-as-se1-prd.firebaseapp.com',
+    storageBucket: 'simsplit-as-se1-prd.firebasestorage.app',
+  );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyC3XYeQu1vKiHp0H8X-WbGc_NQWI6UofnA',

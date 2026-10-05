@@ -79,7 +79,7 @@ member of that group, on Android or iOS.
 | # | Success criterion |
 | --- | --- |
 | 7.1 | A fresh install shows one sign-in screen with only Google and Apple. The user reaches the group list in ≤ 2 taps, plus the provider's own screens. |
-| 7.2 | The same account on Android and iOS shows the same groups. |
+| 7.2 | The same account on Android, iOS and web shows the same groups. |
 | 7.3 | The user is never signed out because of being offline. |
 | 7.4 | On the first sign-in, all existing local data is uploaded unchanged, and an interrupted upload resumes without duplicates. |
 | 7.5 | After Sign out, no group data from that account stays readable on the device. |
