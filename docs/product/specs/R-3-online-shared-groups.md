@@ -25,7 +25,7 @@ when a number looks wrong, anyone can see who changed what and when.
 | Offline | A network is needed only for first sign-in and for joining a group. After that, all core flows (log, edit, balances, settle) work fully offline and sync when back online. |
 | Architecture | Drift stays the local source of truth that the UI reads from. Local writes go to an outbox that pushes to Firestore, and remote changes are pulled into Drift. The domain layer is unchanged. |
 | Existing local data | Uploaded to the user's account automatically on first sign-in. |
-| Platforms | Android and iOS ship together. If the Apple Developer account is not active in time, Android (Google sign-in only) ships first and iOS follows. |
+| Platforms | Android, web and iOS. Web gets every feature Android has, built right after cloud push, because it is the fastest platform to test end to end. If the Apple Developer account is not active in time, Android and web (Google sign-in only) ship first and iOS follows. |
 | Backend | Firebase Auth (Identity Platform) + Cloud Firestore in a dedicated project, `simsplit-as-se1-prd`, managed as code in `mazino2d/everything-as-code`. It runs on the Blaze plan because Identity Platform needs billing, but the target cost is zero: usage stays within the free quotas, a budget sends alerts, and a kill switch unlinks billing once actual cost reaches the budget. |
 
 ## User stories
@@ -47,8 +47,8 @@ when a number looks wrong, anyone can see who changed what and when.
 - **AC1** Given a fresh install, when the app opens, then a single sign-in screen shows
   "Continue with Google" and "Continue with Apple" and nothing else. There is no
   onboarding carousel and no profile form.
-- **AC1b** Given Android or iOS, when the user signs in with either provider, then they
-  reach the same account and the same groups on both platforms.
+- **AC1b** Given Android, iOS or web, when the user signs in with either provider, then they
+  reach the same account and the same groups on every platform.
 - **AC2** Given the sign-in screen, when the user completes Google or Apple sign-in, then
   they land on the group list in ≤ 2 taps from launch (excluding the provider's own
   screens).
@@ -188,7 +188,7 @@ when a number looks wrong, anyone can see who changed what and when.
 
 ## Follow-ups this spec requires
 
-- Web app sign-in, after sync is stable (plan phase P9). It also gives the web
+- The web app gets sign-in and sync like Android (plan phase P4). It also gives the web
   account-deletion path below.
 - Rewrite the Play Store listing (EN + VI): it currently promises "completely offline" and
   "No account needed".
