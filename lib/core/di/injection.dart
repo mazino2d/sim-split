@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -20,6 +21,7 @@ import 'package:simsplit/data/mappers/settlement_mapper.dart';
 import 'package:simsplit/data/repositories/drift_expense_repository.dart';
 import 'package:simsplit/data/repositories/drift_local_data_repository.dart';
 import 'package:simsplit/data/repositories/firebase_auth_repository.dart';
+import 'package:simsplit/data/repositories/firebase_web_auth_repository.dart';
 import 'package:simsplit/data/repositories/drift_group_repository.dart';
 import 'package:simsplit/data/repositories/drift_member_repository.dart';
 import 'package:simsplit/data/repositories/drift_settlement_repository.dart';
@@ -66,17 +68,16 @@ part 'injection.g.dart';
 @Riverpod(keepAlive: true)
 AppDatabase appDatabase(Ref ref) => AppDatabase();
 
-/// Whether accounts are available: Firebase is initialised on Android and
-/// iOS only (see main.dart). Elsewhere the app stays local-only, with no
+/// Whether accounts are available: Firebase is initialised on Android, iOS
+/// and web (see main.dart). On desktop the app stays local-only, with no
 /// sign-in.
 @Riverpod(keepAlive: true)
 bool authAvailable(Ref ref) => Firebase.apps.isNotEmpty;
 
-/// Only read when [authAvailable] is true. The offline cache is off: Drift
-/// is the cache, and queued writes live in the outbox instead (R-3).
+/// Only read when [authAvailable] is true. Configured in main.dart (no
+/// offline cache; emulators in e2e).
 @Riverpod(keepAlive: true)
-FirebaseFirestore firestore(Ref ref) => FirebaseFirestore.instance
-  ..settings = const Settings(persistenceEnabled: false);
+FirebaseFirestore firestore(Ref ref) => FirebaseFirestore.instance;
 
 /// Records local changes for sync while an account is signed in.
 @Riverpod(keepAlive: true)
@@ -142,11 +143,13 @@ SettlementRepository settlementRepository(Ref ref) => DriftSettlementRepository(
 
 /// Only read when [authAvailable] is true.
 @Riverpod(keepAlive: true)
-AuthRepository authRepository(Ref ref) => FirebaseAuthRepository(
-      firebaseAuth: FirebaseAuth.instance,
-      googleSignIn: GoogleSignIn.instance,
-      serverClientId: googleServerClientId,
-    );
+AuthRepository authRepository(Ref ref) => kIsWeb
+    ? FirebaseWebAuthRepository(firebaseAuth: FirebaseAuth.instance)
+    : FirebaseAuthRepository(
+        firebaseAuth: FirebaseAuth.instance,
+        googleSignIn: GoogleSignIn.instance,
+        serverClientId: googleServerClientId,
+      );
 
 /// Only read when [authAvailable] is true.
 @Riverpod(keepAlive: true)

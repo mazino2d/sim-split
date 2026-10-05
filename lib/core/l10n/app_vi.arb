@@ -265,7 +265,7 @@
   "account": "Tài khoản",
   "signOut": "Đăng xuất",
   "signOutConfirmTitle": "Đăng xuất?",
-  "signOutConfirmMessage": "Các nhóm vẫn được lưu trong tài khoản của bạn. Điện thoại này sẽ không giữ bản nào.",
+  "signOutConfirmMessage": "Các nhóm vẫn được lưu trong tài khoản của bạn. Thiết bị này sẽ không giữ bản nào.",
   "deleteAccount": "Xoá tài khoản",
   "deleteAccountConfirmTitle": "Xoá tài khoản của bạn?",
   "deleteAccountConfirmMessage": "Bạn sẽ rời khỏi mọi nhóm, và các nhóm chỉ có mình bạn sẽ bị xoá. Không thể hoàn tác.",

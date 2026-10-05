@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -6,8 +10,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simsplit/main.dart' as app;
 
 /// End-to-end journey through the real app: real Drift database, real
-/// router, real providers. Covers the core and supporting use cases in
-/// docs/product/use-cases.md on a fresh install.
+/// router, real providers, and Firebase Auth and Firestore emulators (run
+/// with --dart-define=FIREBASE_EMULATOR_HOST=localhost). Covers the core and
+/// supporting use cases in docs/product/use-cases.md on a fresh install.
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -35,7 +40,14 @@ void main() {
     await prefs.setString('locale_language_code', 'en');
   });
 
-  e2e('UC-3: sets up a group with members on a fresh install', (tester) async {
+  e2e('UC-7.1: a fresh install opens on sign-in', (tester) async {
+    app.main();
+    await tester.waitFor(find.text('Continue with Google'));
+    await tester.signIn();
+    await tester.waitFor(find.text('No groups yet'));
+  });
+
+  e2e('UC-3: sets up a group with members', (tester) async {
     await tester.launch();
     await tester.waitFor(find.text('No groups yet'));
 
@@ -116,14 +128,63 @@ void main() {
       Brightness.dark,
     );
   });
+
+  e2e('UC-7.5: pushes the group to the account, then signs out',
+      (tester) async {
+    await tester.launch();
+    // The earlier tests' changes have been pushed by now.
+    final groups = await FirebaseFirestore.instance
+        .collection('groups')
+        .where('memberUids',
+            arrayContains: FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    expect(groups.docs.map((d) => d.data()['name']), ['Da Lat trip']);
+
+    await tester.tapAndWait(find.byTooltip('Settings'));
+    await tester.tapAndWait(find.text('Sign out'));
+    await tester.tapAndWait(find.text('Sign out').last);
+    await tester.waitFor(find.text('Continue with Google'));
+  });
+
+  e2e('UC-7.6: deletes the account from inside the app', (tester) async {
+    app.main();
+    await tester.waitFor(find.text('Continue with Google'));
+    await tester.signIn();
+    // Sign-out left nothing on the device, and pulling groups back is R-3 P5.
+    await tester.waitFor(find.text('No groups yet'));
+
+    await tester.tapAndWait(find.byTooltip('Settings'));
+    await tester.tapAndWait(find.text('Delete account'));
+    await tester.tapAndWait(find.text('Delete').last);
+    await tester.waitFor(find.text('Continue with Google'));
+    expect(FirebaseAuth.instance.currentUser, isNull);
+  });
 }
 
+/// The Google account the journey signs in with. The Auth emulator accepts
+/// these claims as an unsigned Google ID token.
+const _e2eUser = {
+  'sub': 'e2e-khoi',
+  'email': 'khoi@example.com',
+  'email_verified': true,
+  'name': 'Khoi',
+};
+
 extension on WidgetTester {
-  /// Starts the app as a cold start would: on the group list. Each launch
-  /// gets a fresh ProviderScope, and with it a fresh router at '/'. The web
-  /// build has no Firebase, so there is no sign-in gate.
+  /// Starts the app as a cold start would, signed in: on the group list.
+  /// Each launch gets a fresh ProviderScope, and with it a fresh router at
+  /// '/'. The session survives relaunches, as it does in the browser.
   Future<void> launch() async {
     app.main();
+    await waitFor(find.byTooltip('Settings'));
+  }
+
+  /// Signs in as [_e2eUser] where the sign-in screen's Google popup would.
+  /// The router leaves the sign-in screen on its own.
+  Future<void> signIn() async {
+    await FirebaseAuth.instance.signInWithCredential(
+      GoogleAuthProvider.credential(idToken: jsonEncode(_e2eUser)),
+    );
     await waitFor(find.byTooltip('Settings'));
   }
 

@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 # Run the integration_test/ suite against the real web build in headless
-# Chrome. Fetches a chromedriver that matches the installed Chrome on first
+# Chrome, with the Firebase Auth and Firestore emulators (needs Java and
+# Node). Fetches a chromedriver that matches the installed Chrome on first
 # use and caches it under .dart_tool/chromedriver/.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
+
+# Re-run this script inside the emulators; they load the Firestore rules
+# from firebase.json and stop when the script exits.
+if [[ -z "${E2E_IN_EMULATORS:-}" ]]; then
+  exec env E2E_IN_EMULATORS=1 npx -y firebase-tools@14 emulators:exec \
+    --only auth,firestore --project demo-simsplit "bash $0 $*"
+fi
 PORT="${CHROMEDRIVER_PORT:-4444}"
 CACHE=.dart_tool/chromedriver
 
@@ -41,5 +49,6 @@ for target in integration_test/*_test.dart; do
     --driver-port="$PORT" \
     --headless \
     "--${E2E_MODE:-debug}" \
+    --dart-define=FIREBASE_EMULATOR_HOST=localhost \
     "$@"
 done
