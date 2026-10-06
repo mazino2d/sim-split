@@ -353,5 +353,116 @@
   "yourName": "Your name",
   "joinAsNewMember": "Join",
   "goToMyGroups": "Go to my groups",
-  "errorInviteLinkInvalid": "This invite link no longer works. Ask a member for a new one."
+  "errorInviteLinkInvalid": "This invite link no longer works. Ask a member for a new one.",
+  "activity": "Activity",
+  "activityEmpty": "No changes yet. Everything anyone adds, edits or deletes shows up here.",
+  "activityAdded": "{actor} added {item}",
+  "@activityAdded": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "activityEdited": "{actor} edited {item}",
+  "@activityEdited": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "activityDeleted": "{actor} deleted {item}",
+  "@activityDeleted": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "activityCreatedGroup": "{actor} created the group",
+  "@activityCreatedGroup": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "activityJoined": "{actor} joined the group",
+  "@activityJoined": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "activityClaimed": "{actor} picked the name {name}",
+  "@activityClaimed": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "activityLeft": "{actor} left the group",
+  "@activityLeft": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "activityItemPayment": "the payment {from} → {to}",
+  "@activityItemPayment": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "activityItemMember": "the member {name}",
+  "@activityItemMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "activityItemGroup": "the group settings",
+  "someone": "Someone",
+  "activityChanges": "Changes",
+  "activityDetails": "Details",
+  "activityDetailsWhenDeleted": "Details when deleted",
+  "fieldName": "Name",
+  "fieldEmoji": "Emoji",
+  "fieldCurrency": "Currency",
+  "fieldNote": "Note",
+  "fieldFrom": "From",
+  "fieldTo": "To",
+  "fieldShare": "{name}'s share",
+  "@fieldShare": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldClaimed": "Claimed by an account",
+  "valueYes": "Yes",
+  "valueNo": "No"
 }

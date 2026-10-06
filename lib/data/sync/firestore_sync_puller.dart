@@ -19,6 +19,9 @@ typedef _Doc = DocumentSnapshot<Map<String, dynamic>>;
 /// result once they do. Pulled changes go straight into Drift and are never
 /// recorded for push.
 ///
+/// Each group's activity history is pulled too, into the same table local
+/// changes are recorded in (AC25).
+///
 /// Snapshots are applied one at a time, in arrival order. Members are
 /// pulled before a group's expenses and settlements, which reference them;
 /// a record whose members have not arrived yet waits for them.
@@ -248,7 +251,7 @@ class FirestoreSyncPuller {
     Query<Map<String, dynamic>> query =
         _firestore.collection('groups').doc(groupId).collection(collection);
     if (cursor != null) {
-      query = query.where('updatedAt',
+      query = query.where(_timeField(collection),
           isGreaterThan:
               Timestamp.fromMicrosecondsSinceEpoch(int.parse(cursor)));
     }
@@ -276,11 +279,13 @@ class FirestoreSyncPuller {
       // Records leave a group only together with it (see _removeGroup).
       if (change.type == DocumentChangeType.removed) continue;
       if (doc.metadata.hasPendingWrites) continue;
-      final updatedAt =
-          (doc.data()!['updatedAt'] as Timestamp?)?.microsecondsSinceEpoch;
+      final updatedAt = (doc.data()![_timeField(collection)] as Timestamp?)
+          ?.microsecondsSinceEpoch;
       if (updatedAt != null && updatedAt > newest) newest = updatedAt;
       if (pending.contains(doc.id)) continue;
       switch (collection) {
+        case 'activity':
+          await _guard(doc, () => _insertActivity(groupId, doc));
         case 'members':
           await _guard(doc, () => _upsertMember(groupId, doc));
         case 'expenses':
@@ -307,6 +312,7 @@ class FirestoreSyncPuller {
         pull.recordsStarted = true;
         await _listen(groupId, pull, 'expenses');
         await _listen(groupId, pull, 'settlements');
+        await _listen(groupId, pull, 'activity');
       }
     }
     await _saveCursors(groupId, pull);
@@ -440,7 +446,32 @@ class FirestoreSyncPuller {
         );
   }
 
+  /// Activity entries never change, so one that is already here (written
+  /// on this device, or pulled before) stays as it is.
+  Future<void> _insertActivity(String groupId, _Doc doc) async {
+    final d = doc.data()!;
+    await _db.into(_db.activities).insert(
+          ActivitiesCompanion.insert(
+            id: doc.id,
+            groupId: groupId,
+            actorUid: d['actorUid'] as String,
+            action: d['action'] as String,
+            entityType: d['entityType'] as String,
+            entityId: d['entityId'] as String,
+            before: Value(d['before'] == null ? null : jsonEncode(d['before'])),
+            after: jsonEncode(d['after'] ?? const <String, Object?>{}),
+            clientTime: _date(d['clientTime']),
+          ),
+          mode: InsertMode.insertOrIgnore,
+        );
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /// The server time a collection is pulled by: activity entries are
+  /// stamped once, when synced; records on every write.
+  static String _timeField(String collection) =>
+      collection == 'activity' ? 'syncedAt' : 'updatedAt';
 
   /// A malformed record is logged and skipped, so it never blocks the rest.
   Future<void> _guard(_Doc doc, Future<void> Function() upsert) async {

@@ -19,6 +19,7 @@ import 'package:simsplit/data/mappers/expense_mapper.dart';
 import 'package:simsplit/data/mappers/group_mapper.dart';
 import 'package:simsplit/data/mappers/member_mapper.dart';
 import 'package:simsplit/data/mappers/settlement_mapper.dart';
+import 'package:simsplit/data/repositories/drift_activity_repository.dart';
 import 'package:simsplit/data/repositories/drift_expense_repository.dart';
 import 'package:simsplit/data/repositories/drift_local_data_repository.dart';
 import 'package:simsplit/data/repositories/firebase_auth_repository.dart';
@@ -32,6 +33,7 @@ import 'package:simsplit/data/sync/firestore_sync_puller.dart';
 import 'package:simsplit/data/sync/firestore_sync_pusher.dart';
 import 'package:simsplit/data/sync/local_data_uploader.dart';
 import 'package:simsplit/data/sync/sync_recorder.dart';
+import 'package:simsplit/domain/repositories/activity_repository.dart';
 import 'package:simsplit/domain/repositories/auth_repository.dart';
 import 'package:simsplit/domain/repositories/expense_repository.dart';
 import 'package:simsplit/domain/repositories/local_data_repository.dart';
@@ -40,6 +42,7 @@ import 'package:simsplit/domain/repositories/invite_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/domain/repositories/sync_repository.dart';
+import 'package:simsplit/domain/use_cases/activity/watch_activity.dart';
 import 'package:simsplit/domain/use_cases/auth/delete_account.dart';
 import 'package:simsplit/domain/use_cases/auth/sign_in_with_google.dart';
 import 'package:simsplit/domain/use_cases/auth/sign_out.dart';
@@ -197,6 +200,10 @@ InviteRepository inviteRepository(Ref ref) => FirestoreInviteRepository(
     );
 
 @Riverpod(keepAlive: true)
+ActivityRepository activityRepository(Ref ref) =>
+    DriftActivityRepository(syncDao: ref.watch(syncDaoProvider));
+
+@Riverpod(keepAlive: true)
 LocalDataRepository localDataRepository(Ref ref) =>
     DriftLocalDataRepository(database: ref.watch(appDatabaseProvider));
 
@@ -331,6 +338,10 @@ JoinGroup joinGroup(Ref ref) =>
 @riverpod
 LeaveGroup leaveGroup(Ref ref) =>
     LeaveGroup(inviteRepository: ref.watch(inviteRepositoryProvider));
+
+@riverpod
+WatchActivity watchActivity(Ref ref) =>
+    WatchActivity(activityRepository: ref.watch(activityRepositoryProvider));
 
 @riverpod
 WatchUnsyncedRecordIds watchUnsyncedRecordIds(Ref ref) =>

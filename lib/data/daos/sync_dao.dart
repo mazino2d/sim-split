@@ -88,6 +88,24 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
 
   Future<Set<String>> pendingEntityIds() => watchPendingEntityIds().first;
 
+  /// [groupId]'s activity entries, newest first, each with whether it is
+  /// still waiting to be pushed.
+  Stream<List<(Activity, bool)>> watchGroupActivity(String groupId) {
+    final query = select(activities).join([
+      leftOuterJoin(
+          outboxEntries, outboxEntries.activityId.equalsExp(activities.id)),
+    ])
+      ..where(activities.groupId.equals(groupId))
+      ..orderBy([OrderingTerm.desc(activities.clientTime)]);
+    return query.watch().map((rows) => [
+          for (final row in rows)
+            (
+              row.readTable(activities),
+              row.readTableOrNull(outboxEntries) != null
+            ),
+        ]);
+  }
+
   Future<void> removeEntries(Iterable<int> seqs) =>
       (delete(outboxEntries)..where((o) => o.seq.isIn(seqs))).go();
 

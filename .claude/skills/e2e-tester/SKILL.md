@@ -80,6 +80,7 @@ relaunches the app, so later tests also prove that data survives a restart.
 | UC-1 | Log an expense with the default payer and equal split, check that the shares sum to the total, edit it |
 | UC-2 + UC-4 | Two simplified debts, settle one, it leaves the suggestions |
 | UC-1.5 | Swipe to delete an expense |
+| UC-9 | Activity lists the expense being added, edited and deleted; the edit shows 300.000 → 360.000 |
 | UC-6 | Switching language and theme takes effect without a restart |
 | UC-7.5 | The group reached Firestore (push sync), then sign-out returns to sign-in |
 | UC-7.2 | Sign in again: the group is pulled back from Firestore, with the deleted expense still gone and the settlement back |

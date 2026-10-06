@@ -8,6 +8,7 @@ import 'package:simsplit/domain/entities/auth_user.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/router/app_routes.dart';
+import 'package:simsplit/presentation/screens/activity/activity_screen.dart';
 import 'package:simsplit/presentation/screens/auth/sign_in_screen.dart';
 import 'package:simsplit/presentation/screens/expenses/expense_detail_screen.dart';
 import 'package:simsplit/presentation/screens/expenses/expense_form_screen.dart';
@@ -166,6 +167,20 @@ GoRouter _buildRouter({
                     return MemberFormScreen(
                         groupId: groupId, editMember: member);
                   },
+                ),
+                GoRoute(
+                  path: 'activity',
+                  builder: (context, state) =>
+                      ActivityScreen(groupId: state.pathParameters['groupId']!),
+                  routes: [
+                    GoRoute(
+                      path: ':activityId',
+                      builder: (context, state) => ActivityDetailScreen(
+                        groupId: state.pathParameters['groupId']!,
+                        activityId: state.pathParameters['activityId']!,
+                      ),
+                    ),
+                  ],
                 ),
                 GoRoute(
                   path: 'debts',

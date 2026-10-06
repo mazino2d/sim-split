@@ -115,6 +115,19 @@ void main() {
     await tester.waitFor(find.text('Hotpot'), count: 0);
   });
 
+  e2e('UC-9: the activity history shows every change', (tester) async {
+    await tester.openGroup();
+    await tester.tapAndWait(find.byTooltip('Activity'));
+    await tester.waitFor(find.text('Khoi (me) deleted “Hotpot”'));
+    expect(find.text('Khoi (me) edited “Hotpot”'), findsOneWidget);
+    expect(find.text('Khoi (me) added “Hotpot”'), findsOneWidget);
+
+    await tester.tapAndWait(find.text('Khoi (me) edited “Hotpot”'));
+    await tester.waitFor(find.text('Changes'));
+    expect(find.textContaining('300.000'), findsWidgets);
+    expect(find.textContaining('360.000'), findsWidgets);
+  });
+
   e2e('UC-6: language and theme apply without a restart', (tester) async {
     await tester.launch();
     await tester.tapAndWait(find.byTooltip('Settings'));
