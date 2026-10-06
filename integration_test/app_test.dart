@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -160,6 +161,56 @@ void main() {
     expect(find.text('No settlements yet'), findsNothing);
   });
 
+  e2e('UC-8: a friend joins with the invite link and claims their name',
+      (tester) async {
+    await tester.openGroup();
+    await tester.tapAndWait(find.byTooltip('Share group'));
+    final mine = FirebaseFirestore.instance.collection('groups').where(
+        'memberUids',
+        arrayContains: FirebaseAuth.instance.currentUser!.uid);
+    await tester.waitUntil(() async =>
+        (await mine.get()).docs.single.data()['inviteToken'] != null);
+    final groupDoc = (await mine.get()).docs.single;
+    final group = groupDoc.reference;
+    final token = groupDoc.data()['inviteToken'] as String;
+
+    // Linh opens the link on her own device.
+    await tester.signOutFromSettings();
+    await tester.signIn(_e2eFriend);
+    tester.goTo('/join/$token');
+    await tester.waitUntil(() async {
+      try {
+        final uids = (await group.get()).data()!['memberUids'] as List;
+        return uids.contains(FirebaseAuth.instance.currentUser!.uid);
+      } on FirebaseException {
+        return false;
+      }
+    });
+    await tester.waitFor(find.text('Which one is you?'));
+    expect(find.text('Khoi'), findsNothing, reason: 'claimed by Khoi');
+    await tester.tapAndWait(find.text('Linh'));
+    await tester.waitFor(find.text('Add expense'));
+
+    final linh = (await group
+            .collection('members')
+            .where('name', isEqualTo: 'Linh')
+            .get())
+        .docs
+        .single
+        .reference;
+    await tester.waitUntil(() async =>
+        (await linh.get()).data()!['linkedUid'] ==
+        FirebaseAuth.instance.currentUser!.uid);
+  });
+
+  e2e('UC-8.4: leaves the group', (tester) async {
+    await tester.openGroup();
+    await tester.tapAndWait(find.byTooltip('More'));
+    await tester.tapAndWait(find.text('Leave group'));
+    await tester.tapAndWait(find.text('Leave').last);
+    await tester.waitFor(find.text('No groups yet'));
+  });
+
   e2e('UC-7.6: deletes the account from inside the app', (tester) async {
     await tester.launch();
 
@@ -180,6 +231,14 @@ const _e2eUser = {
   'name': 'Khoi',
 };
 
+/// A friend who joins the group with an invite link (UC-8).
+const _e2eFriend = {
+  'sub': 'e2e-linh',
+  'email': 'linh@example.com',
+  'email_verified': true,
+  'name': 'Linh',
+};
+
 extension on WidgetTester {
   /// Starts the app as a cold start would, signed in: on the group list.
   /// Each launch gets a fresh ProviderScope, and with it a fresh router at
@@ -191,11 +250,37 @@ extension on WidgetTester {
 
   /// Signs in as [_e2eUser] where the sign-in screen's Google popup would.
   /// The router leaves the sign-in screen on its own.
-  Future<void> signIn() async {
+  Future<void> signIn([Map<String, Object> user = _e2eUser]) async {
     await FirebaseAuth.instance.signInWithCredential(
-      GoogleAuthProvider.credential(idToken: jsonEncode(_e2eUser)),
+      GoogleAuthProvider.credential(idToken: jsonEncode(user)),
     );
     await waitFor(find.byTooltip('Settings'));
+  }
+
+  /// Signs out the way a user does, which also clears the device.
+  Future<void> signOutFromSettings() async {
+    goTo('/settings');
+    await tapAndWait(find.text('Sign out'));
+    await tapAndWait(find.text('Sign out').last);
+    await waitFor(find.text('Continue with Google'));
+  }
+
+  /// Opens [location] as a link would.
+  void goTo(String location) =>
+      GoRouter.of(element(find.byType(Scaffold).first)).go(location);
+
+  /// Pumps frames until [condition] holds.
+  Future<void> waitUntil(
+    Future<bool> Function() condition, {
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    final end = DateTime.now().add(timeout);
+    while (!await condition()) {
+      if (DateTime.now().isAfter(end)) {
+        throw TestFailure('Timed out waiting for a condition');
+      }
+      await pump(const Duration(milliseconds: 200));
+    }
   }
 
   /// Relaunches the app and opens the group created by the first test.

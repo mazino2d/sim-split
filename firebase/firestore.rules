@@ -65,6 +65,31 @@ service cloud.firestore {
           || (before.ownerUid == uid && after.ownerUid in after.memberUids));
     }
 
+    // Joining with the group's current invite token (AC10, AC13) adds only
+    // yourself; the token is sent as `joinToken`.
+    function joining() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let uid = request.auth.uid;
+      return !(uid in before.memberUids)
+        && before.get('inviteToken', null) != null
+        && after.get('joinToken', null) == before.inviteToken
+        && after.memberUids == before.memberUids.concat([uid])
+        && changedKeys().hasOnly(['memberUids', 'joinToken', 'updatedAt', 'updatedBy'])
+        && stamped();
+    }
+
+    // Any member creates the first invite link; only the owner replaces it
+    // (AC13). The link's invite document is written in the same batch.
+    function validInviteChange() {
+      let before = resource.data.get('inviteToken', null);
+      let after = request.resource.data.get('inviteToken', null);
+      return after == before
+        || (after is string && after.size() >= 20
+          && (before == null || resource.data.ownerUid == request.auth.uid)
+          && existsAfter(/databases/$(database)/documents/invites/$(after)));
+    }
+
     match /groups/{g} {
       allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
 
@@ -73,8 +98,10 @@ service cloud.firestore {
         && request.resource.data.memberUids == [request.auth.uid];
 
       allow update: if signedIn() && request.auth.uid in resource.data.memberUids
-        && stamped() && validGroup()
+        && stamped() && validGroup() && validInviteChange()
         && (!changedKeys().hasAny(['memberUids', 'ownerUid']) || leaving());
+
+      allow update: if signedIn() && joining();
 
       allow delete: if signedIn() && resource.data.memberUids == [request.auth.uid];
     }
@@ -108,6 +135,19 @@ service cloud.firestore {
       allow create, update: if synced() && (memberBefore(g) || memberAfter(g))
         && stamped() && validRecord();
       allow delete: if synced() && soleMember(g);
+    }
+
+    // An invite link's token names its group. It can be read only by token
+    // (never listed), by anyone signed in who has the link.
+    match /invites/{token} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['groupId'])
+        && memberAfter(request.resource.data.groupId)
+        && getAfter(groupPath(request.resource.data.groupId)).data.inviteToken == token;
+      // The owner removes a replaced link, or the link of a group they delete.
+      allow delete: if signedIn()
+        && get(groupPath(resource.data.groupId)).data.ownerUid == request.auth.uid;
     }
 
     match /groups/{g}/activity/{a} {

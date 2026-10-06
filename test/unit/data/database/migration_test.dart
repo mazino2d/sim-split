@@ -8,7 +8,8 @@ import 'package:simsplit/data/database/app_database.dart';
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
-  test('a v2 database upgrades to v3 and keeps its data', () async {
+  test('a v2 database upgrades to the current version and keeps its data',
+      () async {
     // The v2 schema as shipped in 1.0, with one group of each kind of row.
     final database = AppDatabase.forTesting(NativeDatabase.memory(
       setup: (raw) => raw
@@ -29,6 +30,8 @@ void main() {
 
     final group = (await database.groupDao.getGroupById('g1'))!;
     expect((group.name, group.deleted, group.createdBy), ('Trip', false, null));
+    expect((group.ownerUid, group.memberUids, group.inviteToken),
+        (null, '[]', null));
     final member = (await database.memberDao.getMemberById('m1'))!;
     expect(
         (member.isMe, member.linkedUid, member.deleted), (true, null, false));
@@ -43,7 +46,7 @@ void main() {
     expect(
       (await database.customSelect('PRAGMA user_version').getSingle())
           .read<int>('user_version'),
-      3,
+      4,
     );
   });
 }

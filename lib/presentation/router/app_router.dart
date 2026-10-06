@@ -14,6 +14,7 @@ import 'package:simsplit/presentation/screens/expenses/expense_form_screen.dart'
 import 'package:simsplit/presentation/screens/groups/group_detail_screen.dart';
 import 'package:simsplit/presentation/screens/groups/group_form_screen.dart';
 import 'package:simsplit/presentation/screens/groups/group_list_screen.dart';
+import 'package:simsplit/presentation/screens/groups/join_group_screen.dart';
 import 'package:simsplit/presentation/screens/members/member_form_screen.dart';
 import 'package:simsplit/presentation/screens/settings/settings_screen.dart';
 import 'package:simsplit/presentation/screens/settlements/debt_overview_screen.dart';
@@ -24,14 +25,26 @@ part 'app_router.g.dart';
 /// Where to send the user given the auth state, or `null` to stay. Sign-in
 /// is required wherever accounts are available (R-3 AC1): while the stored
 /// session loads, the app waits on a blank screen under the native splash.
-String? authRedirect(AsyncValue<AuthUser?> auth, String location) {
+/// An invite link opened before sign-in is kept through the gate as `from`,
+/// so the friend lands on its join screen right after (AC12).
+String? authRedirect(AsyncValue<AuthUser?> auth, Uri uri) {
+  final location = uri.path;
   final onGate = location == AppRoutes.signIn || location == AppRoutes.starting;
+  final from = onGate
+      ? uri.queryParameters['from']
+      : (location.startsWith('/join/') ? location : null);
+  String gate(String path) => from == null
+      ? path
+      : Uri(path: path, queryParameters: {'from': from}).toString();
+
   if (!auth.hasValue && !auth.hasError) {
-    return location == AppRoutes.starting ? null : AppRoutes.starting;
+    return location == AppRoutes.starting ? null : gate(AppRoutes.starting);
   }
   final signedIn = auth.hasValue && auth.value != null;
-  if (!signedIn) return location == AppRoutes.signIn ? null : AppRoutes.signIn;
-  return onGate ? AppRoutes.home : null;
+  if (!signedIn) {
+    return location == AppRoutes.signIn ? null : gate(AppRoutes.signIn);
+  }
+  return onGate ? (from ?? AppRoutes.home) : null;
 }
 
 @Riverpod(keepAlive: true)
@@ -45,7 +58,7 @@ GoRouter appRouter(Ref ref) {
     refreshListenable: authChanged,
     redirect: authAvailable
         ? (context, state) =>
-            authRedirect(ref.read(currentUserProvider), state.matchedLocation)
+            authRedirect(ref.read(currentUserProvider), state.uri)
         : null,
   );
   ref.onDispose(() {
@@ -85,6 +98,11 @@ GoRouter _buildRouter({
             GoRoute(
               path: 'settings',
               builder: (context, state) => const SettingsScreen(),
+            ),
+            GoRoute(
+              path: 'join/:token',
+              builder: (context, state) =>
+                  JoinGroupScreen(token: state.pathParameters['token']!),
             ),
             GoRoute(
               path: 'groups/form',

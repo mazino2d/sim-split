@@ -321,5 +321,37 @@
     "placeholders": {
       "count": { "type": "int" }
     }
-  }
+  },
+  "shareGroup": "Share group",
+  "shareGroupMessage": "Join \"{group}\" on SimSplit and split our expenses together: {link}",
+  "@shareGroupMessage": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteLinkCopied": "Invite link copied",
+  "groupMenu": "More",
+  "resetInviteLink": "Reset invite link",
+  "resetInviteLinkConfirmTitle": "Reset the invite link?",
+  "resetInviteLinkConfirmMessage": "Links shared before stop working. Everyone already in the group keeps access.",
+  "resetInviteLinkConfirm": "Reset",
+  "inviteLinkResetDone": "Invite link reset",
+  "leaveGroup": "Leave group",
+  "leaveGroupConfirmTitle": "Leave this group?",
+  "leaveGroupConfirmMessage": "You lose access to it. Your name and expenses stay in the group for the others.",
+  "leaveGroupConfirm": "Leave",
+  "joinGroupTitle": "Join group",
+  "joiningGroup": "Joining the group…",
+  "joinWhoAreYou": "Which one is you?",
+  "joinWhoAreYouHint": "Pick your name so the others know which expenses are yours.",
+  "notOnTheList": "I'm not on the list",
+  "yourName": "Your name",
+  "joinAsNewMember": "Join",
+  "goToMyGroups": "Go to my groups",
+  "errorInviteLinkInvalid": "This invite link no longer works. Ask a member for a new one."
 }

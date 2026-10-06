@@ -35,9 +35,12 @@ class SignOut implements AsyncUseCase<Unit, NoParams> {
       case Right():
         break;
     }
-    final signedOut = await _authRepository.signOut();
-    if (signedOut.isLeft()) return signedOut;
+    // The device is cleared before the session ends: once it has, another
+    // account can sign in at once, and its pulled data must not be wiped by
+    // this cleanup. Nothing is lost, since every change is in the cloud.
     await _syncRepository.stop();
-    return _localDataRepository.clearAll();
+    final cleared = await _localDataRepository.clearAll();
+    if (cleared.isLeft()) return cleared;
+    return _authRepository.signOut();
   }
 }

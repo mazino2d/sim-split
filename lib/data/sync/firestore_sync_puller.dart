@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:drift/drift.dart' hide Query;
@@ -56,6 +57,9 @@ class FirestoreSyncPuller {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _groupsSub;
   bool _awaitingFirstGroups = true;
   final _groups = <String, _GroupPull>{};
+
+  /// Groups in the latest confirmed groups snapshot.
+  Set<String> _current = const {};
   Future<void> _queue = Future.value();
   Timer? _retry;
 
@@ -95,7 +99,9 @@ class FirestoreSyncPuller {
     _groupsSub = _firestore
         .collection('groups')
         .where('memberUids', arrayContains: _uid)
-        .snapshots()
+        // Also tells when a write of this device is confirmed, which is
+        // when its group can be pulled (see _applyGroups).
+        .snapshots(includeMetadataChanges: true)
         .listen(
       (snapshot) => _enqueue(() => _applyGroups(snapshot)),
       onError: (Object e) {
@@ -143,6 +149,10 @@ class FirestoreSyncPuller {
   Future<void> _applyGroups(
       QuerySnapshot<Map<String, dynamic>> snapshot) async {
     final pending = await _db.syncDao.pendingEntityIds();
+    _current = {
+      for (final doc in snapshot.docs)
+        if (!doc.metadata.hasPendingWrites) doc.id,
+    };
     for (final change in snapshot.docChanges) {
       final doc = change.doc;
       if (change.type == DocumentChangeType.removed) {
@@ -150,7 +160,10 @@ class FirestoreSyncPuller {
         await _removeGroup(doc.id);
         continue;
       }
-      if (!doc.metadata.hasPendingWrites && !pending.contains(doc.id)) {
+      // A write of this device the server has not confirmed yet (a new
+      // group, or joining one): the group may not be readable yet.
+      if (doc.metadata.hasPendingWrites) continue;
+      if (!pending.contains(doc.id)) {
         await _guard(doc, () => _upsertGroup(doc));
       }
       await _listenToGroup(doc.id);
@@ -182,6 +195,9 @@ class FirestoreSyncPuller {
           createdBy: Value(d['createdBy'] as String?),
           updatedBy: Value(d['updatedBy'] as String?),
           deleted: Value(d['deleted'] as bool? ?? false),
+          ownerUid: Value(d['ownerUid'] as String?),
+          memberUids: Value(jsonEncode(d['memberUids'] as List? ?? const [])),
+          inviteToken: Value(d['inviteToken'] as String?),
         ));
     await _db.syncDao.writeState(_pulledKey(doc.id), '1');
   }
@@ -237,13 +253,13 @@ class FirestoreSyncPuller {
               Timestamp.fromMicrosecondsSinceEpoch(int.parse(cursor)));
     }
     pull.subs.add(query.snapshots().listen(
-          (snapshot) => _enqueue(
-              () => _applyRecords(groupId, pull, collection, snapshot)),
-          // Access ends when the account leaves the group; the groups
-          // listener then removes it.
-          onError: (Object e) =>
-              _log('pulling $collection of $groupId failed: $e'),
-        ));
+      (snapshot) =>
+          _enqueue(() => _applyRecords(groupId, pull, collection, snapshot)),
+      onError: (Object e) {
+        _log('pulling $collection of $groupId failed, retrying: $e');
+        _enqueue(() => _retryGroup(groupId, pull));
+      },
+    ));
   }
 
   Future<void> _applyRecords(
@@ -294,6 +310,22 @@ class FirestoreSyncPuller {
       }
     }
     await _saveCursors(groupId, pull);
+  }
+
+  /// Listens to a group again after one of its listeners failed. Access
+  /// ends when the account leaves the group: the groups listener then
+  /// removes it, and nothing is retried.
+  Future<void> _retryGroup(String groupId, _GroupPull pull) async {
+    if (!identical(_groups[groupId], pull)) return;
+    _groups.remove(groupId);
+    await Future.wait(pull.subs.map((s) => s.cancel()));
+    final session = _session;
+    Timer(retryDelay, () {
+      if (session != _session) return;
+      _enqueue(() async {
+        if (_current.contains(groupId)) await _listenToGroup(groupId);
+      });
+    });
   }
 
   /// Applies records that were waiting for their members.

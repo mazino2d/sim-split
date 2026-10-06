@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mazino2d.simsplit",
+      "sha256_cert_fingerprints": [
+        "B6:3A:2E:DC:ED:E3:11:11:BC:5E:B4:3E:31:F7:C0:86:36:FE:4E:55:AD:9B:3F:A0:89:56:4E:CC:65:45:0E:4F",
+        "8A:B3:BF:0A:DC:E7:0F:DD:60:9F:B0:D5:27:EE:D9:30:B6:F8:29:B2:F6:9A:F4:5C:DC:D1:79:B8:85:A8:93:99"
+      ]
+    }
+  }
+]

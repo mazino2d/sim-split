@@ -20,6 +20,13 @@ class Groups extends Table {
   /// Tombstone (R-3): deletions are soft so they can sync.
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
+  /// Server-owned sharing state, pulled from Firestore (R-3 P6): the owner,
+  /// the accounts in the group (a JSON list of uids) and the current invite
+  /// token. Never pushed.
+  TextColumn get ownerUid => text().nullable()();
+  TextColumn get memberUids => text().withDefault(const Constant('[]'))();
+  TextColumn get inviteToken => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

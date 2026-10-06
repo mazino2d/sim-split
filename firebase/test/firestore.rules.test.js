@@ -11,6 +11,7 @@ import {
 } from '@firebase/rules-unit-testing';
 import {
   arrayRemove,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -66,7 +67,7 @@ const activity = (uid, extra = {}) => ({
 });
 
 /** Seeds a group shared by [uids] (the first one owns it), bypassing rules. */
-async function seedGroup(uids, { owner = uids[0] } = {}) {
+async function seedGroup(uids, { owner = uids[0], inviteToken } = {}) {
   await env.withSecurityRulesDisabled(async (admin) => {
     const fs = admin.firestore();
     await setDoc(doc(fs, 'groups/g1'), {
@@ -75,7 +76,9 @@ async function seedGroup(uids, { owner = uids[0] } = {}) {
       ownerUid: owner,
       memberUids: uids,
       updatedBy: owner,
+      ...(inviteToken ? { inviteToken } : {}),
     });
+    if (inviteToken) await setDoc(doc(fs, `invites/${inviteToken}`), { groupId: 'g1' });
     await setDoc(doc(fs, 'groups/g1/members/m1'), { name: 'An', linkedUid: uids[0] });
     await setDoc(doc(fs, 'groups/g1/members/m2'), { name: 'Binh', linkedUid: null });
     await setDoc(doc(fs, 'groups/g1/expenses/e1'), { amountCents: 100, splits: [] });
@@ -220,5 +223,92 @@ describe('deleting an account (AC6)', () => {
     await assertFails(updateDoc(doc(db('bob'), 'groups/g1'), { memberUids: ['bob'], ...stamp('bob') }));
     await assertFails(updateDoc(doc(db('alice'), 'groups/g1'), { memberUids: arrayRemove('alice'), ...stamp('alice') }));
     await assertSucceeds(updateDoc(doc(db('bob'), 'groups/g1'), { memberUids: arrayRemove('bob'), ...stamp('bob') }));
+  });
+});
+
+const TOKEN = 'tok_aaaaaaaaaaaaaaaaaaaa';
+const NEW_TOKEN = 'tok_bbbbbbbbbbbbbbbbbbbb';
+
+/** Sets the group's invite token and writes its invite document, as the app does. */
+function setInvite(fs, uid, token) {
+  const batch = writeBatch(fs);
+  batch.update(doc(fs, 'groups/g1'), { inviteToken: token, ...stamp(uid) });
+  batch.set(doc(fs, `invites/${token}`), { groupId: 'g1' });
+  return batch;
+}
+
+describe('invite links (AC9, AC13)', () => {
+  test('any member creates the first link', async () => {
+    await seedGroup(['alice', 'bob']);
+    await assertSucceeds(setInvite(db('bob'), 'bob', TOKEN).commit());
+  });
+
+  test('a link needs its invite document, naming the right group', async () => {
+    await seedGroup(['alice']);
+    const fs = db('alice');
+    await assertFails(updateDoc(doc(fs, 'groups/g1'), { inviteToken: TOKEN, ...stamp('alice') }));
+    await assertFails(setDoc(doc(fs, `invites/${TOKEN}`), { groupId: 'g1' }));
+  });
+
+  test('a non-member cannot create a link', async () => {
+    await seedGroup(['alice']);
+    await assertFails(setInvite(db('mallory'), 'mallory', TOKEN).commit());
+  });
+
+  test('only the owner resets the link and removes the old one', async () => {
+    await seedGroup(['alice', 'bob'], { inviteToken: TOKEN });
+    await assertFails(setInvite(db('bob'), 'bob', NEW_TOKEN).commit());
+    await assertFails(deleteDoc(doc(db('bob'), `invites/${TOKEN}`)));
+
+    const fs = db('alice');
+    const batch = setInvite(fs, 'alice', NEW_TOKEN);
+    batch.delete(doc(fs, `invites/${TOKEN}`));
+    await assertSucceeds(batch.commit());
+  });
+
+  test('anyone signed in reads a link by its token, but cannot list links', async () => {
+    await seedGroup(['alice'], { inviteToken: TOKEN });
+    await assertSucceeds(getDoc(doc(db('bob'), `invites/${TOKEN}`)));
+    await assertFails(getDocs(collection(db('bob'), 'invites')));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), `invites/${TOKEN}`)));
+  });
+});
+
+describe('joining a group (AC10, AC13)', () => {
+  const join = (fs, uid, token = TOKEN) => {
+    const batch = writeBatch(fs);
+    batch.update(doc(fs, 'groups/g1'), { memberUids: arrayUnion(uid), joinToken: token, ...stamp(uid) });
+    batch.set(doc(fs, 'groups/g1/activity/join'), activity(uid, { action: 'join', entityType: 'group', entityId: 'g1' }));
+    return batch.commit();
+  };
+
+  test('a user with the current link joins as themselves', async () => {
+    await seedGroup(['alice'], { inviteToken: TOKEN });
+    await assertSucceeds(join(db('bob'), 'bob'));
+    await assertSucceeds(getDoc(doc(db('bob'), 'groups/g1/expenses/e1')));
+  });
+
+  test('a reset link stops working', async () => {
+    await seedGroup(['alice'], { inviteToken: NEW_TOKEN });
+    await assertFails(join(db('bob'), 'bob', TOKEN));
+  });
+
+  test('a group without a link cannot be joined', async () => {
+    await seedGroup(['alice']);
+    await assertFails(join(db('bob'), 'bob', TOKEN));
+  });
+
+  test('joining adds only yourself and changes nothing else', async () => {
+    await seedGroup(['alice'], { inviteToken: TOKEN });
+    const fs = db('bob');
+    await assertFails(updateDoc(doc(fs, 'groups/g1'), { memberUids: arrayUnion('carol'), joinToken: TOKEN, ...stamp('bob') }));
+    await assertFails(updateDoc(doc(fs, 'groups/g1'), { memberUids: arrayUnion('bob'), joinToken: TOKEN, name: 'Mine', ...stamp('bob') }));
+    await assertFails(updateDoc(doc(fs, 'groups/g1'), { memberUids: arrayUnion('bob'), joinToken: TOKEN, ownerUid: 'bob', ...stamp('bob') }));
+  });
+
+  test('a joined member claims an unclaimed name', async () => {
+    await seedGroup(['alice'], { inviteToken: TOKEN });
+    await join(db('bob'), 'bob');
+    await assertSucceeds(updateDoc(doc(db('bob'), 'groups/g1/members/m2'), { linkedUid: 'bob', ...stamp('bob') }));
   });
 });

@@ -34,6 +34,17 @@ Future<Group> groupDetail(Ref ref, String groupId) {
   );
 }
 
+/// A group as it changes, including sharing state pulled from the cloud.
+/// Null once the group is gone (deleted, or left on another device).
+@riverpod
+Stream<Group?> liveGroup(Ref ref, String groupId) =>
+    ref.watch(listGroupsProvider)(const NoParams()).map(
+          (either) => either.fold(
+            (failure) => throw FailureException(failure),
+            (groups) => groups.where((g) => g.id == groupId).firstOrNull,
+          ),
+        );
+
 /// Reactive stream of members for a group.
 @riverpod
 Stream<List<Member>> memberList(Ref ref, String groupId) {
