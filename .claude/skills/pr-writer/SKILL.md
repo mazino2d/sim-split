@@ -44,6 +44,7 @@ Flag every violation in the PR's **Notes for reviewers** section (or fix it firs
 | Generated files | No hand edits to `*.g.dart` / `*.freezed.dart`; codegen re-run if models/DAOs/providers changed |
 | Secrets | No `android/key.properties`, `*.jks`, `AuthKey_*.p8` in the diff |
 | Tests | New/changed use cases have Mocktail tests; repositories use in-memory Drift |
+| Docs in sync | Behaviour, commands, workflows or data collected changed → the mirrors in `../docs-writer/references/doc-map.md` changed too (run `docs-writer` sync if not); `python3 .claude/skills/docs-writer/scripts/check_docs.py` passes |
 | Sync | New synced fields go through `SyncCodec` and `SyncRecorder`; `firebase/firestore.rules` changes come with a test in `firebase/test/` |
 
 ```bash

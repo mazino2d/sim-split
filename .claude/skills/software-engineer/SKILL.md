@@ -49,7 +49,10 @@ criteria here — raise spec changes with the product owner.
 6. **See it.** For UI changes, render the screen (golden preview with
    provider overrides, or `flutter run -d chrome --dart-define-from-file=.env.local`)
    and look at it in light and dark before calling it done.
-7. **Commit** with Conventional Commits (`feat(expenses): …`). Open the PR
+7. **Docs.** If the change alters a feature, command, workflow, data collected
+   or release status, run the `docs-writer` skill (sync mode) so every doc that
+   repeats the fact changes in the same PR.
+8. **Commit** with Conventional Commits (`feat(expenses): …`). Open the PR
    with the `pr-writer` skill.
 
 ## Local build settings
