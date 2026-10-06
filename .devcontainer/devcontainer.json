@@ -1,0 +1,33 @@
+// GitHub Codespaces / VS Code dev container. See CONTRIBUTING.md#codespaces.
+{
+  "name": "SimSplit",
+  "build": { "dockerfile": "Dockerfile" },
+  "features": {
+    // The Firestore emulator used by the rules tests (firebase/test) needs Java.
+    "ghcr.io/devcontainers/features/java:1": { "version": "21" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    // Claude Code, so agents can work here and be driven with Remote Control.
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  },
+  // Keep the Claude Code login and settings across container rebuilds.
+  "mounts": [
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+  ],
+  "containerEnv": { "CLAUDE_CONFIG_DIR": "/home/vscode/.claude" },
+  "hostRequirements": { "cpus": 4, "memory": "8gb" },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "SimSplit web", "onAutoForward": "openBrowser" },
+    "4000": { "label": "Firebase emulator UI", "onAutoForward": "silent" },
+    "8080": { "label": "Firestore emulator", "onAutoForward": "silent" },
+    "9099": { "label": "Auth emulator", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["Dart-Code.dart-code", "Dart-Code.flutter"],
+      "settings": { "dart.flutterSdkPath": "/opt/flutter" }
+    }
+  }
+}
