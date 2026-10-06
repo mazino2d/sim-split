@@ -146,12 +146,22 @@ void main() {
     await tester.waitFor(find.text('Continue with Google'));
   });
 
-  e2e('UC-7.6: deletes the account from inside the app', (tester) async {
+  e2e('UC-7.2: signing in again pulls the account\'s groups back',
+      (tester) async {
     app.main();
     await tester.waitFor(find.text('Continue with Google'));
     await tester.signIn();
-    // Sign-out left nothing on the device, and pulling groups back is R-3 P5.
-    await tester.waitFor(find.text('No groups yet'));
+    // Sign-out left nothing on the device: this comes from Firestore.
+    await tester.openGroupWhenPulled();
+    // The deleted expense stays deleted; the recorded settlement is back.
+    expect(find.text('Hotpot'), findsNothing);
+    await tester.tapAndWait(find.text('Settlements'));
+    await tester.waitFor(find.text('Who pays whom'));
+    expect(find.text('No settlements yet'), findsNothing);
+  });
+
+  e2e('UC-7.6: deletes the account from inside the app', (tester) async {
+    await tester.launch();
 
     await tester.tapAndWait(find.byTooltip('Settings'));
     await tester.tapAndWait(find.text('Delete account'));
@@ -191,6 +201,12 @@ extension on WidgetTester {
   /// Relaunches the app and opens the group created by the first test.
   Future<void> openGroup() async {
     await launch();
+    await tapAndWait(find.textContaining('Da Lat trip'));
+    await waitFor(find.text('Add expense'));
+  }
+
+  /// Opens the group created by the first test once sync has pulled it.
+  Future<void> openGroupWhenPulled() async {
     await tapAndWait(find.textContaining('Da Lat trip'));
     await waitFor(find.text('Add expense'));
   }

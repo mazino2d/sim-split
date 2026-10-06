@@ -33,5 +33,10 @@ sealed class Expense with _$Expense {
     required DateTime updatedAt,
     @Default(false) bool isDeleted,
     @Default([]) List<ExpenseSplit> splits,
+
+    /// Accounts that added and last changed the expense (R-3, AC18). Null
+    /// for expenses written while signed out.
+    String? createdBy,
+    String? updatedBy,
   }) = _Expense;
 }

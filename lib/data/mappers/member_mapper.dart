@@ -13,6 +13,7 @@ class MemberMapper {
         emoji: row.emoji,
         isMe: row.isMe,
         createdAt: row.createdAt,
+        linkedUid: row.linkedUid,
       );
 
   db.MembersCompanion toCompanion(Member entity) => db.MembersCompanion(

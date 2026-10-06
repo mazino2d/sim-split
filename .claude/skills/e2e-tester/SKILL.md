@@ -82,7 +82,8 @@ relaunches the app, so later tests also prove that data survives a restart.
 | UC-1.5 | Swipe to delete an expense |
 | UC-6 | Switching language and theme takes effect without a restart |
 | UC-7.5 | The group reached Firestore (push sync), then sign-out returns to sign-in |
-| UC-7.6 | Sign in again and delete the account from Settings |
+| UC-7.2 | Sign in again: the group is pulled back from Firestore, with the deleted expense still gone and the settlement back |
+| UC-7.6 | Delete the account from Settings |
 
 Reading failures:
 

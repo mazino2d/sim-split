@@ -24,12 +24,13 @@ enum SyncAction { create, update, delete }
 /// entries and pushed to Firestore. Dates are epoch milliseconds and money
 /// stays in integer cents. Local-only columns (`isMe`, the device-time
 /// `updatedAt`) are left out: Firestore stamps `updatedAt` with server time.
+/// Expenses carry their device-time `updatedAt` as `editedAt` (AC18).
 class SyncCodec {
   const SyncCodec();
 
   /// Fields that change on every write and do not make it a change of its
   /// own.
-  static const _bookkeeping = {'updatedBy'};
+  static const _bookkeeping = {'updatedBy', 'editedAt'};
 
   Map<String, Object?> group(db.Group r) => {
         'id': r.id,
@@ -69,6 +70,8 @@ class SyncCodec {
         'note': r.note,
         'expenseDate': r.expenseDate.millisecondsSinceEpoch,
         'createdAt': r.createdAt.millisecondsSinceEpoch,
+        // Device time of the last edit, for "Edited by … · <time>" (AC18).
+        'editedAt': r.updatedAt.millisecondsSinceEpoch,
         'createdBy': r.createdBy,
         'updatedBy': r.updatedBy,
         'deleted': r.isDeleted,

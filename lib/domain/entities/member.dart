@@ -12,5 +12,8 @@ sealed class Member with _$Member {
     String? emoji,
     @Default(false) bool isMe,
     required DateTime createdAt,
+
+    /// The account that claimed this member (R-3), if any.
+    String? linkedUid,
   }) = _Member;
 }

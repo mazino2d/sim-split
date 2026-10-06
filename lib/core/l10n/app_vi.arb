@@ -273,5 +273,11 @@
   "errorSyncFailed": "Không kết nối được máy chủ. Vui lòng thử lại.",
   "whoIsMeTitle": "Bạn là ai trong nhóm này?",
   "whoIsMeHint": "Bạn bè tham gia nhóm sẽ thấy tên này là bạn.",
-  "notNow": "Để sau"
+  "notNow": "Để sau",
+  "notSyncedYet": "Chưa đồng bộ",
+  "addedBy": "{name} đã thêm",
+  "editedBy": "{name} đã sửa · {time}",
+  "justNow": "vừa xong",
+  "minutesAgo": "{count} phút trước",
+  "hoursAgo": "{count} giờ trước"
 }

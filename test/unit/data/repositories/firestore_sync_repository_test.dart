@@ -5,6 +5,7 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:simsplit/data/database/app_database.dart';
 import 'package:simsplit/data/repositories/firestore_sync_repository.dart';
+import 'package:simsplit/data/sync/firestore_sync_puller.dart';
 import 'package:simsplit/data/sync/firestore_sync_pusher.dart';
 import 'package:simsplit/data/sync/local_data_uploader.dart';
 import 'package:simsplit/domain/entities/auth_user.dart';
@@ -23,16 +24,19 @@ void main() {
   late AppDatabase database;
   late FakeFirebaseFirestore cloud;
   late FirestoreSyncPusher pusher;
+  late FirestoreSyncPuller puller;
   late FirestoreSyncRepository repository;
 
   setUp(() {
     database = AppDatabase.forTesting(NativeDatabase.memory());
     cloud = FakeFirebaseFirestore();
     pusher = FirestoreSyncPusher(syncDao: database.syncDao, firestore: cloud);
+    puller = FirestoreSyncPuller(database: database, firestore: cloud);
     repository = FirestoreSyncRepository(
       syncDao: database.syncDao,
       uploader: LocalDataUploader(database: database),
       pusher: pusher,
+      puller: puller,
       firestore: cloud,
       currentUid: () => 'alice',
       newId: () => 'leave1',
@@ -41,15 +45,17 @@ void main() {
 
   tearDown(() async {
     await pusher.stop();
+    await puller.stop();
     await database.close();
   });
 
   group('start / stop', () {
-    test('marks the upload as done and starts pushing', () async {
+    test('marks the upload as done and starts pushing and pulling', () async {
       final result = await repository.start(const AuthUser(uid: 'alice'));
 
       expect(result.isRight(), isTrue);
       expect(pusher.isRunning, isTrue);
+      expect(puller.isRunning, isTrue);
       expect(
         await database.syncDao.readState(LocalDataUploader.uploadedForKey),
         'alice',
@@ -57,6 +63,7 @@ void main() {
 
       await repository.stop();
       expect(pusher.isRunning, isFalse);
+      expect(puller.isRunning, isFalse);
     });
   });
 
@@ -147,6 +154,7 @@ void main() {
         syncDao: database.syncDao,
         uploader: LocalDataUploader(database: database),
         pusher: pusher,
+        puller: puller,
         firestore: _OfflineFirestore(),
         currentUid: () => 'alice',
       );

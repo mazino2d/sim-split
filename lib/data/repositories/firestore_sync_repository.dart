@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:simsplit/data/daos/sync_dao.dart';
+import 'package:simsplit/data/sync/firestore_sync_puller.dart';
 import 'package:simsplit/data/sync/firestore_sync_pusher.dart';
 import 'package:simsplit/data/sync/local_data_uploader.dart';
 import 'package:simsplit/data/sync/sync_recorder.dart';
@@ -17,6 +18,7 @@ class FirestoreSyncRepository implements SyncRepository {
     required SyncDao syncDao,
     required LocalDataUploader uploader,
     required FirestoreSyncPusher pusher,
+    required FirestoreSyncPuller puller,
     required FirebaseFirestore firestore,
     required CurrentUid currentUid,
     this.timeout = const Duration(seconds: 20),
@@ -25,6 +27,7 @@ class FirestoreSyncRepository implements SyncRepository {
   })  : _syncDao = syncDao,
         _uploader = uploader,
         _pusher = pusher,
+        _puller = puller,
         _firestore = firestore,
         _currentUid = currentUid,
         _clock = clock ?? DateTime.now,
@@ -36,6 +39,7 @@ class FirestoreSyncRepository implements SyncRepository {
   final SyncDao _syncDao;
   final LocalDataUploader _uploader;
   final FirestoreSyncPusher _pusher;
+  final FirestoreSyncPuller _puller;
   final FirebaseFirestore _firestore;
   final CurrentUid _currentUid;
   final DateTime Function() _clock;
@@ -49,6 +53,7 @@ class FirestoreSyncRepository implements SyncRepository {
     try {
       await _uploader.upload(user.uid);
       _pusher.start();
+      _puller.start(user.uid);
       return right(unit);
     } catch (e) {
       return left(Failure.dbFailure(e.toString()));
@@ -58,8 +63,15 @@ class FirestoreSyncRepository implements SyncRepository {
   @override
   Future<Either<Failure, Unit>> stop() async {
     await _pusher.stop();
+    await _puller.stop();
     return right(unit);
   }
+
+  @override
+  Stream<Either<Failure, Set<String>>> watchUnsyncedRecordIds(String groupId) =>
+      _syncDao
+          .watchPendingEntityIds(groupId: groupId)
+          .map(right<Failure, Set<String>>);
 
   @override
   Future<Either<Failure, int>> pendingChangeCount() async {

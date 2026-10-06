@@ -17,6 +17,7 @@ import 'package:simsplit/presentation/notifiers/settlement_notifier.dart';
 import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/providers/settlement_providers.dart';
+import 'package:simsplit/presentation/providers/sync_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/presentation/widgets/common/empty_state.dart';
@@ -442,6 +443,9 @@ class _SwipeableExpenseTile extends ConsumerWidget {
         expense: expense,
         members: members,
         meMember: meMember,
+        unsynced: ref.watch(unsyncedRecordIdsProvider(group.id)
+                .select((ids) => ids.value?.contains(expense.id))) ??
+            false,
         onTap: () => context.push('/groups/${group.id}/expenses/${expense.id}'),
       ),
     );
@@ -803,7 +807,13 @@ class _SwipeableSettlementTile extends ConsumerWidget {
         return false;
       },
       background: const _DeleteBackground(),
-      child: SettlementListTile(settlement: settlement, members: members),
+      child: SettlementListTile(
+        settlement: settlement,
+        members: members,
+        unsynced: ref.watch(unsyncedRecordIdsProvider(settlement.groupId)
+                .select((ids) => ids.value?.contains(settlement.id))) ??
+            false,
+      ),
     );
   }
 }

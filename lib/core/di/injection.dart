@@ -26,6 +26,7 @@ import 'package:simsplit/data/repositories/drift_group_repository.dart';
 import 'package:simsplit/data/repositories/drift_member_repository.dart';
 import 'package:simsplit/data/repositories/drift_settlement_repository.dart';
 import 'package:simsplit/data/repositories/firestore_sync_repository.dart';
+import 'package:simsplit/data/sync/firestore_sync_puller.dart';
 import 'package:simsplit/data/sync/firestore_sync_pusher.dart';
 import 'package:simsplit/data/sync/local_data_uploader.dart';
 import 'package:simsplit/data/sync/sync_recorder.dart';
@@ -60,6 +61,7 @@ import 'package:simsplit/domain/use_cases/settlements/list_settlements.dart';
 import 'package:simsplit/domain/use_cases/settlements/settle_debt.dart';
 import 'package:simsplit/domain/use_cases/sync/start_sync.dart';
 import 'package:simsplit/domain/use_cases/sync/stop_sync.dart';
+import 'package:simsplit/domain/use_cases/sync/watch_unsynced_record_ids.dart';
 
 part 'injection.g.dart';
 
@@ -161,11 +163,18 @@ SyncRepository syncRepository(Ref ref) {
     firestore: firestore,
     log: (message) => debugPrint('[sync] $message'),
   );
+  final puller = FirestoreSyncPuller(
+    database: database,
+    firestore: firestore,
+    log: (message) => debugPrint('[sync] $message'),
+  );
   ref.onDispose(pusher.stop);
+  ref.onDispose(puller.stop);
   return FirestoreSyncRepository(
     syncDao: database.syncDao,
     uploader: LocalDataUploader(database: database),
     pusher: pusher,
+    puller: puller,
     firestore: firestore,
     currentUid: () => FirebaseAuth.instance.currentUser?.uid,
   );
@@ -290,3 +299,7 @@ StartSync startSync(Ref ref) =>
 @riverpod
 StopSync stopSync(Ref ref) =>
     StopSync(syncRepository: ref.watch(syncRepositoryProvider));
+
+@riverpod
+WatchUnsyncedRecordIds watchUnsyncedRecordIds(Ref ref) =>
+    WatchUnsyncedRecordIds(syncRepository: ref.watch(syncRepositoryProvider));
