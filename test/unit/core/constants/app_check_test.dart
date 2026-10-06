@@ -36,8 +36,15 @@ void main() {
     expect(mode(isWeb: true, isRelease: false), AppCheckMode.debug);
   });
 
-  test('is off on web without a site key', () {
+  test('is off in web release builds without a site key', () {
     expect(mode(isWeb: true, webSiteKey: ''), AppCheckMode.off);
+  });
+
+  test('uses the debug provider in web debug builds, site key or not', () {
+    expect(
+      mode(isWeb: true, isRelease: false, webSiteKey: ''),
+      AppCheckMode.debug,
+    );
   });
 
   test('is off on iOS until App Attest is set up', () {

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 
 /// Site key of the reCAPTCHA Enterprise key that App Check uses on web, set
 /// with `--dart-define=RECAPTCHA_ENTERPRISE_SITE_KEY=<key>`. Site keys are
-/// public. Empty means App Check stays off on web.
+/// public. Empty means App Check stays off in web release builds.
 const recaptchaEnterpriseSiteKey =
     String.fromEnvironment('RECAPTCHA_ENTERPRISE_SITE_KEY');
 
@@ -39,8 +39,8 @@ AppCheckMode appCheckModeFor({
 }) {
   if (useEmulators) return AppCheckMode.off;
   if (isWeb) {
-    if (webSiteKey.isEmpty) return AppCheckMode.off;
-    return isRelease ? AppCheckMode.attested : AppCheckMode.debug;
+    if (!isRelease) return AppCheckMode.debug;
+    return webSiteKey.isEmpty ? AppCheckMode.off : AppCheckMode.attested;
   }
   if (platform == TargetPlatform.android) {
     return isRelease ? AppCheckMode.attested : AppCheckMode.debug;
