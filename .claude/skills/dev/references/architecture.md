@@ -8,8 +8,8 @@ Presentation  →  Domain  ←  Data
 
 | Layer | Allowed imports | Must NOT import |
 | --- | --- | --- |
-| `lib/domain/` | dart:core, freezed_annotation, fpdart, uuid | flutter, drift, riverpod, go_router |
-| `lib/data/` | domain/ + drift + path_provider | flutter/widgets, riverpod (except adapter) |
+| `lib/domain/` | dart:core, freezed_annotation, fpdart, uuid | flutter, drift, firebase / cloud_firestore, riverpod, go_router |
+| `lib/data/` | domain/ + drift + path_provider + firebase_auth / cloud_firestore | flutter/widgets, riverpod (except adapter) |
 | `lib/presentation/` | domain/use_cases/ + flutter + riverpod + go_router | drift, DAO, mapper, table models |
 
 ## Layer responsibilities
@@ -19,6 +19,9 @@ Presentation  →  Domain  ←  Data
 - **`lib/data/`** — Drift tables (separate from domain entities), DAOs,
   mappers (`DriftRow ↔ DomainEntity`), repository implementations.
   `lib/data/database/app_database.dart` is the Drift root (all tables + DAOs).
+  Firebase-backed repositories (`firebase_auth_repository`,
+  `firestore_invite_repository`, `firestore_sync_repository`) and the sync
+  engine in `lib/data/sync/` live here too.
 - **`lib/presentation/`** — Riverpod providers/notifiers, go_router screens,
   widgets.
 - **`lib/core/di/injection.dart`** — DI chain:
@@ -27,6 +30,27 @@ Presentation  →  Domain  ←  Data
 Key domain logic: `use_cases/expenses/calculate_splits.dart` (4 split types)
 and `use_cases/settlements/calculate_debts.dart` (greedy debt
 simplification).
+
+## Sync: Drift first, Firestore behind it
+
+Drift is the source of truth for the UI and the only cache; the Firestore
+offline cache is disabled. A write never goes to Firestore directly:
+
+1. A repository writes the row and calls `SyncRecorder` **in the same Drift
+   transaction**, which adds an activity entry (who, when, before → after) and
+   an outbox entry. A change is never stored without its history.
+2. `FirestoreSyncPusher` drains the outbox oldest-first, writing each change
+   with its activity entry in one batch.
+3. `FirestoreSyncPuller` listens to the account's groups and writes remote
+   changes straight into Drift (never into the outbox). Last write to reach
+   the server wins; records with pending outbox changes are skipped.
+4. `SyncCodec` maps rows to Firestore maps: money stays integer cents, dates
+   are epoch ms, local-only columns (`isMe`, device `updatedAt`) stay local.
+
+When you add a synced field or table: extend `SyncCodec` both ways, record it
+through `SyncRecorder`, update `firebase/firestore.rules` and its test in
+`firebase/test/`, and keep pushes idempotent (same IDs). Nothing is recorded
+while signed out; `LocalDataUploader` uploads it all on first sign-in.
 
 ## Money: integer cents, never `double`
 

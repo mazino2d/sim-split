@@ -114,7 +114,7 @@ lib/
     └── di/          # Dependency injection (DB → DAO → Repo → UseCase)
 ```
 
-> See full architecture guidelines: [CLAUDE.md](CLAUDE.md)
+> See full architecture guidelines: [AGENTS.md](AGENTS.md)
 
 ### Key rules
 

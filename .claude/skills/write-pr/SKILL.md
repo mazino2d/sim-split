@@ -1,13 +1,13 @@
 ---
 name: write-pr
-description: Draft and open a GitHub pull request for the SimSplit repo (mazino2d/sim-split). Use when the user asks to "write a PR", "open/create a PR", "draft a PR description", or "/write-pr". Reviews the branch diff against Clean Architecture rules, runs the same checks as CI, writes an English title and body, and creates the PR with gh.
+description: Draft and open a GitHub pull request for the SimSplit repo (mazino2d/sim-split). Use whenever the user asks to "write a PR", "open/create a PR", "tạo PR", "push and open a PR", "draft a PR description", or "/write-pr" — including at the end of any coding task in this repo when the user wants the work submitted. Reviews the branch diff against Clean Architecture rules, runs the same checks as CI, writes an English title and body, and creates the PR with gh.
 argument-hint: "[base-branch] [--draft]"
 allowed-tools: Bash(git:*), Bash(gh:*), Bash(flutter pub get:*), Bash(dart run build_runner:*), Bash(flutter gen-l10n:*), Bash(flutter analyze:*), Bash(dart format:*), Bash(flutter test:*)
 ---
 
 # Write a SimSplit pull request
 
-Everything in the PR — title, body, commit messages — is **English** (see CLAUDE.md § Language Policy).
+Everything in the PR — title, body, commit messages — is **English** (see `AGENTS.md` § Language policy).
 
 ## 1. Gather context
 
@@ -35,7 +35,7 @@ Flag every violation in the PR's **Notes for reviewers** section (or fix it firs
 
 | Check | How |
 | --- | --- |
-| Domain stays pure Dart | No `package:flutter`, `drift`, `riverpod`, `go_router` imports under `lib/domain/` |
+| Domain stays pure Dart | No `package:flutter`, `drift`, `firebase_*`, `cloud_firestore`, `riverpod`, `go_router` imports under `lib/domain/` |
 | Presentation doesn't touch data | No Drift/DAO/mapper/table imports under `lib/presentation/` |
 | Money is `int` cents | No new `double` amounts; fields named `*Cents` |
 | Errors use `Either<Failure, T>` | No bare `throw` in domain/data |
@@ -44,9 +44,10 @@ Flag every violation in the PR's **Notes for reviewers** section (or fix it firs
 | Generated files | No hand edits to `*.g.dart` / `*.freezed.dart`; codegen re-run if models/DAOs/providers changed |
 | Secrets | No `android/key.properties`, `*.jks`, `AuthKey_*.p8` in the diff |
 | Tests | New/changed use cases have Mocktail tests; repositories use in-memory Drift |
+| Sync | New synced fields go through `SyncCodec` and `SyncRecorder`; `firebase/firestore.rules` changes come with a test in `firebase/test/` |
 
 ```bash
-git diff origin/<base>...HEAD --name-only | grep '^lib/domain/' | xargs -r grep -nE "package:(flutter|drift|riverpod|flutter_riverpod|go_router)" 
+git diff origin/<base>...HEAD --name-only | grep '^lib/domain/' | xargs -r grep -nE "package:(flutter|drift|firebase_[a-z]+|cloud_firestore|riverpod|flutter_riverpod|go_router)/"
 git diff origin/<base>...HEAD -U0 | grep -nE '^\+.*\bdouble\b'
 git diff origin/<base>...HEAD -U0 | grep -nE '^\+.*\.members\b'
 ```
@@ -74,7 +75,7 @@ Report results honestly. If something fails, show the output and ask whether to 
 Conventional Commits, imperative, ≤ 72 chars, no trailing period:
 
 `<type>(<optional scope>): <summary>` — types: `feat`, `fix`, `refactor`, `chore`, `test`, `docs`, `ci`, `perf`.
-Scopes match the feature area: `groups`, `members`, `expenses`, `settlements`, `l10n`, `db`, `ci`, `ios`, `android`.
+Scopes match the feature area: `groups`, `members`, `expenses`, `settlements`, `activity`, `sync`, `auth`, `invites`, `firebase`, `l10n`, `db`, `ui`, `ci`, `store`, `deps`, `skills`, `ios`, `android`; for docs, the doc area (`product`, `roadmap`, `r3`). Check `git log --oneline -30` when unsure.
 
 Example: `feat(expenses): add paid-by dropdown to expense form`
 
@@ -88,7 +89,7 @@ Use this template. Delete sections that don't apply — never leave placeholder 
 
 ## Changes
 - **Domain:** <entities / use cases / repository interfaces>
-- **Data:** <Drift tables, DAOs, mappers, migrations — call out schema version bumps>
+- **Data:** <Drift tables, DAOs, mappers, migrations, sync / Firestore — call out schema version bumps and rules changes>
 - **Presentation:** <screens, widgets, providers, routes>
 - **Other:** <l10n, CI, build config, version bump>
 
@@ -112,6 +113,10 @@ Tick a checkbox only for checks that actually ran and passed.
 ## 6. Confirm, push, create
 
 Show the user the title and body and wait for approval — opening a PR is outward-facing. Then:
+
+The repo lives under the `mazino2d` GitHub account; if `gh` has several
+accounts logged in, prefix `gh` calls with `GH_TOKEN=$(gh auth token --user mazino2d)`.
+PRs are squash-merged, so the PR title becomes the commit on `main`.
 
 ```bash
 git push -u origin HEAD

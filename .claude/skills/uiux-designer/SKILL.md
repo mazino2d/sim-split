@@ -2,7 +2,7 @@
 name: uiux-designer
 description: Design SimSplit's brand assets — the launcher icon (iOS, Android adaptive and themed), the splash logo, and Play Store graphics (hi-res icon, feature graphic, framed screenshots in EN and VI). Works from hand-written SVG masters in design/, renders 2–3 variants on a review sheet for the user to pick, then exports PNGs and regenerates platform icons. Use when the user asks to design, redesign or update the app icon, splash, feature graphic, store screenshots or "brand assets", or invokes /uiux-designer.
 argument-hint: "[icon|splash|feature-graphic|screenshots] <brief>"
-allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion, Bash(.claude/skills/uiux-designer/scripts/*), Bash(python3 .claude/skills/uiux-designer/scripts/*), Bash(dart run flutter_launcher_icons*), Bash(dart run flutter_native_splash*), Bash(flutter test*), Bash(git status*), Bash(git diff*)
+allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion, Bash(.claude/skills/uiux-designer/scripts/*), Bash(python3 .claude/skills/uiux-designer/scripts/*), Bash(dart run flutter_launcher_icons*), Bash(dart run flutter_native_splash*), Bash(python3 design/build.py*), Bash(flutter test*), Bash(flutter analyze*), Bash(git status*), Bash(git diff*)
 ---
 
 # Design SimSplit assets
@@ -111,6 +111,8 @@ output by hand. For a one-off render use
 - Run `flutter analyze --fatal-infos` if `pubspec.yaml` changed.
 - If the store listing changed, remind the user that `play_metadata` syncs it
   on merge to `main`.
+- If the landing page assets changed (`docs/assets/`), they go live on GitHub
+  Pages on merge — check `docs/index.html` still references them.
 
 Summarise for the user: what was chosen, files changed, and anything to check
 on a real device (themed icon on Android 13+, splash on Android 12+).
