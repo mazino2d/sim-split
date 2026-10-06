@@ -38,8 +38,15 @@ jobs:
 
       - uses: ./.github/actions/flutter-setup
 
+      # App Check on web (R-3 P9). The reCAPTCHA Enterprise site key is public
+      # and comes from everything-as-code; while the variable is unset, App
+      # Check stays off on web.
       - name: Build web
-        run: flutter build web --release
+        env:
+          RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.RECAPTCHA_ENTERPRISE_SITE_KEY }}
+        run: >-
+          flutter build web --release
+          --dart-define=RECAPTCHA_ENTERPRISE_SITE_KEY="$RECAPTCHA_ENTERPRISE_SITE_KEY"
 
       # Keyless auth via Workload Identity Federation, managed in
       # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-prd/github_actions.tf).

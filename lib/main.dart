@@ -1,12 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'package:simsplit/app.dart';
+import 'package:simsplit/core/constants/app_check.dart';
 import 'package:simsplit/core/constants/firebase_emulators.dart';
 import 'package:simsplit/firebase_options.dart';
 
@@ -66,5 +69,36 @@ Future<void> _initFirebase() async {
     await FirebaseAuth.instance
         .useAuthEmulator(firebaseEmulatorHost, firebaseAuthEmulatorPort);
     firestore.useFirestoreEmulator(firebaseEmulatorHost, firestoreEmulatorPort);
+  }
+  await _activateAppCheck(useEmulators: useEmulators);
+}
+
+/// Attaches an App Check token to Auth and Firestore requests, so the
+/// project can reject requests that do not come from the genuine app. A
+/// failure is logged and the app carries on: until enforcement is on, the
+/// backend accepts requests without a token.
+Future<void> _activateAppCheck({required bool useEmulators}) async {
+  final mode = appCheckModeFor(
+    isWeb: kIsWeb,
+    platform: defaultTargetPlatform,
+    isRelease: kReleaseMode,
+    useEmulators: useEmulators,
+    webSiteKey: recaptchaEnterpriseSiteKey,
+  );
+  if (mode == AppCheckMode.off) return;
+  final attested = mode == AppCheckMode.attested;
+  try {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: attested
+          ? const AndroidPlayIntegrityProvider()
+          : const AndroidDebugProvider(),
+      providerWeb: kIsWeb
+          ? (attested
+              ? ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey)
+              : WebDebugProvider())
+          : null,
+    );
+  } on FirebaseException catch (e) {
+    debugPrint('App Check activation failed: ${e.code} ${e.message}');
   }
 }
