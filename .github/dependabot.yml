@@ -21,3 +21,10 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  # Features in .devcontainer/devcontainer.json (the Flutter version in its
+  # Dockerfile is bumped by hand together with flutter-setup).
+  - package-ecosystem: devcontainers
+    directory: /
+    schedule:
+      interval: weekly

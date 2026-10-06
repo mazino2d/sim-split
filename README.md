@@ -43,6 +43,9 @@ testing on Google Play; iOS follows once the Apple Developer account is active.
 - Xcode (for iOS)
 - `curl` (used by `scripts/setup.sh` to fetch the web database assets)
 
+For web and tests only, GitHub Codespaces needs no local install — see
+[CONTRIBUTING.md](CONTRIBUTING.md#codespaces).
+
 ### First run
 
 ```bash

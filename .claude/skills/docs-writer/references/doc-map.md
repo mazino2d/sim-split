@@ -31,7 +31,7 @@ Sources marked *(code)* are not docs: read the code or config, never another doc
 | --- | --- | --- |
 | Critical rules (Clean Architecture, cents, Either, codegen, secrets, members, rules tests) | `AGENTS.md` § Critical rules | `README.md` § Key rules · `CONTRIBUTING.md` § Rules of the codebase · `.claude/skills/pr-writer/SKILL.md` review checklist · `.github/pull_request_template.md` checklist |
 | Developer commands (setup, codegen, l10n, CI checks, run) | `AGENTS.md` § Commands, checked against `scripts/` and `.github/workflows/pr_validate.yml` | `README.md` § Getting Started / Common commands · `CONTRIBUTING.md` § Set up / Before you open a pull request · `.claude/skills/software-engineer/SKILL.md` · `.claude/skills/pr-writer/SKILL.md` step 3 |
-| Flutter version, toolchain | *(code)* `.github/actions/flutter-setup/action.yml`, `pubspec.yaml` | `README.md` § Tech Stack / Requirements · `CONTRIBUTING.md` § Set up |
+| Flutter version, toolchain | *(code)* `.github/actions/flutter-setup/action.yml`, `pubspec.yaml` | `README.md` § Tech Stack / Requirements · `CONTRIBUTING.md` § Set up · `.devcontainer/Dockerfile` (`FLUTTER_VERSION`) |
 | Workflow triggers and results | *(code)* `.github/workflows/*.yml` | `README.md` § CI/CD · `.claude/skills/software-engineer/references/ci.md` |
 | Release process, versionCode | *(code)* `.github/workflows/release.yml`, `build_android.yml` | `README.md` § Releasing / versionCode · `.claude/skills/software-engineer/references/ci.md` |
 | Required secrets, WIF identities | *(code)* workflows + `mazino2d/everything-as-code` | `README.md` § Required GitHub Secrets · `android/fastlane/README.md` |
@@ -52,6 +52,7 @@ Use this to go from a diff to the rows above.
 | `lib/data/`, `lib/data/sync/`, `firebase/firestore.rules`, auth | Privacy row; `SECURITY.md` scope |
 | `lib/core/l10n/*.arb` | Nothing in docs, unless a feature name changed — then the Features row |
 | `.github/workflows/`, `.github/actions/` | Workflow, release, secrets and Flutter version rows |
+| `.devcontainer/` | Flutter version row · `CONTRIBUTING.md` § Codespaces |
 | `scripts/`, `pubspec.yaml`, `.env.example` | Commands, toolchain and local build settings rows |
 | `.claude/skills/` | Skill list row; any rule or template the skill owns |
 | `docs/implementations/` phase table | Phase status and availability rows |

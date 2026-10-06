@@ -31,6 +31,28 @@ flutter run -d chrome --dart-define-from-file=.env.local   # drop -d chrome for 
 
 See the [README](README.md) for web, release and CI details.
 
+### Codespaces
+
+Open the repo in [GitHub Codespaces](https://github.com/codespaces/new?repo=mazino2d/sim-split)
+(or "Reopen in Container" in VS Code) to skip the local install. The container in
+`.devcontainer/` has Flutter, Java and Node, and runs code generation on creation, so
+the CI checks and the rules tests work straight away. It has no Android SDK or Xcode.
+Run the web app on the forwarded port 3000:
+
+```bash
+flutter run -d web-server --web-hostname 0.0.0.0 --web-port 3000 --dart-define-from-file=.env.local
+```
+
+Google sign-in only works on domains authorized in Firebase Auth, which the
+`*.app.github.dev` preview URL is not.
+
+The container also has Claude Code. Sign in once with `claude` (`/login`); the login
+survives rebuilds. To drive it from claude.ai or the Claude app, start
+`claude remote-control` in a terminal and keep the codespace running — it stops after
+its idle timeout (Settings → Codespaces → Default idle timeout). `gh` is already
+signed in with the codespace's token, which can push branches and open pull requests
+on this repo.
+
 ## Rules of the codebase
 
 [AGENTS.md](AGENTS.md) is the full guide; the short version:
