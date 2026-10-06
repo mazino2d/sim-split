@@ -4,10 +4,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'package:simsplit/app.dart';
 import 'package:simsplit/core/constants/firebase_emulators.dart';
 import 'package:simsplit/firebase_options.dart';
+
+var _urlStrategySet = false;
 
 void main() async {
   // Must be called before anything else; also triggers font loading
@@ -16,6 +19,13 @@ void main() async {
   // Keep native splash visible until we explicitly remove it,
   // so the first frame (with potentially unloaded icon fonts) is never shown.
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  // Web URLs without '#', so invite links read simsplit.web.app/join/<token>.
+  // It can be set only once, and the e2e journey calls main() per relaunch.
+  if (!_urlStrategySet) {
+    usePathUrlStrategy();
+    _urlStrategySet = true;
+  }
 
   await _initFirebase();
 

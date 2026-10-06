@@ -1,7 +1,9 @@
 name: Firebase Deploy
 
 # Deploys Firestore rules, indexes and Hosting (firebase.json) to the
-# simsplit-as-se1-prd project when they change on main.
+# simsplit-as-se1-prd project when they change on main. Hosting serves the
+# web app at simsplit.web.app, where invite links open (R-3 P6), so app
+# changes redeploy it too.
 on:
   push:
     branches: [main]
@@ -10,6 +12,13 @@ on:
       - .firebaserc
       - firebase/**
       - "!firebase/test/**"
+      - lib/**
+      - web/**
+      - assets/**
+      - l10n.yaml
+      - pubspec.yaml
+      - pubspec.lock
+      - .github/actions/flutter-setup/**
       - .github/workflows/firebase_deploy.yml
   workflow_dispatch:
 
@@ -26,6 +35,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/flutter-setup
+
+      - name: Build web
+        run: flutter build web --release
 
       # Keyless auth via Workload Identity Federation, managed in
       # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-prd/github_actions.tf).

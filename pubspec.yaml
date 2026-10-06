@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
   flutter_localizations:
     sdk: flutter
 
@@ -49,6 +51,7 @@ dependencies:
   flutter_launcher_icons: ^0.14.1
   flutter_native_splash: ^2.4.8
   google_sign_in: ^7.2.0
+  share_plus: ^13.3.1
 
 dev_dependencies:
   flutter_test:

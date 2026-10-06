@@ -107,7 +107,8 @@ class _WhoIsMeCardState extends ConsumerState<WhoIsMeCard> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final member in members)
+                // A name another account claimed cannot be yours (AC10).
+                for (final member in members.where((m) => m.linkedUid == null))
                   ActionChip(
                     avatar: MemberAvatar(member: member, size: 24),
                     label: Text(member.name),

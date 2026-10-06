@@ -72,30 +72,50 @@ void main() {
     const user = AuthUser(uid: 'u1');
 
     test('waits on the starting screen while the session loads', () {
-      expect(authRedirect(const AsyncLoading(), '/groups/g1'), '/starting');
-      expect(authRedirect(const AsyncLoading(), '/starting'), isNull);
+      expect(authRedirect(const AsyncLoading(), Uri.parse('/groups/g1')),
+          '/starting');
+      expect(
+          authRedirect(const AsyncLoading(), Uri.parse('/starting')), isNull);
     });
 
     test('sends a signed-out user to sign-in from anywhere', () {
-      expect(authRedirect(const AsyncData(null), '/'), '/sign-in');
-      expect(authRedirect(const AsyncData(null), '/starting'), '/sign-in');
-      expect(authRedirect(const AsyncData(null), '/sign-in'), isNull);
+      expect(authRedirect(const AsyncData(null), Uri.parse('/')), '/sign-in');
+      expect(authRedirect(const AsyncData(null), Uri.parse('/starting')),
+          '/sign-in');
+      expect(
+          authRedirect(const AsyncData(null), Uri.parse('/sign-in')), isNull);
     });
 
     test('treats a broken auth state as signed out', () {
       expect(
-        authRedirect(AsyncError(Exception(), StackTrace.empty), '/'),
+        authRedirect(AsyncError(Exception(), StackTrace.empty), Uri.parse('/')),
         '/sign-in',
       );
     });
 
     test('sends a signed-in user from the gate to the group list', () {
-      expect(authRedirect(const AsyncData(user), '/sign-in'), '/');
-      expect(authRedirect(const AsyncData(user), '/starting'), '/');
+      expect(authRedirect(const AsyncData(user), Uri.parse('/sign-in')), '/');
+      expect(authRedirect(const AsyncData(user), Uri.parse('/starting')), '/');
+    });
+
+    test('keeps an invite link through sign-in (AC12)', () {
+      final starting =
+          authRedirect(const AsyncLoading(), Uri.parse('/join/t1'));
+      expect(starting, '/starting?from=%2Fjoin%2Ft1');
+      final signIn = authRedirect(const AsyncData(null), Uri.parse(starting!));
+      expect(signIn, '/sign-in?from=%2Fjoin%2Ft1');
+      expect(authRedirect(const AsyncData(null), Uri.parse(signIn!)), isNull);
+      expect(
+          authRedirect(const AsyncData(user), Uri.parse(signIn)), '/join/t1');
+    });
+
+    test('join links open under the group list', () {
+      expect(matchedPaths('/join/t1'), ['/', 'join/:token']);
     });
 
     test('leaves a signed-in user where they are', () {
-      expect(authRedirect(const AsyncData(user), '/groups/g1'), isNull);
+      expect(
+          authRedirect(const AsyncData(user), Uri.parse('/groups/g1')), isNull);
     });
   });
 }

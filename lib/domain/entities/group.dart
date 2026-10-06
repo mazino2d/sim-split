@@ -15,5 +15,12 @@ sealed class Group with _$Group {
     required DateTime createdAt,
     required DateTime updatedAt,
     @Default([]) List<Member> members,
+
+    /// Sharing state from the cloud (R-3): the owning account, the accounts
+    /// in the group and the current invite token. Empty until the group has
+    /// synced.
+    String? ownerUid,
+    @Default([]) List<String> memberUids,
+    String? inviteToken,
   }) = _Group;
 }

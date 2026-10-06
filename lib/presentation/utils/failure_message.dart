@@ -3,6 +3,7 @@ import 'package:simsplit/domain/failures/auth_failure.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/failures/expense_failure.dart';
 import 'package:simsplit/domain/failures/group_failure.dart';
+import 'package:simsplit/domain/failures/invite_failure.dart';
 import 'package:simsplit/domain/failures/member_failure.dart';
 import 'package:simsplit/domain/failures/settlement_failure.dart';
 import 'package:simsplit/domain/failures/sync_failure.dart';
@@ -64,6 +65,7 @@ String failureMessage(Object? error, AppLocalizations l10n) {
     SyncUnsyncedChanges() => l10n.errorUnsyncedChanges,
     SyncNoConnection() => l10n.errorNoConnection,
     SyncServerError() => l10n.errorSyncFailed,
+    InviteInvalidLink() => l10n.errorInviteLinkInvalid,
     // Wildcard keeps this compiling when new Failure variants are added.
     _ => l10n.errorUnexpected,
   };

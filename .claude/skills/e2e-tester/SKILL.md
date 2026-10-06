@@ -83,6 +83,8 @@ relaunches the app, so later tests also prove that data survives a restart.
 | UC-6 | Switching language and theme takes effect without a restart |
 | UC-7.5 | The group reached Firestore (push sync), then sign-out returns to sign-in |
 | UC-7.2 | Sign in again: the group is pulled back from Firestore, with the deleted expense still gone and the settlement back |
+| UC-8 | Share the group (creates the invite link), sign in as a friend, open `/join/<token>`, pick the unclaimed name "Linh"; the claim reaches Firestore |
+| UC-8.4 | The friend leaves the group from the menu |
 | UC-7.6 | Delete the account from Settings |
 
 Reading failures:

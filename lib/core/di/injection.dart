@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:simsplit/core/constants/auth_constants.dart';
+import 'package:simsplit/core/constants/invite_constants.dart';
 
 import 'package:simsplit/data/database/app_database.dart';
 import 'package:simsplit/data/daos/expense_dao.dart';
@@ -25,6 +26,7 @@ import 'package:simsplit/data/repositories/firebase_web_auth_repository.dart';
 import 'package:simsplit/data/repositories/drift_group_repository.dart';
 import 'package:simsplit/data/repositories/drift_member_repository.dart';
 import 'package:simsplit/data/repositories/drift_settlement_repository.dart';
+import 'package:simsplit/data/repositories/firestore_invite_repository.dart';
 import 'package:simsplit/data/repositories/firestore_sync_repository.dart';
 import 'package:simsplit/data/sync/firestore_sync_puller.dart';
 import 'package:simsplit/data/sync/firestore_sync_pusher.dart';
@@ -34,6 +36,7 @@ import 'package:simsplit/domain/repositories/auth_repository.dart';
 import 'package:simsplit/domain/repositories/expense_repository.dart';
 import 'package:simsplit/domain/repositories/local_data_repository.dart';
 import 'package:simsplit/domain/repositories/group_repository.dart';
+import 'package:simsplit/domain/repositories/invite_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/domain/repositories/sync_repository.dart';
@@ -51,6 +54,10 @@ import 'package:simsplit/domain/use_cases/groups/delete_group.dart';
 import 'package:simsplit/domain/use_cases/groups/get_group.dart';
 import 'package:simsplit/domain/use_cases/groups/list_groups.dart';
 import 'package:simsplit/domain/use_cases/groups/update_group.dart';
+import 'package:simsplit/domain/use_cases/invites/get_invite_link.dart';
+import 'package:simsplit/domain/use_cases/invites/join_group.dart';
+import 'package:simsplit/domain/use_cases/invites/leave_group.dart';
+import 'package:simsplit/domain/use_cases/invites/reset_invite_link.dart';
 import 'package:simsplit/domain/use_cases/members/add_member.dart';
 import 'package:simsplit/domain/use_cases/members/list_members.dart';
 import 'package:simsplit/domain/use_cases/members/remove_member.dart';
@@ -180,6 +187,15 @@ SyncRepository syncRepository(Ref ref) {
   );
 }
 
+/// Only read when [authAvailable] is true.
+@Riverpod(keepAlive: true)
+InviteRepository inviteRepository(Ref ref) => FirestoreInviteRepository(
+      database: ref.watch(appDatabaseProvider),
+      firestore: ref.watch(firestoreProvider),
+      currentUid: () => FirebaseAuth.instance.currentUser?.uid,
+      linkBase: inviteLinkBase,
+    );
+
 @Riverpod(keepAlive: true)
 LocalDataRepository localDataRepository(Ref ref) =>
     DriftLocalDataRepository(database: ref.watch(appDatabaseProvider));
@@ -299,6 +315,22 @@ StartSync startSync(Ref ref) =>
 @riverpod
 StopSync stopSync(Ref ref) =>
     StopSync(syncRepository: ref.watch(syncRepositoryProvider));
+
+@riverpod
+GetInviteLink getInviteLink(Ref ref) =>
+    GetInviteLink(inviteRepository: ref.watch(inviteRepositoryProvider));
+
+@riverpod
+ResetInviteLink resetInviteLink(Ref ref) =>
+    ResetInviteLink(inviteRepository: ref.watch(inviteRepositoryProvider));
+
+@riverpod
+JoinGroup joinGroup(Ref ref) =>
+    JoinGroup(inviteRepository: ref.watch(inviteRepositoryProvider));
+
+@riverpod
+LeaveGroup leaveGroup(Ref ref) =>
+    LeaveGroup(inviteRepository: ref.watch(inviteRepositoryProvider));
 
 @riverpod
 WatchUnsyncedRecordIds watchUnsyncedRecordIds(Ref ref) =>

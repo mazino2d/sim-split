@@ -41,7 +41,7 @@ void main() {
       );
 
   group('SignOut', () {
-    test('clears the data on this device after signing out', () async {
+    test('clears the data on this device, then signs out', () async {
       when(() => auth.signOut())
           .thenAnswer((_) async => right<Failure, Unit>(unit));
 
@@ -49,20 +49,29 @@ void main() {
 
       expect(result.isRight(), isTrue);
       verifyInOrder([
-        () => auth.signOut(),
         () => sync.stop(),
         () => localData.clearAll(),
+        () => auth.signOut(),
       ]);
     });
 
-    test('keeps the data when signing out fails', () async {
+    test('reports a failure to sign out', () async {
       when(() => auth.signOut()).thenAnswer(
           (_) async => left<Failure, Unit>(const AuthFailure.signInFailed()));
 
       final result = await signOut()(const NoParams());
 
       expect(result.getLeft().toNullable(), isA<AuthSignInFailed>());
-      verifyNever(() => localData.clearAll());
+    });
+
+    test('stays signed in when the device cannot be cleared', () async {
+      when(() => localData.clearAll()).thenAnswer(
+          (_) async => left<Failure, Unit>(const Failure.dbFailure('x')));
+
+      final result = await signOut()(const NoParams());
+
+      expect(result.isLeft(), isTrue);
+      verifyNever(() => auth.signOut());
     });
 
     test('refuses while changes are waiting to be pushed', () async {

@@ -45,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,6 +76,12 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(activities);
             await m.createTable(outboxEntries);
             await m.createTable(syncStates);
+          }
+          if (from < 4) {
+            // R-3 P6: sharing state pulled from Firestore.
+            await m.addColumn(groups, groups.ownerUid);
+            await m.addColumn(groups, groups.memberUids);
+            await m.addColumn(groups, groups.inviteToken);
           }
         },
         beforeOpen: (details) async {

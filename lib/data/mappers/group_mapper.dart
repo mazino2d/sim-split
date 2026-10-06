@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/data/database/app_database.dart' as db;
@@ -14,8 +16,12 @@ class GroupMapper {
         isArchived: row.isArchived,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
+        ownerUid: row.ownerUid,
+        memberUids: (jsonDecode(row.memberUids) as List).cast<String>(),
+        inviteToken: row.inviteToken,
       );
 
+  /// Sharing state is server-owned and left out (see Groups).
   db.GroupsCompanion toCompanion(Group entity) => db.GroupsCompanion(
         id: Value(entity.id),
         name: Value(entity.name),

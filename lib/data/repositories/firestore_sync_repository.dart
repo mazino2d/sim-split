@@ -5,6 +5,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:simsplit/data/daos/sync_dao.dart';
 import 'package:simsplit/data/sync/firestore_sync_puller.dart';
 import 'package:simsplit/data/sync/firestore_sync_pusher.dart';
+import 'package:simsplit/data/sync/group_leaver.dart';
 import 'package:simsplit/data/sync/local_data_uploader.dart';
 import 'package:simsplit/data/sync/sync_recorder.dart';
 import 'package:simsplit/domain/entities/auth_user.dart';
@@ -101,9 +102,14 @@ class FirestoreSyncRepository implements SyncRepository {
         final memberUids = List<String>.from(
             group.data()['memberUids'] as List? ?? const <String>[]);
         if (memberUids.length <= 1) {
-          await _deleteGroup(group.reference);
+          await _deleteGroup(group);
         } else {
-          await _leaveGroup(group, uid, memberUids);
+          await GroupLeaver(
+            firestore: _firestore,
+            timeout: timeout,
+            clock: _clock,
+            newId: _newId,
+          ).leave(group, uid);
         }
       }
       return right(unit);
@@ -125,7 +131,14 @@ class FirestoreSyncRepository implements SyncRepository {
   /// Subcollections go first: security rules check membership on the group
   /// document.
   Future<void> _deleteGroup(
-      DocumentReference<Map<String, dynamic>> group) async {
+      DocumentSnapshot<Map<String, dynamic>> snapshot) async {
+    final group = snapshot.reference;
+    // The invite link goes first too: removing it checks the owner on the
+    // group document.
+    final token = snapshot.data()?['inviteToken'] as String?;
+    if (token != null) {
+      await _firestore.doc('invites/$token').delete().timeout(timeout);
+    }
     for (final name in ['members', 'expenses', 'settlements', 'activity']) {
       while (true) {
         final docs = await group
@@ -142,50 +155,5 @@ class FirestoreSyncRepository implements SyncRepository {
       }
     }
     await group.delete().timeout(timeout);
-  }
-
-  /// Leaves a group that has other members: the account's member stays with
-  /// its expenses and becomes unclaimed (AC6, AC14), and ownership passes to
-  /// another member.
-  Future<void> _leaveGroup(
-    QueryDocumentSnapshot<Map<String, dynamic>> group,
-    String uid,
-    List<String> memberUids,
-  ) async {
-    final ref = group.reference;
-    final claimed = await ref
-        .collection('members')
-        .where('linkedUid', isEqualTo: uid)
-        .get()
-        .timeout(timeout);
-
-    final batch = _firestore.batch();
-    for (final member in claimed.docs) {
-      final before = {...member.data()}..remove('updatedAt');
-      final after = {...before, 'linkedUid': null, 'updatedBy': uid};
-      batch.update(member.reference, {
-        'linkedUid': null,
-        'updatedBy': uid,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-      batch.set(ref.collection('activity').doc(_newId()), {
-        'actorUid': uid,
-        'action': 'update',
-        'entityType': 'member',
-        'entityId': member.id,
-        'before': {'id': member.id, ...before},
-        'after': {'id': member.id, ...after},
-        'clientTime': _clock().millisecondsSinceEpoch,
-        'syncedAt': FieldValue.serverTimestamp(),
-      });
-    }
-    final owner = group.data()['ownerUid'];
-    batch.update(ref, {
-      'memberUids': FieldValue.arrayRemove([uid]),
-      if (owner == uid) 'ownerUid': memberUids.firstWhere((u) => u != uid),
-      'updatedBy': uid,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-    await batch.commit().timeout(timeout);
   }
 }

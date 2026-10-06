@@ -11,4 +11,5 @@ abstract final class AppRoutes {
   static const addMember = '/groups/:groupId/members/add';
   static const debts = '/groups/:groupId/debts';
   static const settle = '/groups/:groupId/settle';
+  static const join = '/join/:token';
 }
