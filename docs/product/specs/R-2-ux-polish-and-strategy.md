@@ -1,6 +1,6 @@
 # R-2 UX polish and strategy clarity
 
-Status: in progress   ·   Serves: UC-1.1, all UCs   ·   Roadmap: Now
+Status: shipped   ·   Serves: UC-1.1, all UCs   ·   Roadmap: Shipped
 
 A record of the second phase: making the working v1.0 app feel fast and calm, and writing
 down the product strategy so later decisions are deliberate. Written on 2026-10-03.
@@ -57,13 +57,26 @@ cases, not revenue. Polish counts as real work.
 An end-to-end suite now checks every use case before merge (#29), alongside security and
 dependency upkeep. Details: [R-2 implementation](../../implementations/R-2-ux-polish-and-strategy.md).
 
-## What is left
+## UC-1 audit
 
-- **Timed audit of UC-1** on a mid-range Android phone against the ≤ 10 s / ≤ 4-tap bar.
-  This was originally its own backlog item and is now part of R-2. Its result feeds new
-  polish items.
-- **Manual Android checks** of the redesign: haptics, predictive back and keyboard
-  behaviour.
+Run on 2026-10-07 on a mid-range Android phone with the closed-test build, in a group of
+four. Each run went from the open group screen to the new expense showing in the list,
+with a 6-digit amount and a short description.
+
+| Bar | Target | Result |
+| --- | --- | --- |
+| Time | ≤ 10 s | 5, 6, 5, 7, 5 s: median 5 s, worst 7 s |
+| Taps | ≤ 4 | 2 for amount → Save, 3 with a description (Add expense, description field, Save) |
+
+Payer, split, currency and date need no taps in the common case: the payer defaults to
+the last payer, the split to everyone and the date to today. The widget test for the
+last-payer default and the UC-1 e2e journey keep the 2-tap path covered.
+
+The manual Android checks of the redesign also passed: a haptic on Save, predictive back
+asks before discarding a filled form, and the keyboard never covers Save.
+
+Possible follow-up polish: let the keyboard's Done key save, so the thumb does not have to
+reach for Save.
 
 ## What we learned
 

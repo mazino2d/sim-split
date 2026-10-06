@@ -19,7 +19,7 @@ Each phase has a spec that also records its story.
 | Phase | Status | Summary |
 | --- | --- | --- |
 | [R-1 Offline app (v1.0)](specs/R-1-offline-app.md) | Shipped | The first app: offline, no account, one bookkeeper logs for the group. [Implementation](../implementations/R-1-offline-app.md). |
-| [R-2 UX polish and strategy clarity](specs/R-2-ux-polish-and-strategy.md) | In progress | Faster expense and group flows, a monochrome redesign, and the strategy written down. [Implementation](../implementations/R-2-ux-polish-and-strategy.md). |
+| [R-2 UX polish and strategy clarity](specs/R-2-ux-polish-and-strategy.md) | Shipped | Faster expense and group flows, a monochrome redesign, and the strategy written down. [Implementation](../implementations/R-2-ux-polish-and-strategy.md). |
 | [R-3 Co-worked groups](specs/R-3-online-shared-groups.md) | In progress | Friends log expenses together with full trust; every change is auditable. Google sign-in, realtime sync, invite links and the activity history are live on [the web app](https://simsplit.web.app); Android release (v2.0.0) and iOS follow. [Implementation](../implementations/R-3-online-shared-groups.md). |
 
 [← Back to SimSplit](../)
