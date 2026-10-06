@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SimSplit — split group expenses, offline</title>
-  <meta name="description" content="SimSplit tracks and splits group expenses for trips and dinners. Fully offline, no account, no ads. Log an expense in seconds and settle up in the fewest transfers." />
+  <title>SimSplit — split group expenses together</title>
+  <meta name="description" content="SimSplit tracks and splits group expenses for trips and dinners. Share a group with a link, log together, see every change. Works offline, no ads. Settle up in the fewest transfers." />
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#0B0B0B" media="(prefers-color-scheme: dark)" />
   <link rel="icon" type="image/png" href="assets/icon.png" />
   <link rel="apple-touch-icon" href="assets/icon.png" />
   <meta property="og:title" content="SimSplit — split expenses, stay friends" />
-  <meta property="og:description" content="Track and split group expenses. Fully offline. No account." />
+  <meta property="og:description" content="Track and split group expenses together. Every change on record. Works offline." />
   <meta property="og:image" content="assets/icon.png" />
   <style>
     /* Self-hosted Be Vietnam Pro (OFL) — no third-party requests. */
@@ -96,7 +96,7 @@
     section { padding: 80px 0; border-top: 1px solid var(--line); }
     h2 { font-size: clamp(30px, 4vw, 44px); line-height: 1.12; letter-spacing: -1px; font-weight: 700; max-width: 18em; text-wrap: balance; }
     .sub { margin-top: 12px; color: var(--muted); font-size: 18px; max-width: 34em; }
-    .grid { margin-top: 40px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .grid { margin-top: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
     .card { background: var(--surface); border-radius: var(--radius-m); padding: 24px; }
     .card .ic { width: 44px; height: 44px; border-radius: 14px; background: var(--surface-2); display: grid; place-items: center; margin-bottom: 18px; }
     .card .ic svg { width: 22px; height: 22px; }
@@ -186,27 +186,27 @@
           <span data-lang="vi">Chia tiền gọn gàng.<br><span class="soft">Không lo mất lòng.</span></span>
         </h1>
         <p class="lead">
-          <span data-lang="en">One person logs, everyone knows who owes whom. SimSplit works fully offline, needs no account and keeps every number exact to the last đồng.</span>
-          <span data-lang="vi">Một người ghi, cả nhóm biết ai nợ ai. SimSplit chạy hoàn toàn offline, không cần tài khoản và tính chính xác tới từng đồng.</span>
+          <span data-lang="en">Share a group with a link, log expenses together and see the same balances the moment anyone saves. Every change is on record, everything is exact to the last đồng, and it keeps working offline.</span>
+          <span data-lang="vi">Chia sẻ nhóm bằng một link, cùng nhau ghi chi tiêu và thấy cùng một con số ngay khi ai đó lưu. Mọi thay đổi đều được ghi lại, chính xác tới từng đồng, và vẫn chạy khi mất mạng.</span>
         </p>
         <div class="cta">
-          <span class="btn btn-primary" aria-disabled="true">
+          <a class="btn btn-primary" href="https://simsplit.web.app">
+            <span data-lang="en">Open the web app</span>
+            <span data-lang="vi">Mở web app</span>
+          </a>
+          <span class="btn btn-ghost" aria-disabled="true">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.6 1.8 13.8 12 3.6 22.2c-.4-.2-.6-.6-.6-1.1V2.9c0-.5.2-.9.6-1.1Zm11.6 11.6 2.6 2.6-11.5 6.6 8.9-9.2Zm4.3-3.1 2.6 1.5c.6.4.6 1.3 0 1.7l-2.6 1.5-2.9-2.9 2.9-2.8ZM6.3 1.4l11.5 6.6-2.6 2.6-8.9-9.2Z"/></svg>
             <span data-lang="en">Coming soon to Google Play</span>
             <span data-lang="vi">Sắp có trên Google Play</span>
           </span>
-          <a class="btn btn-ghost" href="https://github.com/mazino2d/sim-split">
-            <span data-lang="en">View the source</span>
-            <span data-lang="vi">Xem mã nguồn</span>
-          </a>
         </div>
         <p class="note">
-          <span data-lang="en">Android now in closed testing · iOS and web build from source.</span>
-          <span data-lang="vi">Android đang thử nghiệm kín · iOS và web build từ mã nguồn.</span>
+          <span data-lang="en">Web app live · Android in closed testing · iOS coming later.</span>
+          <span data-lang="vi">Web app đã chạy · Android đang thử nghiệm kín · iOS sẽ có sau.</span>
         </p>
         <div class="chips">
-          <span class="chip"><span data-lang="en">Offline</span><span data-lang="vi">Offline</span></span>
-          <span class="chip"><span data-lang="en">No account</span><span data-lang="vi">Không tài khoản</span></span>
+          <span class="chip"><span data-lang="en">Shared groups</span><span data-lang="vi">Nhóm dùng chung</span></span>
+          <span class="chip"><span data-lang="en">Works offline</span><span data-lang="vi">Chạy offline</span></span>
           <span class="chip"><span data-lang="en">No ads</span><span data-lang="vi">Không quảng cáo</span></span>
           <span class="chip"><span data-lang="en">English · Tiếng Việt</span><span data-lang="vi">Tiếng Việt · English</span></span>
         </div>
@@ -246,7 +246,17 @@
           <div class="card">
             <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 4.2-2.5"/><path d="M19 12.9a10 10 0 0 0-2-1.4"/><path d="M2 8.8a15 15 0 0 1 4.2-2.6"/><path d="M10.7 5a15 15 0 0 1 11.3 3.8"/><circle cx="12" cy="20" r="0.6" fill="currentColor"/></svg></div>
             <h3><span data-lang="en">No signal needed</span><span data-lang="vi">Không cần sóng</span></h3>
-            <p><span data-lang="en">Mountains, islands, abroad — everything works offline, always.</span><span data-lang="vi">Trên núi, ngoài đảo hay nước ngoài — mọi thứ đều chạy offline.</span></p>
+            <p><span data-lang="en">Mountains, islands, abroad — keep logging offline. Changes sync on their own once you're back online.</span><span data-lang="vi">Trên núi, ngoài đảo hay nước ngoài — cứ ghi khi mất mạng. Có mạng lại là tự đồng bộ.</span></p>
+          </div>
+          <div class="card">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></div>
+            <h3><span data-lang="en">Split together</span><span data-lang="vi">Cùng nhau ghi chép</span></h3>
+            <p><span data-lang="en">Invite friends with a link. Everyone can add expenses and sees the same numbers, live.</span><span data-lang="vi">Mời bạn bè bằng một link. Ai cũng thêm được khoản chi và thấy cùng một con số, ngay lập tức.</span></p>
+          </div>
+          <div class="card">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg></div>
+            <h3><span data-lang="en">Every change on record</span><span data-lang="vi">Mọi thay đổi đều có dấu vết</span></h3>
+            <p><span data-lang="en">See who added, edited or deleted what, with the old and new amounts side by side.</span><span data-lang="vi">Xem ai đã thêm, sửa hay xoá gì, kèm số tiền cũ và mới cạnh nhau.</span></p>
           </div>
         </div>
       </div>
@@ -286,18 +296,19 @@
         <div class="privacy">
           <div>
             <h2>
-              <span data-lang="en">Your money talk stays on your phone.</span>
-              <span data-lang="vi">Chuyện tiền nong ở yên trong máy bạn.</span>
+              <span data-lang="en">Your money talk stays in your group.</span>
+              <span data-lang="vi">Chuyện tiền nong chỉ trong nhóm của bạn.</span>
             </h2>
             <p class="sub">
-              <span data-lang="en">SimSplit has no servers to send your data to. That's the whole design.</span>
-              <span data-lang="vi">SimSplit không có máy chủ nào để gửi dữ liệu của bạn. Thiết kế là vậy.</span>
+              <span data-lang="en">Your groups sync through Google's Firebase so your friends see them too — and nobody else can.</span>
+              <span data-lang="vi">Các nhóm được đồng bộ qua Firebase của Google để bạn bè cùng xem — ngoài ra không ai xem được.</span>
             </p>
           </div>
           <ul>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">No sign-up, no email, no password</span><span data-lang="vi">Không đăng ký, không email, không mật khẩu</span></span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">Sign in with Google — no passwords</span><span data-lang="vi">Đăng nhập bằng Google — không mật khẩu</span></span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">Only members of a group can read it</span><span data-lang="vi">Chỉ thành viên mới đọc được nhóm</span></span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">No ads and no tracking SDKs</span><span data-lang="vi">Không quảng cáo, không SDK theo dõi</span></span></li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">Data stored only on your device</span><span data-lang="vi">Dữ liệu chỉ lưu trên thiết bị của bạn</span></span></li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">Delete your account any time, in the app</span><span data-lang="vi">Xoá tài khoản bất cứ lúc nào, ngay trong app</span></span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><span data-lang="en">Open source — read every line</span><span data-lang="vi">Mã nguồn mở — đọc được từng dòng</span></span></li>
           </ul>
         </div>
@@ -316,6 +327,10 @@
           <span data-lang="vi">Miễn phí, không mua trong app. Làm bằng tâm huyết, không vì lợi nhuận.</span>
         </p>
         <div class="cta">
+          <a class="btn btn-primary" href="https://simsplit.web.app">
+            <span data-lang="en">Open the web app</span>
+            <span data-lang="vi">Mở web app</span>
+          </a>
           <a class="btn btn-ghost" href="https://github.com/mazino2d/sim-split">
             <span data-lang="en">Follow on GitHub</span>
             <span data-lang="vi">Theo dõi trên GitHub</span>
