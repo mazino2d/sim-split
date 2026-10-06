@@ -5,6 +5,7 @@ import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
+import 'package:simsplit/presentation/widgets/common/unsynced_mark.dart';
 
 /// One recorded payment in the settlement history: "A paid B", its date and
 /// optional note, and the amount.
@@ -13,10 +14,14 @@ class SettlementListTile extends StatelessWidget {
     super.key,
     required this.settlement,
     required this.members,
+    this.unsynced = false,
   });
 
   final Settlement settlement;
   final List<Member> members;
+
+  /// Whether the latest change has not reached the cloud yet (AC16).
+  final bool unsynced;
 
   @override
   Widget build(BuildContext context) {
@@ -52,10 +57,20 @@ class SettlementListTile extends StatelessWidget {
         ),
         style: theme.textTheme.bodyLarge,
       ),
-      subtitle: Text(
-        note == null || note.isEmpty ? date : '$date · $note',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      subtitle: Row(
+        children: [
+          Flexible(
+            child: Text(
+              note == null || note.isEmpty ? date : '$date · $note',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (unsynced) ...[
+            const SizedBox(width: 6),
+            const UnsyncedMark(),
+          ],
+        ],
       ),
       trailing: MoneyText(
         settlement.amountCents,

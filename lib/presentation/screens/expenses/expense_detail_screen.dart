@@ -7,6 +7,7 @@ import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
+import 'package:simsplit/presentation/utils/relative_time.dart';
 import 'package:simsplit/presentation/utils/expense_category_ui.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
@@ -60,6 +61,18 @@ class ExpenseDetailScreen extends ConsumerWidget {
       color: cs.onSurfaceVariant,
     );
 
+    // Who added and last edited it, by their member in this group (AC18).
+    String? nameOf(String? uid) {
+      final member = members.where((m) => m.linkedUid == uid).firstOrNull;
+      if (uid == null || member == null) return null;
+      return member.isMe ? '${member.name} ${l10n.meLabel}' : member.name;
+    }
+
+    final addedBy = nameOf(expense.createdBy);
+    final editedBy = expense.updatedAt.isAfter(expense.createdAt)
+        ? nameOf(expense.updatedBy)
+        : null;
+
     return Scaffold(
       appBar: AppBar(
         actions: [
@@ -105,6 +118,18 @@ class ExpenseDetailScreen extends ConsumerWidget {
                   ].join(' · '),
                   style: muted,
                 ),
+                if (addedBy != null) ...[
+                  const SizedBox(height: 4),
+                  Text(l10n.addedBy(addedBy), style: muted),
+                ],
+                if (editedBy != null)
+                  Text(
+                    l10n.editedBy(
+                      editedBy,
+                      relativeTime(expense.updatedAt, l10n, locale),
+                    ),
+                    style: muted,
+                  ),
               ],
             ),
           ),

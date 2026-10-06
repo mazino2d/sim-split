@@ -7,6 +7,7 @@ import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/utils/expense_category_ui.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
+import 'package:simsplit/presentation/widgets/common/unsynced_mark.dart';
 
 class ExpenseListTile extends StatelessWidget {
   const ExpenseListTile({
@@ -14,6 +15,7 @@ class ExpenseListTile extends StatelessWidget {
     required this.expense,
     required this.members,
     this.meMember,
+    this.unsynced = false,
     this.onTap,
   });
 
@@ -23,6 +25,9 @@ class ExpenseListTile extends StatelessWidget {
   /// The member marked as "me" in this group. If null, the "my share" line
   /// is omitted.
   final Member? meMember;
+
+  /// Whether the latest change has not reached the cloud yet (AC16).
+  final bool unsynced;
   final VoidCallback? onTap;
 
   @override
@@ -54,12 +59,22 @@ class ExpenseListTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    expense.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge
-                        ?.copyWith(fontWeight: FontWeight.w500),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          expense.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      if (unsynced) ...[
+                        const SizedBox(width: 6),
+                        const UnsyncedMark(),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(

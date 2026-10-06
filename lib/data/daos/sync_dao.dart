@@ -68,6 +68,26 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
     ];
   }
 
+  /// IDs of records with pending changes (failed ones excluded), in
+  /// [groupId] or in every group.
+  Stream<Set<String>> watchPendingEntityIds({String? groupId}) {
+    final query = selectOnly(outboxEntries).join([
+      innerJoin(activities, activities.id.equalsExp(outboxEntries.activityId),
+          useColumns: false),
+    ])
+      ..addColumns([activities.entityId])
+      ..where(outboxEntries.failed.equals(false) &
+          (groupId == null
+              ? const Constant(true)
+              : outboxEntries.groupId.equals(groupId)));
+    return query
+        .map((row) => row.read(activities.entityId)!)
+        .watch()
+        .map((ids) => ids.toSet());
+  }
+
+  Future<Set<String>> pendingEntityIds() => watchPendingEntityIds().first;
+
   Future<void> removeEntries(Iterable<int> seqs) =>
       (delete(outboxEntries)..where((o) => o.seq.isIn(seqs))).go();
 
@@ -83,4 +103,12 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
   Future<void> writeState(String key, String value) =>
       into(syncStates).insertOnConflictUpdate(
           SyncStatesCompanion.insert(key: key, value: value));
+
+  Future<List<String>> stateKeysWithPrefix(String prefix) async =>
+      (await (select(syncStates)..where((s) => s.key.like('$prefix%'))).get())
+          .map((s) => s.key)
+          .toList();
+
+  Future<void> deleteStatesWithPrefix(String prefix) =>
+      (delete(syncStates)..where((s) => s.key.like('$prefix%'))).go();
 }

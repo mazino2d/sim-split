@@ -21,6 +21,8 @@ class ExpenseMapper {
         updatedAt: row.updatedAt,
         isDeleted: row.isDeleted,
         splits: splitRows.map(_splitToEntity).toList(),
+        createdBy: row.createdBy,
+        updatedBy: row.updatedBy,
       );
 
   ExpenseSplit _splitToEntity(db.ExpenseSplit row) => ExpenseSplit(

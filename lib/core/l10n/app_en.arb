@@ -294,5 +294,32 @@
   "errorSyncFailed": "Couldn't reach the server. Please try again.",
   "whoIsMeTitle": "Which one is you?",
   "whoIsMeHint": "Friends who join this group will see this name as you.",
-  "notNow": "Not now"
+  "notNow": "Not now",
+  "notSyncedYet": "Not synced yet",
+  "addedBy": "Added by {name}",
+  "@addedBy": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "editedBy": "Edited by {name} · {time}",
+  "@editedBy": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "time": { "type": "String" }
+    }
+  },
+  "justNow": "just now",
+  "minutesAgo": "{count} min ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "hoursAgo": "{count} h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  }
 }
