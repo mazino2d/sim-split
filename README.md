@@ -1,8 +1,10 @@
 # SimSplit
 
-A group expense tracking and splitting app — works fully **offline**, no account required.
+A group expense tracking and splitting app — friends share a group, log expenses together
+and see the same balances, and every change is on record.
 
-Available on Android (Google Play). iOS and web builds are supported from source.
+Use it on the web at **[simsplit.web.app](https://simsplit.web.app)**. Android is in closed
+testing on Google Play; iOS follows once the Apple Developer account is active.
 
 ---
 
@@ -12,7 +14,9 @@ Available on Android (Google Play). iOS and web builds are supported from source
 - **4 split types** — Equal / Percentage / Exact amount / Shares ratio
 - **Automatic debt simplification** — Minimizes the number of transactions needed to settle
 - **Settlement recording** — Track payment history
-- **Offline-first** — No internet required; all data stored on device (never backed up to the cloud)
+- **Shared groups** — Sign in with Google, invite friends with a link, see changes live
+- **Activity history** — Who added, edited or deleted what, with old → new values
+- **Offline after sign-in** — Changes apply at once and sync when the connection is back
 - **Multilingual** — English and Vietnamese
 
 ---
@@ -24,6 +28,7 @@ Available on Android (Google Play). iOS and web builds are supported from source
 | Framework | Flutter 3.47.x (Android, iOS, web) |
 | State management | Riverpod |
 | Local database | Drift / SQLite (WASM on web) |
+| Backend | Firebase Auth + Cloud Firestore (`simsplit-as-se1-prd`, asia-southeast1); Hosting serves the web app |
 | Architecture | Clean Architecture |
 | CI/CD | GitHub Actions + Fastlane |
 
@@ -128,6 +133,7 @@ lib/
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
 | `release` | Push a `vX.Y.Z` tag | Validates the tag, uploads AAB to the `production` track (as draft), creates a GitHub Release |
 | `play_metadata` | Push to `main` touching `android/fastlane/metadata/**`, or manual (dry run by default) | Syncs the Play store listing, images, contact details and Data safety form — see [android/fastlane/README.md](android/fastlane/README.md) |
+| `firebase_deploy` | Push to `main` touching the app, `web/` or `firebase/**`, or manual | Builds the web app and deploys it to [simsplit.web.app](https://simsplit.web.app), with the Firestore rules and indexes |
 
 Pushing to `main` does **not** upload anything to Google Play.
 
@@ -208,7 +214,9 @@ Release with the AAB attached. Review and roll out the draft in the Play Console
 
 ## Privacy
 
-SimSplit collects no data. See [docs/privacy-policy.html](docs/privacy-policy.html).
+SimSplit stores your Google account's name and email and your groups in Firebase, visible
+only to the members of each group. No ads, no analytics, no tracking. See
+[docs/privacy-policy.html](docs/privacy-policy.html).
 
 ---
 

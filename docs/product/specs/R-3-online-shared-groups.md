@@ -1,6 +1,6 @@
 # R-3 Co-worked groups
 
-Status: draft   ·   Serves: UC-1, UC-2, UC-3, UC-4, UC-7, UC-8, UC-9   ·   Roadmap: Next
+Status: ready   ·   Serves: UC-1, UC-2, UC-3, UC-4, UC-7, UC-8, UC-9   ·   Roadmap: Now
 
 ## Problem
 
