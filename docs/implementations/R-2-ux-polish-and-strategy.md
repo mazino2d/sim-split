@@ -1,6 +1,6 @@
 # R-2 UX polish and strategy clarity — implementation
 
-Status: in progress   ·   Spec: [R-2 UX polish and strategy clarity](../product/specs/R-2-ux-polish-and-strategy.md)   ·   Backfilled 2026-10-04 from commit and PR history
+Status: done   ·   Spec: [R-2 UX polish and strategy clarity](../product/specs/R-2-ux-polish-and-strategy.md)   ·   Backfilled 2026-10-04 from commit and PR history
 
 How the R-2 redesign, the asset pipeline and the delivery safety net were built.
 
@@ -59,9 +59,8 @@ How the R-2 redesign, the asset pipeline and the delivery safety net were built.
   member entry, and the remembered name.
 - The e2e suite runs before merge through the `e2e-tester` skill. It is not yet a CI job.
 
-## Remaining
+## Closing checks
 
-- **Timed UC-1 audit:** on a mid-range Android phone, measure against the ≤ 10 s and
-  ≤ 4-tap bar. Record the result in the R-2 spec.
-- **Manual Android check of the redesign:** haptics, predictive back and keyboard
-  behaviour.
+The timed UC-1 audit and the manual Android checks (haptics, predictive back, keyboard)
+passed on 2026-10-07. Results are in the
+[R-2 spec](../product/specs/R-2-ux-polish-and-strategy.md#uc-1-audit).
