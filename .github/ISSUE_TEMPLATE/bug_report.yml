@@ -1,0 +1,65 @@
+name: Bug report
+description: Something in SimSplit doesn't work as expected.
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected to see instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a group
+        2. Add an expense split by percentage
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options:
+        - Android
+        - Web (simsplit.web.app)
+        - iOS
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: On Android, Google Play → SimSplit → About this app → Version. On the web, the date you used it.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS / browser
+      placeholder: Pixel 8, Android 16 — or Chrome 140 on macOS
+  - type: dropdown
+    id: language
+    attributes:
+      label: App language
+      options:
+        - English
+        - Vietnamese
+  - type: dropdown
+    id: shared
+    attributes:
+      label: Was the group shared with other people?
+      options:
+        - "No"
+        - "Yes"
+        - Not sure
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, logs or anything else
+      description: Please remove names, emails and amounts you don't want to share publicly.

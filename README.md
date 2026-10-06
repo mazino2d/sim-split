@@ -220,6 +220,14 @@ only to the members of each group. No ads, no analytics, no tracking. See
 
 ---
 
+## Contributing
+
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately as described in
+[SECURITY.md](SECURITY.md).
+
+---
+
 ## License
 
-MIT
+[MIT](LICENSE)
