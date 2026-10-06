@@ -1,6 +1,6 @@
 # R-3 Co-worked groups — implementation plan
 
-Status: in progress (P0–P7 done)   ·   Spec: [R-3 Co-worked groups](../product/specs/R-3-online-shared-groups.md)   ·   Written 2026-10-03
+Status: in progress (P0–P7 and P9 done; P10 and P8 wait for the Android production release)   ·   Spec: [R-3 Co-worked groups](../product/specs/R-3-online-shared-groups.md)   ·   Written 2026-10-03
 
 How R-3 gets built: the architecture, the phases (one or two PRs each) and the decisions
 behind them. The spec defines *what* must be true. This plan defines *how* and in what
@@ -87,12 +87,21 @@ Security rules, in short:
 | P5 ✅ | sim-split | Done in #39. Pull and realtime: listeners, upsert, "not synced yet" mark, convergence, on Android and web. Built as `FirestoreSyncPuller`: one listener for the account's groups, one per group subcollection filtered on `updatedAt` after a per-collection cursor; members first, records that reference missing members wait for them; groups the account left elsewhere are removed. Expenses carry their device edit time as `editedAt` for "Edited by" (AC18) | AC15, AC17–AC22 | 3 |
 | P6 ✅ | both | Done in #40. Invites: tokens, the join page and `.well-known` files on Hosting, App Links / Universal Links, the join screen, leave, reset link. On web, the join page opens the group in the web app. Built as: the web app deployed to `simsplit.web.app` (path URLs, `assetlinks.json` for App Links; Universal Links wait for P8); opening `/join/<token>` joins at once (rules check `joinToken` against the group's `inviteToken`), then the friend picks an unclaimed name or adds one; schema v4 pulls `ownerUid`, `memberUids` and `inviteToken` | AC9–AC14 | 3 |
 | P7 ✅ | sim-split | Done in #41. Activity screen: the list and an old → new detail view. Built as: the puller also pulls `activity` (cursor on `syncedAt`) into the local `activities` table, so the history reads offline and live, unpushed entries included; names of removed members come from the history itself | AC25–AC28, AC30 | 2 |
-| P8 | both | iOS: Apple Developer account, Sign in with Apple (iOS, Android and web through the Services ID), signing, TestFlight in `release.yml`. Move `build_ios.yml` to `macos-15`: firebase-ios-sdk 12 needs Xcode 16.3+ (Swift tools 6.1), so the iOS CI build fails on `macos-14` from P1 onwards | AC1b | 2 |
-| P9 🚧 | both | In progress: the app side of App Check is in (Play Integrity in Android release builds, the debug provider in debug builds, reCAPTCHA Enterprise on web once `RECAPTCHA_ENTERPRISE_SITE_KEY` is set, off against the emulators and on iOS). Release: App Check (register the Android app with the Play Integrity provider in everything-as-code, `firebase_app_check` in the app with the debug provider for debug builds and CI, then enforce on Firestore and Auth; v2.0.0 is the first release that talks to Firebase, so enforcing at launch locks out no installed version; reCAPTCHA Enterprise for web; App Attest for iOS once P8 is done), e2e on emulators for Android, the cost load test, a rewritten store listing (EN/VI), Data safety, privacy policy, v2.0.0 | AC20, AC24 | 3 |
+| P8 ⏸ | both | Pending: starts after the Android production release (see Release order). iOS: Apple Developer account, Sign in with Apple (iOS, Android and web through the Services ID), signing, TestFlight in `release.yml`, App Attest for App Check. Move `build_ios.yml` to `macos-15`: firebase-ios-sdk 12 needs Xcode 16.3+ (Swift tools 6.1), so the iOS CI build fails on `macos-14` from P1 onwards | AC1b | 2 |
+| P9 ✅ | both | Done in #45 and everything-as-code#221. App Check, unenforced: Play Integrity in Android release builds, reCAPTCHA (score-based, 24 h token TTL to stay inside the free assessments) on web, a shared debug token for debug builds (`.env.local`), off against the emulators and on iOS until P8. Enforcement on Firestore and Auth is one flag (`app_check_enforced`), switched on with v2.0.0 in P10 | — | 1 |
+| P10 | both | Release v2.0.0, after the Android production release: e2e on emulators for Android, the cost load test (Firestore reads and writes, and reCAPTCHA assessments), a rewritten store listing (EN/VI), Data safety, privacy policy, enforce App Check (v2.0.0 is the first release that talks to Firebase, so enforcing at launch locks out no installed version) | AC20, AC24 | 2 |
+
+## Release order
+
+1. **Android production with the offline app first.** The closed test runs the R-2
+   offline build (no sign-in, no Firebase). Once it has 12 testers for 14 days, that
+   build goes to production as is; nothing from R-3 ships in it.
+2. **P10: v2.0.0**, the first release with sign-in and shared groups, on Android and web.
+3. **P8: iOS**, once Android is in production and the Apple Developer account is active.
 
 The total is about 27 focused days. P4 comes first after P3 so every later phase can be
-tested in Chrome. P6 and P7 can run in parallel after P5. P8 can start whenever the Apple
-account is active.
+tested in Chrome. P6 and P7 can run in parallel after P5. P8 waits for the Android
+production release and the Apple Developer account.
 
 ## Manual steps (no API or Terraform support)
 
