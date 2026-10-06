@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:simsplit/domain/entities/activity_entry.dart';
 import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/use_cases/groups/get_group.dart';
@@ -56,3 +57,13 @@ Stream<List<Member>> memberList(Ref ref, String groupId) {
     ),
   );
 }
+
+/// A group's change history, newest first (R-3 AC25).
+@riverpod
+Stream<List<ActivityEntry>> activityList(Ref ref, String groupId) =>
+    ref.watch(watchActivityProvider)(groupId).map(
+          (either) => either.fold(
+            (failure) => throw FailureException(failure),
+            (entries) => entries,
+          ),
+        );

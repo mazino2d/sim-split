@@ -286,6 +286,43 @@ void main() {
     expect(await database.settlementDao.getSettlementById('s2'), isNotNull);
   });
 
+  test('pulls the activity history, keeping entries already here', () async {
+    await seedTrip();
+    await database.into(database.activities).insert(ActivitiesCompanion.insert(
+          id: 'local',
+          groupId: 'g1',
+          actorUid: _alice,
+          action: 'create',
+          entityType: 'expense',
+          entityId: 'e1',
+          after: '{"title":"Mine"}',
+          clientTime: DateTime(2026, 10, 1),
+        ));
+    for (final (id, title) in [('local', 'Theirs'), ('remote', 'Hotpot')]) {
+      await groupDoc('g1').collection('activity').doc(id).set({
+        'actorUid': 'bob',
+        'action': 'create',
+        'entityType': 'expense',
+        'entityId': 'e1',
+        'before': null,
+        'after': {'title': title},
+        'clientTime': t0,
+        'syncedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    puller.start(_alice);
+    await settle();
+
+    final entries = {
+      for (final a in await database.select(database.activities).get())
+        a.id: a.after,
+    };
+    expect(
+        entries, {'local': '{"title":"Mine"}', 'remote': '{"title":"Hotpot"}'});
+    expect(await database.syncDao.pendingCount(), 0);
+  });
+
   test('stops applying changes once stopped', () async {
     await seedTrip();
     puller.start(_alice);

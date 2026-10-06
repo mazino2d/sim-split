@@ -15,9 +15,9 @@ import 'package:simsplit/presentation/utils/failure_message.dart';
 
 enum _MenuAction { resetLink, leave }
 
-/// App bar actions for a shared group (R-3 AC9, AC13, AC14): Share group,
-/// and a menu with Reset invite link (owner only) and Leave group (when
-/// other accounts are in it). Nothing without accounts.
+/// App bar actions for a shared group (R-3): Activity (AC25), Share group
+/// (AC9), and a menu with Reset invite link (owner only, AC13) and Leave
+/// group (when other accounts are in it, AC14). Nothing without accounts.
 class GroupSharingActions extends ConsumerWidget {
   const GroupSharingActions({super.key, required this.groupId});
 
@@ -139,6 +139,11 @@ class GroupSharingActions extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        IconButton(
+          icon: const Icon(Icons.history),
+          tooltip: l10n.activity,
+          onPressed: () => context.push('/groups/${group.id}/activity'),
+        ),
         IconButton(
           icon: const Icon(Icons.person_add_alt_outlined),
           tooltip: l10n.shareGroup,
