@@ -1,8 +1,0 @@
-{
-  "name": "software-engineer",
-  "description": "SimSplit engineering workflow: implementing changes under the repo's Clean Architecture rules (dev) and opening pull requests (write-pr).",
-  "version": "1.0.0",
-  "author": {
-    "name": "Khoi Do"
-  }
-}

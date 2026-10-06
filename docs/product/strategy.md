@@ -86,6 +86,6 @@ trade-off written down in the roadmap entry.
 ## Baseline guardrail — trust in numbers
 
 Not a UX principle to weigh, but a precondition for shipping: every change that touches
-money must keep totals exact to the smallest unit (integer cents, see `CLAUDE.md`), assign
+money must keep totals exact to the smallest unit (integer cents, see `AGENTS.md`), assign
 rounding remainders deterministically, and never lose or silently alter recorded data.
 Specs touching money must include acceptance criteria for this.

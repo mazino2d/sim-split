@@ -1,6 +1,6 @@
 ---
 name: e2e-tester
-description: Verify that a SimSplit branch or PR is safe to merge — that it still builds a working app on every platform and every user-facing feature in docs/product/use-cases.md still works end to end. Runs the CI gates, builds web (release) and Android, drives the real app through the integration_test/ journey in Chrome, smoke-loads the release bundle, and reports a go/no-go verdict per use case. Use when the user asks to "test", "QA", "verify before merge", "check the app still works", "is this PR safe to merge", after a dependency or Flutter SDK bump, or invokes /e2e-tester.
+description: Verify that a SimSplit branch or PR is safe to merge — that it still builds a working app on every platform and every user-facing feature in docs/product/use-cases.md still works end to end. Runs the CI gates, builds web (release) and Android, drives the real app through the integration_test/ journey in Chrome, smoke-loads the release bundle, and reports a go/no-go verdict per use case. Use when the user asks to "test", "QA", "verify before merge", "check the app still works", "is this PR safe to merge", "chạy e2e", after a dependency, Flutter SDK, Drift or Firebase bump, before tagging a release, or invokes /e2e-tester. Not for writing unit tests (that is the software-engineer skill).
 argument-hint: "[pr-number|branch] [--quick]"
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(.claude/skills/e2e-tester/scripts/*), Bash(lsof:*), Bash(kill:*)
 ---
@@ -108,6 +108,8 @@ Reading failures:
 | --- | --- |
 | `drift` or `sqlite3` version in `pubspec.lock` | Re-download the web worker and WASM that match: run the web-assets block of `scripts/setup.sh`, then repeat steps 3–4. A mismatched `web/drift_worker.js` breaks storage on web only. |
 | Flutter SDK pin (`.github/actions/flutter-setup`) | Install that SDK locally first; run everything. |
+| `firebase/` (rules, indexes) | Run the rules tests (see the `software-engineer` skill's `references/ci.md`); the E2E journey in step 4 also exercises the rules through the emulator. |
+| `lib/data/sync/` or `lib/data/repositories/firestore_*` | Step 4 is mandatory; UC-7.2 and UC-8 are the sync checks — read their output closely. |
 | A new screen or user flow | Add or extend a test in `integration_test/` for it (follow the existing helpers: `launch`, `openGroup`, `tapAndWait`, `waitFor`). |
 | `lib/core/l10n/*.arb` | Switch to Vietnamese by hand and check the changed screens for truncation. |
 | `lib/data/database/` (tables, migrations) | Run E2E on a database from `main`: run the journey on `main`, then check out the branch and relaunch **without** clearing browser storage (`flutter run -d chrome` with the same `--web-port`). Existing data must still load. |
@@ -132,6 +134,7 @@ Verdict: ✅ safe to merge | ⚠️ merge with caveats | ❌ do not merge
 | UC-2/4 settle    | ✅     |                              |
 | UC-1.5 delete    | ✅     |                              |
 | UC-6 settings    | ✅     |                              |
+| …                | …      | one row per UC in step 4     |
 ```
 
 ❌ when any gate, build or use case fails. ⚠️ when something was skipped or
