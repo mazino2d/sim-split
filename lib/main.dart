@@ -87,15 +87,16 @@ Future<void> _activateAppCheck({required bool useEmulators}) async {
   );
   if (mode == AppCheckMode.off) return;
   final attested = mode == AppCheckMode.attested;
+  final debugToken = appCheckDebugToken.isEmpty ? null : appCheckDebugToken;
   try {
     await FirebaseAppCheck.instance.activate(
       providerAndroid: attested
           ? const AndroidPlayIntegrityProvider()
-          : const AndroidDebugProvider(),
+          : AndroidDebugProvider(debugToken: debugToken),
       providerWeb: kIsWeb
           ? (attested
               ? ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey)
-              : WebDebugProvider())
+              : WebDebugProvider(debugToken: debugToken))
           : null,
     );
   } on FirebaseException catch (e) {

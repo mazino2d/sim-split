@@ -115,6 +115,7 @@ These are listed in the stack's `_docs/setup.md` in `everything-as-code`:
 | --- | --- |
 | The Apple Developer account is not active in time | Ship Android with Google sign-in first (P8 later). |
 | The kill switch takes the app offline | It only fires at 100 % of a tiny budget. Recovery is a re-apply after fixing the cause (see setup doc). |
+| reCAPTCHA on web costs $8/month above 10,000 assessments, which would trip the kill switch | App Check tokens on web live 24 h (everything-as-code#221), so 100 daily web users need ~3,000 a month. The P9 load test counts assessments too. |
 | Budget notifications lag actual spend | Keep reads incremental (`updatedAt > cursor`). The P9 load test checks for ≥ 2× headroom. |
 | A script uses the public Firebase config to spam Firestore or Auth, trips the kill switch and takes the backend down for everyone | App Check, enforced on Firestore and Auth from v2.0.0 (P9), rejects requests that do not come from the genuine app. |
 | The e2e suite breaks once sign-in is required | Until P4 the web build has no Firebase and so no sign-in gate; the e2e journey keeps running there (P2). From P4 it signs in against the Auth and Firestore emulators. |
