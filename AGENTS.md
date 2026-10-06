@@ -48,8 +48,8 @@ the matching `SKILL.md` before starting the task.
 
 | Task | Skill |
 | --- | --- |
-| Write or change code, tests, l10n; write implementation plans | [`dev`](.claude/skills/dev/SKILL.md) — architecture, design system, testing; plans in `docs/implementations/` |
-| Open a pull request | [`write-pr`](.claude/skills/write-pr/SKILL.md) |
+| Write or change code, tests, l10n; write implementation plans | [`software-engineer`](.claude/skills/software-engineer/SKILL.md) — architecture, design system, testing; plans in `docs/implementations/` |
+| Open a pull request | [`pr-writer`](.claude/skills/pr-writer/SKILL.md) |
 | Verify a branch or PR before merge (builds + end-to-end use cases) | [`e2e-tester`](.claude/skills/e2e-tester/SKILL.md) |
 | Triage ideas, write specs, update the roadmap | [`product-owner`](.claude/skills/product-owner/SKILL.md) — strategy and specs in `docs/product/` (public on GitHub Pages) |
 | App icon, splash, Play Store graphics | [`uiux-designer`](.claude/skills/uiux-designer/SKILL.md) — SVG masters in `design/` |

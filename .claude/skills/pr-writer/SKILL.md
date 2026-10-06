@@ -1,6 +1,6 @@
 ---
-name: write-pr
-description: Draft and open a GitHub pull request for the SimSplit repo (mazino2d/sim-split). Use whenever the user asks to "write a PR", "open/create a PR", "tạo PR", "push and open a PR", "draft a PR description", or "/write-pr" — including at the end of any coding task in this repo when the user wants the work submitted. Reviews the branch diff against Clean Architecture rules, runs the same checks as CI, writes an English title and body, and creates the PR with gh.
+name: pr-writer
+description: Draft and open a GitHub pull request for the SimSplit repo (mazino2d/sim-split). Use whenever the user asks to "write a PR", "open/create a PR", "tạo PR", "push and open a PR", "draft a PR description", or "/pr-writer" — including at the end of any coding task in this repo when the user wants the work submitted. Reviews the branch diff against Clean Architecture rules, runs the same checks as CI, writes an English title and body, and creates the PR with gh.
 argument-hint: "[base-branch] [--draft]"
 allowed-tools: Bash(git:*), Bash(gh:*), Bash(flutter pub get:*), Bash(dart run build_runner:*), Bash(flutter gen-l10n:*), Bash(flutter analyze:*), Bash(dart format:*), Bash(flutter test:*)
 ---
@@ -29,7 +29,7 @@ gh pr view --json url,state 2>/dev/null   # an open PR already exists → offer 
 
 ## 2. Review the diff against repo rules
 
-The rules are explained in the `dev` skill (`../dev/references/`); this is the checklist.
+The rules are explained in the `software-engineer` skill (`../software-engineer/references/`); this is the checklist.
 
 Flag every violation in the PR's **Notes for reviewers** section (or fix it first if the user agrees):
 

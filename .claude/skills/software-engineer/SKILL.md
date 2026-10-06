@@ -1,5 +1,5 @@
 ---
-name: dev
+name: software-engineer
 description: Implement a change in the SimSplit Flutter codebase — features, fixes, refactors, tests — following its strict Clean Architecture (pure-Dart domain, Drift + Firestore sync data layer, Riverpod presentation), integer-cents money, Either-based errors, the monochrome design system, codegen and EN/VI localization. Use for any coding task in this repo, even a small one: adding or changing a screen, widget, use case, repository, Drift table or migration, sync/Firestore code, provider or l10n string, writing tests, fixing a bug, or writing an implementation plan in docs/implementations/.
 ---
 
@@ -50,7 +50,7 @@ criteria here — raise spec changes with the product owner.
    provider overrides, or `flutter run -d chrome`) and look at it in light
    and dark before calling it done.
 7. **Commit** with Conventional Commits (`feat(expenses): …`). Open the PR
-   with the `write-pr` skill.
+   with the `pr-writer` skill.
 
 ## Testing
 

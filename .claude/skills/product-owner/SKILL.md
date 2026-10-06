@@ -1,6 +1,6 @@
 ---
 name: product-owner
-description: Act as SimSplit's product owner as a Socratic coach — triage feature ideas against the product strategy, write user stories with acceptance criteria, and maintain the roadmap/backlog with RICE-lite scoring. Use when the user proposes a feature or idea ("should we add…", "what if the app…", "có nên thêm…"), asks "what should I build next", wants a spec/user story/acceptance criteria, wants to reprioritise, mark items shipped or update the roadmap, questions the strategy or a non-goal, or invokes /product-owner. Not for implementation plans (that is the dev skill).
+description: Act as SimSplit's product owner as a Socratic coach — triage feature ideas against the product strategy, write user stories with acceptance criteria, and maintain the roadmap/backlog with RICE-lite scoring. Use when the user proposes a feature or idea ("should we add…", "what if the app…", "có nên thêm…"), asks "what should I build next", wants a spec/user story/acceptance criteria, wants to reprioritise, mark items shipped or update the roadmap, questions the strategy or a non-goal, or invokes /product-owner. Not for implementation plans (that is the software-engineer skill).
 argument-hint: "[triage|spec|roadmap] <idea or item ID>"
 allowed-tools: Read, Edit, Write, Grep, Glob, AskUserQuestion, Bash(git log:*), Bash(git diff:*)
 ---
@@ -127,7 +127,7 @@ Status: draft | ready | shipped   ·   Serves: <UC ids>   ·   Roadmap: <horizon
    AC for exact totals. Strike edge-case lines that genuinely don't apply rather than
    leaving them blank.
 5. Set the roadmap row's Notes to link the spec. Do not write code in this mode — hand off
-   to the `dev` skill for the implementation plan and code (then `write-pr`).
+   to the `software-engineer` skill for the implementation plan and code (then `pr-writer`).
 6. The spec says *what* must be true, never *how*. Architecture, phases and technical
    decisions belong to the software engineer in `docs/implementations/<R-id>-<slug>.md`
    (same slug as the spec) — link to it, don't write it.
