@@ -128,7 +128,7 @@ lib/
 
 | Workflow | Trigger | Result |
 | --- | --- | --- |
-| `pr_validate` | Every PR → `main` | Parallel format/analyze/test, skipped when no Dart sources change; `PR Validation` is the required check |
+| `pr_validate` | Every PR → `main` | Parallel format/analyze/test, store-metadata check, Firestore rules tests and actionlint, each skipped unless its files change; `PR Validation` is the required check |
 | `build_android` | Manual (`workflow_dispatch`), or called by `release` | Signed AAB → Google Play (track selectable, default `internal`) |
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
 | `release` | Push a `vX.Y.Z` tag | Validates the tag, uploads AAB to the `production` track (as draft), creates a GitHub Release |
