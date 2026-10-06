@@ -50,6 +50,7 @@ fastlane/test_output
 # Environment files
 .env
 .env.*
+!.env.example
 
 # VSCode — settings.json and extensions.json are committed; ignore personal files only
 .vscode/*.code-workspace

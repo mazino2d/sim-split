@@ -47,10 +47,23 @@ criteria here — raise spec changes with the product owner.
    ([references/ci.md](references/ci.md)).
 
 6. **See it.** For UI changes, render the screen (golden preview with
-   provider overrides, or `flutter run -d chrome`) and look at it in light
-   and dark before calling it done.
+   provider overrides, or `flutter run -d chrome --dart-define-from-file=.env.local`)
+   and look at it in light and dark before calling it done.
 7. **Commit** with Conventional Commits (`feat(expenses): …`). Open the PR
    with the `pr-writer` skill.
+
+## Local build settings
+
+Compile-time settings come from `--dart-define`s. Locally they live in
+`.env.local` (gitignored, copied from the committed `.env.example`), so always
+run the app with `--dart-define-from-file=.env.local`:
+
+- `APP_CHECK_DEBUG_TOKEN` — lets debug builds pass App Check once it is
+  enforced. Without it, Firestore and Auth reject a debug build.
+- `FIREBASE_EMULATOR_HOST` — `localhost` to use the local emulators.
+
+A new `--dart-define` goes into `.env.example` with a comment, and into the CI
+workflow that builds the release, never into a committed `.env.local`.
 
 ## Testing
 

@@ -35,7 +35,8 @@ flutter gen-l10n                                           # after changing ARB 
 flutter analyze --fatal-infos                              # ┐
 dart format --output=none --set-exit-if-changed .          # ├ what CI runs on every PR
 flutter test                                               # ┘
-flutter run -d chrome                                      # run the app on web
+cp .env.example .env.local                                 # once: local build settings (gitignored)
+flutter run -d chrome --dart-define-from-file=.env.local   # run the app (drop -d chrome for a device)
 ```
 
 Commits and PR titles use Conventional Commits (`feat(expenses): …`).
