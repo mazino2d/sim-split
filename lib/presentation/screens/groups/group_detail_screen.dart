@@ -27,7 +27,7 @@ import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
-import 'package:simsplit/presentation/widgets/groups/group_sharing_actions.dart';
+import 'package:simsplit/presentation/widgets/groups/group_app_bar_actions.dart';
 import 'package:simsplit/presentation/widgets/members/who_is_me_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
@@ -118,12 +118,7 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
               overflow: TextOverflow.ellipsis,
             ),
             actions: [
-              GroupSharingActions(groupId: group.id),
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: l10n.editGroup,
-                onPressed: () => context.push('/groups/${group.id}/edit'),
-              ),
+              GroupAppBarActions(groupId: group.id),
               const SizedBox(width: 8),
             ],
           ),

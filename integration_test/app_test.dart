@@ -117,7 +117,8 @@ void main() {
 
   e2e('UC-9: the activity history shows every change', (tester) async {
     await tester.openGroup();
-    await tester.tapAndWait(find.byTooltip('Activity'));
+    await tester.tapAndWait(find.byTooltip('More'));
+    await tester.tapAndWait(find.text('Activity'));
     await tester.waitFor(find.text('Khoi (me) deleted “Hotpot”'));
     expect(find.text('Khoi (me) edited “Hotpot”'), findsOneWidget);
     expect(find.text('Khoi (me) added “Hotpot”'), findsOneWidget);

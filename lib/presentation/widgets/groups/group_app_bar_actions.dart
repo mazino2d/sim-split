@@ -13,13 +13,17 @@ import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 
-enum _MenuAction { resetLink, leave }
+enum _MenuAction { activity, edit, resetLink, leave }
 
-/// App bar actions for a shared group (R-3): Activity (AC25), Share group
-/// (AC9), and a menu with Reset invite link (owner only, AC13) and Leave
-/// group (when other accounts are in it, AC14). Nothing without accounts.
-class GroupSharingActions extends ConsumerWidget {
-  const GroupSharingActions({super.key, required this.groupId});
+/// The menu actions that change the group, behind a confirmation.
+enum _Confirmed { resetLink, leave }
+
+/// App bar actions for a group: Share group (R-3 AC9) and a More menu that
+/// keeps the less frequent actions out of the bar — Activity (AC25), Edit
+/// group, Reset invite link (owner only, AC13) and Leave group (when other
+/// accounts are in it, AC14). Without accounts, the menu only offers Edit.
+class GroupAppBarActions extends ConsumerWidget {
+  const GroupAppBarActions({super.key, required this.groupId});
 
   final String groupId;
 
@@ -59,19 +63,40 @@ class GroupSharingActions extends ConsumerWidget {
   Future<void> _onMenu(
     BuildContext context,
     WidgetRef ref,
-    Group group,
+    String groupId,
+    Group? group,
     _MenuAction action,
+  ) async {
+    switch (action) {
+      case _MenuAction.activity:
+        await context.push('/groups/$groupId/activity');
+        return;
+      case _MenuAction.edit:
+        await context.push('/groups/$groupId/edit');
+        return;
+      case _MenuAction.resetLink:
+        await _confirmAndRun(context, ref, group!, _Confirmed.resetLink);
+      case _MenuAction.leave:
+        await _confirmAndRun(context, ref, group!, _Confirmed.leave);
+    }
+  }
+
+  Future<void> _confirmAndRun(
+    BuildContext context,
+    WidgetRef ref,
+    Group group,
+    _Confirmed action,
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
     final (title, message, confirm) = switch (action) {
-      _MenuAction.resetLink => (
+      _Confirmed.resetLink => (
           l10n.resetInviteLinkConfirmTitle,
           l10n.resetInviteLinkConfirmMessage,
           l10n.resetInviteLinkConfirm,
         ),
-      _MenuAction.leave => (
+      _Confirmed.leave => (
           l10n.leaveGroupConfirmTitle,
           l10n.leaveGroupConfirmMessage,
           l10n.leaveGroupConfirm,
@@ -103,7 +128,7 @@ class GroupSharingActions extends ConsumerWidget {
 
     final notifier = ref.read(inviteProvider.notifier);
     switch (action) {
-      case _MenuAction.resetLink:
+      case _Confirmed.resetLink:
         final result = await notifier.resetInviteLink(group.id);
         messenger.showSnackBar(SnackBar(
           content: Text(result.fold(
@@ -111,7 +136,7 @@ class GroupSharingActions extends ConsumerWidget {
             (_) => l10n.inviteLinkResetDone,
           )),
         ));
-      case _MenuAction.leave:
+      case _Confirmed.leave:
         final result = await notifier.leaveGroup(group.id);
         result.fold(
           (failure) => messenger.showSnackBar(
@@ -124,49 +149,54 @@ class GroupSharingActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(authAvailableProvider)) return const SizedBox.shrink();
-    final group = ref.watch(liveGroupProvider(groupId)).value;
-    final uid = ref.watch(currentUserProvider).value?.uid;
-    // Keeps the notifier alive while an action runs.
-    final busy = ref.watch(inviteProvider).isLoading;
-    if (group == null) return const SizedBox.shrink();
-
     final l10n = AppLocalizations.of(context)!;
-    final canReset =
-        uid != null && group.ownerUid == uid && group.inviteToken != null;
-    final othersIn = group.memberUids.any((u) => u != uid);
+    final synced = ref.watch(authAvailableProvider);
+    final group = synced ? ref.watch(liveGroupProvider(groupId)).value : null;
+    final uid = synced ? ref.watch(currentUserProvider).value?.uid : null;
+    // Keeps the notifier alive while an action runs.
+    final busy = synced && ref.watch(inviteProvider).isLoading;
+
+    final canReset = group != null &&
+        uid != null &&
+        group.ownerUid == uid &&
+        group.inviteToken != null;
+    final othersIn = group != null && group.memberUids.any((u) => u != uid);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          icon: const Icon(Icons.history),
-          tooltip: l10n.activity,
-          onPressed: () => context.push('/groups/${group.id}/activity'),
-        ),
-        IconButton(
-          icon: const Icon(Icons.person_add_alt_outlined),
-          tooltip: l10n.shareGroup,
-          onPressed: busy ? null : () => _share(context, ref, group),
-        ),
-        if (canReset || othersIn)
-          PopupMenuButton<_MenuAction>(
-            tooltip: l10n.groupMenu,
-            enabled: !busy,
-            onSelected: (action) => _onMenu(context, ref, group, action),
-            itemBuilder: (_) => [
-              if (canReset)
-                PopupMenuItem(
-                  value: _MenuAction.resetLink,
-                  child: Text(l10n.resetInviteLink),
-                ),
-              if (othersIn)
-                PopupMenuItem(
-                  value: _MenuAction.leave,
-                  child: Text(l10n.leaveGroup),
-                ),
-            ],
+        if (group != null)
+          IconButton(
+            icon: const Icon(Icons.person_add_alt_outlined),
+            tooltip: l10n.shareGroup,
+            onPressed: busy ? null : () => _share(context, ref, group),
           ),
+        PopupMenuButton<_MenuAction>(
+          tooltip: l10n.groupMenu,
+          enabled: !busy,
+          onSelected: (action) => _onMenu(context, ref, groupId, group, action),
+          itemBuilder: (_) => [
+            if (group != null)
+              PopupMenuItem(
+                value: _MenuAction.activity,
+                child: Text(l10n.activity),
+              ),
+            PopupMenuItem(
+              value: _MenuAction.edit,
+              child: Text(l10n.editGroup),
+            ),
+            if (canReset)
+              PopupMenuItem(
+                value: _MenuAction.resetLink,
+                child: Text(l10n.resetInviteLink),
+              ),
+            if (othersIn)
+              PopupMenuItem(
+                value: _MenuAction.leave,
+                child: Text(l10n.leaveGroup),
+              ),
+          ],
+        ),
       ],
     );
   }
