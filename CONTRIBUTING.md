@@ -10,6 +10,10 @@ By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 - **Bugs:** open a [bug report](https://github.com/mazino2d/sim-split/issues/new?template=bug_report.yml).
   A small, obvious fix (a typo, a crash with a clear cause) can go straight to a
   pull request.
+- **UI and design feedback:** a screen that works but looks cluttered, hard to
+  read or hard to use — open a
+  [UI feedback](https://github.com/mazino2d/sim-split/issues/new?template=ui_feedback.yml)
+  issue with a screenshot.
 - **Features and larger changes:** open a
   [feature request](https://github.com/mazino2d/sim-split/issues/new?template=feature_request.yml)
   first and wait for a go-ahead before writing code. Ideas are weighed against the
