@@ -4,7 +4,7 @@
 > triaging, writing specs or reordering the roadmap. Change it deliberately — every change
 > here shifts what gets built.
 
-Last reviewed: 2026-10-03
+Last reviewed: 2026-10-08
 
 ## Vision
 
@@ -34,8 +34,8 @@ excellent, not into monetisation. Growth and revenue are explicitly **not** obje
 
 ## North Star — quality, not adoption
 
-The app ships no telemetry, so the North Star is a set of quality bars measurable by
-dogfooding, tests and Play Console:
+The app ships no usage analytics (only anonymous error reports, see strong defaults), so
+the North Star is a set of quality bars measurable by dogfooding, tests and Play Console:
 
 | Metric | Target | How it is measured |
 | --- | --- | --- |
@@ -68,10 +68,19 @@ and a network for first use; after that, offline use is a strong default (below)
   settlements work with no network and sync later.
 - No ads and no third-party analytics SDK.
 - Data is stored only to sync groups between their members — never sold, profiled or
-  used for anything else; deleting the account deletes the user's cloud data.
+  used for anything else besides the error reports below; deleting the account deletes the user's cloud data.
+- Error reports are anonymous: errors and the screens and actions that led to them, with
+  platform and app version — never the account, email, group or member names, or amounts.
+  They are on by default, can be turned off in Settings, and are deleted after 30 days.
 
 These replaced "No account or sign-up" and "Data stays on the device" on 2026-10-03
 (see R-3).
+
+*Changed 2026-10-08:* "the app ships no telemetry" was narrowed to allow anonymous,
+opt-out error reports ([R-4](specs/R-4-anonymous-error-reports.md)). Testers on web and Android hit small bugs
+(sign-in reported as failed while it succeeded, sign-in blocked in in-app browsers, no
+navigation after creating a group) that could not be reproduced from their descriptions.
+Usage analytics and third-party SDKs stay out.
 
 These are not red lines, but anything that weakens them must go through triage with the
 trade-off written down in the roadmap entry.
