@@ -50,6 +50,10 @@ the case at hand. Don't lecture the whole file.
 - **Trade-off:** more data → better prioritisation, but each step up weakens the
   no-tracking default, adds a Data safety declaration, and may need consent UI (hurts
   Calm). For a craft objective, timed dogfooding + tester interviews are usually enough.
+- **Decided 2026-10-08:** anonymous error reports (errors + breadcrumbs, no account, names
+  or amounts) to the app's own Firestore, on by default with an off switch, 30-day
+  retention (R-4). Usage analytics and third-party SDKs stay out. Revisit if reports ever
+  need to identify a user — that requires opt-in.
 
 ### Smart defaults vs predictability
 
