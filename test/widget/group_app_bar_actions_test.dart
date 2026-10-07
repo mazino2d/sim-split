@@ -7,16 +7,16 @@ import 'package:simsplit/domain/entities/auth_user.dart';
 import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
-import 'package:simsplit/presentation/widgets/groups/group_sharing_actions.dart';
+import 'package:simsplit/presentation/widgets/groups/group_app_bar_actions.dart';
 
 import '../helpers/mocks.dart';
 
 void main() {
   Future<void> pump(WidgetTester tester, Group group,
-      {String uid = 'alice'}) async {
+      {String uid = 'alice', bool synced = true}) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        authAvailableProvider.overrideWithValue(true),
+        authAvailableProvider.overrideWithValue(synced),
         currentUserProvider
             .overrideWith((ref) => Stream.value(AuthUser(uid: uid))),
         liveGroupProvider('g1').overrideWith((ref) => Stream.value(group)),
@@ -26,20 +26,37 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
-            appBar:
-                AppBar(actions: const [GroupSharingActions(groupId: 'g1')])),
+            appBar: AppBar(actions: const [GroupAppBarActions(groupId: 'g1')])),
       ),
     ));
     await tester.pumpAndSettle();
   }
 
-  testWidgets('offers sharing in any synced group', (tester) async {
+  testWidgets('keeps only Share and More in the app bar', (tester) async {
     await pump(
         tester, testGroup().copyWith(ownerUid: 'alice', memberUids: ['alice']));
 
+    expect(find.byType(IconButton), findsNWidgets(2));
     expect(find.byTooltip('Share group'), findsOneWidget);
-    // Nothing else to offer: no link to reset yet, nobody else to leave to.
-    expect(find.byTooltip('More'), findsNothing);
+    expect(find.byTooltip('Activity'), findsNothing);
+
+    await tester.tap(find.byTooltip('More'));
+    await tester.pumpAndSettle();
+    expect(find.text('Activity'), findsOneWidget);
+    expect(find.text('Edit Group'), findsOneWidget);
+    // No link to reset yet, nobody else to leave to.
+    expect(find.text('Reset invite link'), findsNothing);
+    expect(find.text('Leave group'), findsNothing);
+  });
+
+  testWidgets('offers only editing without accounts', (tester) async {
+    await pump(tester, testGroup(), synced: false);
+
+    expect(find.byTooltip('Share group'), findsNothing);
+    await tester.tap(find.byTooltip('More'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Group'), findsOneWidget);
+    expect(find.text('Activity'), findsNothing);
   });
 
   testWidgets('lets the owner reset an existing link', (tester) async {
