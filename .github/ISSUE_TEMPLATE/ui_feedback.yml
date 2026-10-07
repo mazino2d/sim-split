@@ -1,0 +1,70 @@
+name: UI / design feedback
+description: A screen looks off, cluttered or hard to use — even if nothing is broken.
+title: "ui: "
+labels: [design]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For something that doesn't work (a crash, wrong amounts, data not syncing), use the
+        bug report instead. This form is for how the app looks and feels.
+  - type: input
+    id: screen
+    attributes:
+      label: Which screen?
+      placeholder: Group detail, Add expense, Settlements, Settings, …
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: |
+        Drag an image here. Please remove names, emails and amounts you don't want to share
+        publicly.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What looks off?
+      description: What bothers you, and how it gets in the way (cluttered, hard to read, hard to find, …).
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: What would look better?
+      description: A suggestion, a sketch or another app that does it well. Optional.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options:
+        - Android
+        - Web (simsplit.web.app)
+        - iOS
+    validations:
+      required: true
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Theme
+      options:
+        - Light
+        - Dark
+        - Both
+  - type: dropdown
+    id: language
+    attributes:
+      label: App language
+      options:
+        - English
+        - Vietnamese
+        - Both
+  - type: input
+    id: device
+    attributes:
+      label: Device / screen size
+      placeholder: Pixel 8 — or Chrome on a 13" laptop
