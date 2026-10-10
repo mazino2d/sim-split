@@ -5,7 +5,7 @@
   "features": {
     // The Firestore emulator used by the rules tests (firebase/test) needs Java.
     "ghcr.io/devcontainers/features/java:1": { "version": "21" },
-    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/devcontainers/features/node:2": { "version": "22" },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     // Claude Code, so agents can work here and be driven with Remote Control.
     "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
