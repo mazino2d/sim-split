@@ -45,7 +45,7 @@ dependencies:
   # UI extras
   flutter_slidable: ^4.0.3
   intl: ^0.20.2
-  shared_preferences: ^2.3.2
+  shared_preferences: ^2.5.6
 
   # Icons & splash screen (dev tools, kept here for generator commands)
   flutter_launcher_icons: ^0.14.1
@@ -61,7 +61,7 @@ dev_dependencies:
     sdk: flutter
 
   # Code generation
-  build_runner: ^2.16.1
+  build_runner: ^2.16.2
   drift_dev: ^2.35.1
   riverpod_generator: ^4.0.9
   freezed: ^4.0.2
