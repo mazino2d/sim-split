@@ -1,0 +1,35 @@
+name: Pages
+
+# Publishes docs/ (landing page, privacy policy linked from the Play listing,
+# product and implementation notes) to https://mazino2d.github.io/sim-split/
+# with the same Jekyll build GitHub Pages uses for branch publishing.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  site:
+    uses: mazino2d/github-workflows/.github/workflows/pages.yml@v1
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    with:
+      generator: jekyll
+      source: docs
+      paths: |
+        docs/**
+        .github/workflows/pages.yml

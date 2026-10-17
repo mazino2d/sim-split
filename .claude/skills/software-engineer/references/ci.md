@@ -8,6 +8,10 @@
 | `release` | Push a `vX.Y.Z` tag | Validates the tag against `pubspec.yaml`, uploads the AAB to the Play `production` track as a draft, creates a GitHub Release |
 | `firebase_deploy` | Push → `main` touching `firebase.json`, `.firebaserc`, `firebase/**` (not `firebase/test/**`), the app (`lib/`, `web/`, `assets/`, `pubspec.*`, `l10n.yaml`) or the workflow itself, or manual | Builds the web app and deploys it with Firestore rules and indexes to `simsplit-as-se1-prd` (keyless WIF) |
 | `play_metadata` | Push → `main` touching `android/fastlane/metadata/**`, or manual (dry run) | Syncs Play store listing, images, contact, Data safety (see `android/fastlane/README.md`) |
+| `pages` | Push → `main` touching `docs/**`, or manual; PRs build only | Jekyll build of `docs/` deployed to GitHub Pages (landing page, privacy policy linked from Play) |
+| `codeql` | Push/PR touching `.github/**`, weekly | CodeQL scan of the workflows |
+
+Shared logic comes from [mazino2d/github-workflows](https://github.com/mazino2d/github-workflows) (`@v1`): `pages`, `codeql` and the actionlint job of `pr_validate` call its reusable workflows, and `.github/actions/flutter-setup` pins the Flutter version for its shared `flutter-setup` action.
 
 `pr_validate` also runs a **Firestore rules** job when `firebase/**` changes:
 `npm ci --prefix firebase/test`, then
