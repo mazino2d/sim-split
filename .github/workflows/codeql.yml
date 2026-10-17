@@ -16,19 +16,12 @@ on:
   schedule:
     - cron: "17 3 * * 1"
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
-    name: Analyze (actions)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    uses: mazino2d/github-workflows/.github/workflows/codeql-actions.yml@v1
     permissions:
       contents: read
       security-events: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: github/codeql-action/init@v4
-        with:
-          languages: actions
-      - uses: github/codeql-action/analyze@v4
-        with:
-          category: /language:actions

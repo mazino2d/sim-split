@@ -1,7 +1,8 @@
 name: Flutter setup
 description: >
-  Install Flutter (cached), resolve packages and, optionally, produce the
-  gitignored generated sources (build_runner + gen-l10n).
+  Pins this repo's Flutter SDK for the shared flutter-setup action
+  (mazino2d/github-workflows): install Flutter (cached), resolve packages and,
+  optionally, produce the gitignored generated sources (build_runner + gen-l10n).
 
 inputs:
   codegen:
@@ -12,43 +13,8 @@ inputs:
 runs:
   using: composite
   steps:
-    # Keep in step with FLUTTER_VERSION in .devcontainer/Dockerfile.
-    - uses: subosito/flutter-action@v2
+    - uses: mazino2d/github-workflows/actions/flutter-setup@v1
       with:
+        # Keep in step with FLUTTER_VERSION in .devcontainer/Dockerfile.
         flutter-version: "3.47.x"
-        channel: stable
-        cache: true
-
-    # On macOS, `pub get` copies Swift Package Manager plugins (Firebase) into
-    # build/ios/SourcePackages with rsync, which cannot create the missing
-    # parent directories on a fresh checkout.
-    - name: Prepare Swift package directory
-      if: runner.os == 'macOS'
-      shell: bash
-      run: mkdir -p build/ios/SourcePackages
-
-    - name: Install dependencies
-      shell: bash
-      run: flutter pub get
-
-    # build_runner output depends only on the sources it reads and the locked
-    # package versions, so an exact key hit lets us skip it entirely.
-    - name: Restore generated sources
-      if: inputs.codegen == 'true'
-      id: codegen-cache
-      uses: actions/cache@v6
-      with:
-        path: |
-          lib/**/*.g.dart
-          lib/**/*.freezed.dart
-        key: codegen-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'build.yaml', 'lib/**/*.dart') }}
-
-    - name: Run code generation
-      if: inputs.codegen == 'true' && steps.codegen-cache.outputs.cache-hit != 'true'
-      shell: bash
-      run: dart run build_runner build --delete-conflicting-outputs
-
-    - name: Generate localizations
-      if: inputs.codegen == 'true'
-      shell: bash
-      run: flutter gen-l10n
+        codegen: ${{ inputs.codegen }}
