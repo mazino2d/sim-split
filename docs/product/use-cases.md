@@ -22,7 +22,7 @@ member of that group, on Android, iOS or the web.
 | --- | --- |
 | 1.1 | Equal split among all members: ≤ 10 s and ≤ 4 taps from the group screen to saved, online or offline. Sync never blocks Save. |
 | 1.2 | Works offline, including right after a cold start. The entry syncs to every device once online, within 5 s when both devices are online. *(R-3 for sync)* |
-| 1.3 | Defaults (payer, split, currency, date) are correct without touching them in the common case. In a shared group, the payer defaults to the last payer chosen on this device. |
+| 1.3 | Defaults (payer, split, currency, date) are correct without touching them in the common case. The payer defaults to the payer of the group's most recent expense, whoever logged it. |
 | 1.4 | Saved amounts and per-member shares always sum exactly to the total, on every device after sync. |
 | 1.5 | Any member can edit or delete any entry in ≤ 3 taps from the expense list. |
 | 1.6 | Each entry shows who added it and, if edited, who last edited it and when. *(R-3)* |
