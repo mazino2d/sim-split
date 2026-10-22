@@ -77,15 +77,18 @@ relaunches the app, so later tests also prove that data survives a restart.
 | --- | --- |
 | UC-7.1 | A fresh install opens on sign-in; signing in reaches the empty group list |
 | UC-3 | Create a group with me plus two members |
-| UC-1 | Log an expense with the default payer and equal split, check that the shares sum to the total, edit it |
+| UC-1 | Log an expense with the default payer and equal split, check that the shares sum to the total, edit it; "Added by" / "Edited by" (R-3 AC18) |
 | UC-2 + UC-4 | Two simplified debts, settle one, it leaves the suggestions |
 | UC-1.5 | Swipe to delete an expense |
-| UC-9 | Activity lists the expense being added, edited and deleted; the edit shows 300.000 → 360.000 |
+| UC-9 | Activity lists the expense being added, edited and deleted; the edit shows 300.000 → 360.000; the deleted entry keeps its details (R-3 AC27) |
+| R-3 AC16 | With Firestore's network off, a new expense shows at once with the "Not synced yet" mark; back online the mark clears and the expense is in Firestore |
 | UC-6 | Switching language and theme takes effect without a restart |
 | UC-7.5 | The group reached Firestore (push sync), then sign-out returns to sign-in |
 | UC-7.2 | Sign in again: the group is pulled back from Firestore, with the deleted expense still gone and the settlement back |
-| UC-8 | Share the group (creates the invite link), sign in as a friend, open `/join/<token>`, pick the unclaimed name "Linh"; the claim reaches Firestore |
+| UC-8 | Share the group (creates the invite link), sign in as a friend, open `/join/<token>`, pick the unclaimed name "Linh"; the claim reaches Firestore and shows in Activity (R-3 AC30) |
 | UC-8.4 | The friend leaves the group from the menu |
+| R-3 AC12, AC11 | Signed out, the friend opens the link, signs in and lands on the join screen; "I'm not on the list" adds the member "Lan" linked to them |
+| R-3 AC13 | The owner resets the invite link; a stranger with the old link sees "This invite link no longer works" |
 | UC-7.6 | Delete the account from Settings |
 
 Reading failures:

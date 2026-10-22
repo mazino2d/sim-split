@@ -35,6 +35,9 @@ void main() {
 
   // The tests run in order and share one on-device database, like a user
   // reopening the app: each one relaunches it on the data the previous left.
+  // The invite token UC-8 shares, reused by the later invite tests.
+  late String inviteToken;
+
   setUpAll(() async {
     // Pin the language so the journey does not depend on the device locale.
     final prefs = await SharedPreferences.getInstance();
@@ -83,12 +86,16 @@ void main() {
     await tester.tapAndWait(find.text('Hotpot'));
     await tester.waitFor(find.text('Split breakdown'));
     expect(find.textContaining('100.000'), findsNWidgets(3));
+    // R-3 AC18: who added it.
+    expect(find.textContaining('Added by'), findsOneWidget);
+    expect(find.textContaining('Edited by'), findsNothing);
 
     // UC-1.5: edit the entry from its detail screen.
     await tester.tapAndWait(find.byTooltip('Edit expense'));
     await tester.enterText(find.byType(TextFormField).first, '360000');
     await tester.tapAndWait(find.text('Save').last);
     await tester.waitFor(find.textContaining('120.000'));
+    await tester.waitFor(find.textContaining('Edited by'));
   });
 
   e2e('UC-2 and UC-4: shows simplified debts and settles one', (tester) async {
@@ -127,6 +134,44 @@ void main() {
     await tester.waitFor(find.text('Changes'));
     expect(find.textContaining('300.000'), findsWidgets);
     expect(find.textContaining('360.000'), findsWidgets);
+
+    // R-3 AC27: a deleted expense keeps its details.
+    await tester.pageBack();
+    await tester.tapAndWait(find.text('Khoi (me) deleted “Hotpot”'));
+    await tester.waitFor(find.text('Details when deleted'));
+    expect(find.textContaining('360.000'), findsWidgets);
+  });
+
+  e2e('R-3 AC16: an offline change applies at once and uploads later',
+      (tester) async {
+    await tester.openGroup();
+    final firestore = FirebaseFirestore.instance;
+    await firestore.disableNetwork();
+    try {
+      await tester.tapAndWait(find.text('Add expense').last);
+      await tester.enterText(find.byType(TextFormField).first, '90000');
+      await tester.enterText(
+          find.widgetWithText(TextFormField, 'What was it for?'), 'Taxi');
+      await tester.tapAndWait(find.text('Save').last);
+      await tester.waitFor(find.text('Taxi'));
+      await tester.waitFor(find.byTooltip('Not synced yet'));
+    } finally {
+      await firestore.enableNetwork();
+    }
+    await tester.waitFor(find.byTooltip('Not synced yet'), count: 0);
+    final group = (await firestore
+            .collection('groups')
+            .where('memberUids',
+                arrayContains: FirebaseAuth.instance.currentUser!.uid)
+            .get())
+        .docs
+        .single
+        .reference;
+    final taxi = await group
+        .collection('expenses')
+        .where('title', isEqualTo: 'Taxi')
+        .get();
+    expect(taxi.docs, hasLength(1));
   });
 
   e2e('UC-6: language and theme apply without a restart', (tester) async {
@@ -186,7 +231,7 @@ void main() {
         (await mine.get()).docs.single.data()['inviteToken'] != null);
     final groupDoc = (await mine.get()).docs.single;
     final group = groupDoc.reference;
-    final token = groupDoc.data()['inviteToken'] as String;
+    final token = inviteToken = groupDoc.data()['inviteToken'] as String;
 
     // Linh opens the link on her own device.
     await tester.signOutFromSettings();
@@ -215,6 +260,12 @@ void main() {
     await tester.waitUntil(() async =>
         (await linh.get()).data()!['linkedUid'] ==
         FirebaseAuth.instance.currentUser!.uid);
+
+    // R-3 AC30: member changes show in the activity history too.
+    await tester.tapAndWait(find.byTooltip('More'));
+    await tester.tapAndWait(find.text('Activity'));
+    await tester.waitFor(find.textContaining('picked the name Linh'));
+    expect(find.textContaining('created the group'), findsOneWidget);
   });
 
   e2e('UC-8.4: leaves the group', (tester) async {
@@ -223,6 +274,56 @@ void main() {
     await tester.tapAndWait(find.text('Leave group'));
     await tester.tapAndWait(find.text('Leave').last);
     await tester.waitFor(find.text('No groups yet'));
+  });
+
+  e2e('R-3 AC12, AC11: a signed-out friend opens the link and joins by name',
+      (tester) async {
+    await tester.launch();
+    await tester.signOutFromSettings();
+
+    // The link survives the sign-in gate (AC12).
+    tester.goTo('/join/$inviteToken');
+    await tester.waitFor(find.text('Continue with Google'));
+    await tester.signIn(_e2eFriend, find.text('Which one is you?'));
+
+    // "I'm not on the list" adds a new member (AC11).
+    await tester.tapAndWait(find.text("I'm not on the list"));
+    await tester.enterText(find.widgetWithText(TextField, 'Your name'), 'Lan');
+    await tester.tapAndWait(find.text('Join'));
+    await tester.waitFor(find.text('Add expense'));
+    final group = FirebaseFirestore.instance.collection('groups').where(
+        'memberUids',
+        arrayContains: FirebaseAuth.instance.currentUser!.uid);
+    await tester.waitUntil(() async {
+      final docs = (await group.get()).docs;
+      if (docs.isEmpty) return false;
+      final lan = await docs.single.reference
+          .collection('members')
+          .where('name', isEqualTo: 'Lan')
+          .get();
+      return lan.docs.length == 1 &&
+          lan.docs.single.data()['linkedUid'] ==
+              FirebaseAuth.instance.currentUser!.uid;
+    });
+  });
+
+  e2e('R-3 AC13: resetting the invite link stops the old one', (tester) async {
+    await tester.launch();
+    await tester.signOutFromSettings();
+    await tester.signIn();
+    await tester.openGroupWhenPulled();
+
+    await tester.tapAndWait(find.byTooltip('More'));
+    await tester.tapAndWait(find.text('Reset invite link'));
+    await tester.tapAndWait(find.text('Reset').last);
+    await tester.waitFor(find.text('Invite link reset'));
+
+    // A stranger with the old link is turned away.
+    await tester.signOutFromSettings();
+    await tester.signIn(_e2eStranger);
+    tester.goTo('/join/$inviteToken');
+    await tester.waitFor(find
+        .text('This invite link no longer works. Ask a member for a new one.'));
   });
 
   e2e('UC-7.6: deletes the account from inside the app', (tester) async {
@@ -253,6 +354,14 @@ const _e2eFriend = {
   'name': 'Linh',
 };
 
+/// Someone who was never in the group, holding an old invite link.
+const _e2eStranger = {
+  'sub': 'e2e-stranger',
+  'email': 'stranger@example.com',
+  'email_verified': true,
+  'name': 'Stranger',
+};
+
 extension on WidgetTester {
   /// Starts the app as a cold start would, signed in: on the group list.
   /// Each launch gets a fresh ProviderScope, and with it a fresh router at
@@ -263,13 +372,16 @@ extension on WidgetTester {
   }
 
   /// Signs in as [user] ([_e2eUser] by default), where the sign-in screen's
-  /// Google popup would.
-  /// The router leaves the sign-in screen on its own.
-  Future<void> signIn([Map<String, Object> user = _e2eUser]) async {
+  /// Google popup would. The router leaves the sign-in screen on its own,
+  /// for the group list unless [landOn] says otherwise.
+  Future<void> signIn([
+    Map<String, Object> user = _e2eUser,
+    Finder? landOn,
+  ]) async {
     await FirebaseAuth.instance.signInWithCredential(
       GoogleAuthProvider.credential(idToken: jsonEncode(user)),
     );
-    await waitFor(find.byTooltip('Settings'));
+    await waitFor(landOn ?? find.byTooltip('Settings'));
   }
 
   /// Signs out the way a user does, which also clears the device.

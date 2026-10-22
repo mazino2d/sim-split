@@ -29,7 +29,7 @@ records its story. (Renumbered 2026-10-03; earlier backlog items are folded into
 
 | ID | Item | Serves | I | C | E | Score | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| R-3 | Co-worked groups: friends log expenses together, see the same split, everyone has full rights, every change is auditable. Google/Apple sign-in, cloud sync, invite link | UC-1, UC-2, UC-4, UC-7, UC-8, UC-9 | 3 | 0.5 | 27 | 0.06 | Strategy change 2026-10-03: drops the no-account default; offline only after first sign-in. Spec: [R-3](specs/R-3-online-shared-groups.md). Backend: Firebase (Blaze at $0, budget + kill switch). Live on [simsplit.web.app](https://simsplit.web.app) and on Android since 2026.10.22. Next: iOS (P8). Phase status: [implementation](../implementations/R-3-online-shared-groups.md). |
+| R-3 | Co-worked groups: friends log expenses together, see the same split, everyone has full rights, every change is auditable. Google/Apple sign-in, cloud sync, invite link | UC-1, UC-2, UC-4, UC-7, UC-8, UC-9 | 3 | 0.5 | 27 | 0.06 | Strategy change 2026-10-03: drops the no-account default; offline only after first sign-in. Spec: [R-3](specs/R-3-online-shared-groups.md). Backend: Firebase (Blaze at $0, budget + kill switch). Live on [simsplit.web.app](https://simsplit.web.app) and on Android since 2026.10.22. iOS (P8) is on hold: no Apple Developer account for now. Phase status: [implementation](../implementations/R-3-online-shared-groups.md). |
 
 ## Next
 
