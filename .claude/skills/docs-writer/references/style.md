@@ -43,7 +43,7 @@ as if one person wrote it.
 | Spec (`docs/product/specs/`) | Owned by `product-owner`. |
 | Plan (`docs/implementations/`) | `Status · Spec link · date` header → decisions (with why) → architecture → phases table → manual steps → risks. |
 | `docs/*.html` | Hand-written HTML; tokens mirror `app_theme.dart`; no third-party requests. |
-| Store text | `title` ≤ 30, `short_description` ≤ 80, `full_description` ≤ 4000 chars. EN and VI say the same thing. |
+| Store text | Limits are enforced by `python3 scripts/play_metadata.py check` (source: `TEXT_LIMITS` in `scripts/play_metadata.py`). EN and VI say the same thing. |
 
 ## Comments in code and config
 

@@ -7,7 +7,7 @@ import 'package:simsplit/data/sync/sync_codec.dart';
 import 'package:uuid/uuid.dart';
 
 /// Returns the signed-in account's uid, or null when signed out or when the
-/// platform has no accounts (web, desktop).
+/// platform has no accounts (desktop).
 typedef CurrentUid = String? Function();
 
 /// Records local changes for sync: each change gets an activity entry (who,

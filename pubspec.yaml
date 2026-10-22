@@ -2,7 +2,7 @@ name: simsplit
 description: "Ứng dụng ghi chú và chia chi tiêu nhóm, hoạt động offline."
 publish_to: "none"
 
-version: 1.0.0+5
+version: 2026.10.22+6
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -31,10 +31,12 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
 
-  # Online backend: Firebase Auth + Firestore (R-3, used by lib/data only)
+  # Online backend: Firebase Auth + Firestore + App Check (R-3; used by lib/data, wired up in main.dart and core/di)
   firebase_core: ^4.15.0
   firebase_auth: ^6.7.0
   cloud_firestore: ^6.10.0
+  firebase_app_check: ^0.4.8
+  google_sign_in: ^7.2.0
 
   # Functional programming (Either, Option)
   fpdart: ^1.1.0
@@ -46,13 +48,11 @@ dependencies:
   flutter_slidable: ^4.0.3
   intl: ^0.20.2
   shared_preferences: ^2.5.6
+  share_plus: ^13.3.1
 
   # Icons & splash screen (dev tools, kept here for generator commands)
   flutter_launcher_icons: ^0.14.1
   flutter_native_splash: ^2.4.8
-  google_sign_in: ^7.2.0
-  share_plus: ^13.3.1
-  firebase_app_check: ^0.4.8
 
 dev_dependencies:
   flutter_test:

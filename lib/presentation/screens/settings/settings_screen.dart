@@ -74,7 +74,7 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 /// Who is signed in, with sign-out and account deletion (R-3 AC5, AC6).
-/// Both actions remove the account's data from this phone, so both are
+/// Both actions remove the account's data from this device, so both are
 /// confirmed. The router returns to sign-in once the session ends.
 class _AccountSection extends ConsumerWidget {
   const _AccountSection();

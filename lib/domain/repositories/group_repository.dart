@@ -3,7 +3,7 @@ import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 
 abstract interface class GroupRepository {
-  /// Reactive stream of all groups (including archived).
+  /// Reactive stream of groups that are not deleted, archived ones included.
   Stream<Either<Failure, List<Group>>> watchGroups();
 
   Future<Either<Failure, Group>> getGroup(String id);

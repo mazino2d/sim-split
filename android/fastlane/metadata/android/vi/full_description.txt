@@ -1,15 +1,20 @@
-SimSplit giúp bạn dễ dàng ghi chú và chia sẻ chi phí với bạn bè, gia đình, hoặc đồng nghiệp — hoàn toàn ngoại tuyến. Không cần tài khoản hay kết nối internet.
+SimSplit giúp bạn dễ dàng ghi chú và chia sẻ chi phí với bạn bè, gia đình, hoặc đồng nghiệp. Chia sẻ nhóm bằng một link, cùng nhau ghi chi tiêu và thấy cùng một con số ngay khi ai đó lưu.
 
 TÍNH NĂNG:
 • Tạo nhóm cho các chuyến đi, chia sẻ phòng, hoặc bất kỳ chi tiêu chung nào
+• Mời bạn bè bằng link — mọi người trong nhóm đều có thể thêm và sửa chi tiêu
 • Thêm chi tiêu và chia theo 4 kiểu: đều nhau, theo %, số tiền cụ thể, hoặc tỉ lệ
 • Xem ai nợ ai ngay lập tức với thuật toán tối giản giao dịch
 • Ghi nhận khi các khoản nợ đã được thanh toán
+• Lịch sử thay đổi: ai đã thêm, sửa hay xoá gì, kèm giá trị cũ và mới
 • Hỗ trợ VND, USD, EUR và nhiều loại tiền tệ khác
 • Có sẵn bằng Tiếng Việt và Tiếng Anh
 
-HOẠT ĐỘNG NGOẠI TUYẾN:
-Tất cả dữ liệu được lưu an toàn trên thiết bị. SimSplit hoạt động không cần internet — hoàn hảo cho các chuyến đi hoặc nơi có kết nối kém.
+ĐĂNG NHẬP BẰNG GOOGLE:
+Đăng nhập một lần bằng tài khoản Google để đồng bộ các nhóm giữa điện thoại và web app tại simsplit.web.app. Các nhóm bạn đã tạo ở phiên bản trước sẽ được tải lên tài khoản ở lần đăng nhập đầu tiên.
 
-KHÔNG CẦN TÀI KHOẢN:
-Chỉ cần mở ứng dụng và bắt đầu ghi chú. Không cần đăng ký, không cần email, không cần mật khẩu.
+HOẠT ĐỘNG NGOẠI TUYẾN:
+Sau khi đăng nhập, SimSplit vẫn chạy khi không có internet — hoàn hảo cho các chuyến đi hoặc nơi có kết nối kém. Có mạng lại là thay đổi tự đồng bộ.
+
+RIÊNG TƯ:
+Chỉ thành viên trong nhóm mới xem được nhóm. Không quảng cáo, không phân tích, không theo dõi. Bạn có thể xoá tài khoản và dữ liệu bất cứ lúc nào trong Cài đặt.

@@ -146,7 +146,6 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
     final saving = ref.watch(memberProvider).isLoading || _isLoading;
     final members = ref.watch(memberListProvider(widget.groupId)).value ?? [];
 
-    // Find existing isMe member that is NOT the current member being edited
     final existingIsMeMember = members
         .where((m) => m.isMe && m.id != (widget.editMember?.id ?? ''))
         .firstOrNull;

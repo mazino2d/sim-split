@@ -1,9 +1,25 @@
 name: Build Android
 
-# Uploads to Google Play only when triggered explicitly:
+# Uploads to Google Play:
+#   - on push to main when app code changes (internal track, completed, so
+#     internal testers get it at once),
 #   - manually via workflow_dispatch (defaults to the internal track), or
-#   - from release.yml when a vX.Y.Z tag is pushed (production track).
+#   - from release.yml (vYYYY.M.D tag → production, inProgress 20 %) or
+#     release_candidate.yml (vYYYY.M.D-rc.N tag → alpha, completed).
 on:
+  push:
+    branches: [main]
+    # pubspec.yaml is left out on purpose: a release PR only bumps its version,
+    # and an internal upload then would race the tag's production upload.
+    # Dependency changes still show up in pubspec.lock.
+    paths:
+      - "lib/**"
+      - "android/**"
+      # Store listing, Data safety and release notes ship through
+      # play_metadata.yml and release.yml, not as a new build.
+      - "!android/fastlane/**"
+      - "assets/**"
+      - "pubspec.lock"
   workflow_dispatch:
     inputs:
       track:
@@ -18,6 +34,11 @@ on:
         default: "draft"
         type: choice
         options: [completed, draft, inProgress, halted]
+      user_fraction:
+        description: "Staged rollout share, 0-1 (status inProgress only)"
+        required: false
+        default: ""
+        type: string
   workflow_call:
     inputs:
       track:
@@ -26,6 +47,14 @@ on:
       status:
         type: string
         default: "draft"
+      user_fraction:
+        type: string
+        default: ""
+      # The tag that triggered the caller (vYYYY.M.D or vYYYY.M.D-rc.N); empty
+      # builds a dev name. See "Build App Bundle".
+      release_tag:
+        type: string
+        default: ""
     secrets:
       ANDROID_KEYSTORE_BASE64:
         required: true
@@ -93,10 +122,22 @@ jobs:
         # elapsed since 2026-01-01 UTC: monotonic across all workflows and
         # re-runs, far above the old pubspec codes (<= 5) and far below Play's
         # 2,100,000,000 limit.
+        #
+        # The versionName tells the builds apart (Play only compares codes):
+        #   production  vYYYY.M.D tag       → YYYY.M.D
+        #   closed test vYYYY.M.D-rc.N tag  → YYYY.M.D-rc.N
+        #   anything else (main, manual)    → YYYY.M.D-dev.<sha7>, build date UTC
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           BUILD_NUMBER=$(( ($(date -u +%s) - 1767225600) / 60 ))
-          echo "versionCode: $BUILD_NUMBER"
-          flutter build appbundle --release --build-number="$BUILD_NUMBER"
+          if [ -n "$RELEASE_TAG" ]; then
+            BUILD_NAME="${RELEASE_TAG#v}"
+          else
+            BUILD_NAME="$(date -u +%Y.%-m.%-d)-dev.${GITHUB_SHA::7}"
+          fi
+          echo "versionName: $BUILD_NAME, versionCode: $BUILD_NUMBER" | tee -a "$GITHUB_STEP_SUMMARY"
+          flutter build appbundle --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v7
@@ -107,7 +148,7 @@ jobs:
 
       # Keyless auth via Workload Identity Federation, managed in
       # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-prd/github_actions.tf).
-      # Only main and vX.Y.Z tags of this repo can impersonate the account.
+      # Only main and v* tags (vYYYY.M.D, vYYYY.M.D-rc.N) of this repo can impersonate the account.
       - name: Authenticate to Google Cloud
         id: gcp-auth
         uses: google-github-actions/auth@v3
@@ -121,8 +162,11 @@ jobs:
           serviceAccountJson: ${{ steps.gcp-auth.outputs.credentials_file_path }}
           packageName: com.mazino2d.simsplit
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: ${{ inputs.track || github.event.inputs.track || 'internal' }}
-          status: ${{ inputs.status || github.event.inputs.status || 'draft' }}
+          track: ${{ inputs.track || 'internal' }}
+          status: ${{ inputs.status || (github.event_name == 'push' && 'completed') || 'draft' }}
+          userFraction: ${{ inputs.user_fraction }}
+          # Release notes go with tagged releases (production and closed test).
+          whatsNewDirectory: ${{ inputs.release_tag != '' && 'android/fastlane/whatsnew' || '' }}
 
       - name: Clean up keystore
         if: always()

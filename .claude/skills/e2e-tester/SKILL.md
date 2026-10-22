@@ -9,7 +9,7 @@ allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(flut
 
 The question this skill answers: **if this merges, does the app still build
 and does every feature still work for a real user?** Unit and widget tests
-(the CI `Test` job) mock the database and the router; this skill runs the real
+(the CI `Test` job) use an in-memory database, fakes and provider overrides; this skill runs the real
 app — real Drift database in the browser, real navigation, release build.
 
 Report a verdict, not a log. Never call something verified that you did not

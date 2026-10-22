@@ -1,15 +1,20 @@
-SimSplit makes it easy to track and split shared expenses with friends, family, or colleagues — completely offline. No account or internet connection required.
+SimSplit makes it easy to track and split shared expenses with friends, family, or colleagues. Share a group with a link, log expenses together and see the same balances the moment anyone saves.
 
 FEATURES:
 • Create groups for trips, households, or any shared expense
+• Invite friends with a link — everyone in the group can add and edit expenses
 • Add expenses and split them equally, by percentage, by exact amount, or by shares
 • See who owes whom at a glance with automatic debt simplification
 • Record settlements when debts are paid
+• Activity history: who added, edited or deleted what, with old and new values
 • Supports VND, USD, EUR, and more
 • Available in Vietnamese and English
 
-WORKS OFFLINE:
-All data is stored securely on your device. SimSplit works without internet — perfect for trips or places with poor connectivity.
+SIGN IN WITH GOOGLE:
+Sign in once with your Google account to keep your groups in sync across your phone and the web app at simsplit.web.app. Groups you created in an earlier version are uploaded to your account the first time you sign in.
 
-NO ACCOUNT NEEDED:
-Just open the app and start tracking. No sign-up, no email, no password.
+WORKS OFFLINE:
+After you sign in, SimSplit keeps working without internet — perfect for trips or places with poor connectivity. Changes sync on their own once you are back online.
+
+PRIVATE BY DEFAULT:
+Only the members of a group can see it. No ads, no analytics, no tracking. You can delete your account and your data at any time from Settings.
