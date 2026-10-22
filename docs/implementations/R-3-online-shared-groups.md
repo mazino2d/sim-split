@@ -1,6 +1,6 @@
 # R-3 Co-worked groups — implementation plan
 
-Status: in progress (P0–P7 and P9 done; P10 and P8 wait for the Android production release)   ·   Spec: [R-3 Co-worked groups](../product/specs/R-3-online-shared-groups.md)   ·   Written 2026-10-03
+Status: in progress (P0–P7 and P9 done; P10 releasing as 2026.10.22; P8 next)   ·   Spec: [R-3 Co-worked groups](../product/specs/R-3-online-shared-groups.md)   ·   Written 2026-10-03
 
 How R-3 gets built: the architecture, the phases (one or two PRs each) and the decisions
 behind them. The spec defines *what* must be true. This plan defines *how* and in what
@@ -88,15 +88,15 @@ Security rules, in short:
 | P6 ✅ | both | Done in #40. Invites: tokens, the join page and `.well-known` files on Hosting, App Links / Universal Links, the join screen, leave, reset link. On web, the join page opens the group in the web app. Built as: the web app deployed to `simsplit.web.app` (path URLs, `assetlinks.json` for App Links; Universal Links wait for P8); opening `/join/<token>` joins at once (rules check `joinToken` against the group's `inviteToken`), then the friend picks an unclaimed name or adds one; schema v4 pulls `ownerUid`, `memberUids` and `inviteToken` | AC9–AC14 | 3 |
 | P7 ✅ | sim-split | Done in #41. Activity screen: the list and an old → new detail view. Built as: the puller also pulls `activity` (cursor on `syncedAt`) into the local `activities` table, so the history reads offline and live, unpushed entries included; names of removed members come from the history itself | AC25–AC28, AC30 | 2 |
 | P8 ⏸ | both | Pending: starts after the Android production release (see Release order). iOS: Apple Developer account, Sign in with Apple (iOS, Android and web through the Services ID), signing, TestFlight in `release.yml`, App Attest for App Check. The unsigned iOS CI build already runs on `macos-15` (firebase-ios-sdk 12 needs Xcode 16.3+, Swift tools 6.1) and passes on `main` | AC1b | 2 |
-| P9 ✅ | both | Done in #45 and everything-as-code#221. App Check, unenforced: Play Integrity in Android release builds, reCAPTCHA (score-based, 24 h token TTL to stay inside the free assessments) on web, a shared debug token for debug builds (`.env.local`), off against the emulators and on iOS until P8. Enforcement on Firestore and Auth is one flag (`app_check_enforced`), switched on with v2.0.0 in P10 | — | 1 |
-| P10 | both | Release v2.0.0, after the Android production release: e2e on emulators for Android, the cost load test (Firestore reads and writes, and reCAPTCHA assessments), a rewritten store listing (EN/VI), Data safety, privacy policy, enforce App Check (v2.0.0 is the first release that talks to Firebase, so enforcing at launch locks out no installed version) | AC20, AC24 | 2 |
+| P9 ✅ | both | Done in #45 and everything-as-code#221. App Check, unenforced: Play Integrity in Android release builds, reCAPTCHA (score-based, 24 h token TTL to stay inside the free assessments) on web, a shared debug token for debug builds (`.env.local`), off against the emulators and on iOS until P8. Enforcement on Firestore and Auth is one flag (`app_check_enforced`), switched on with 2026.10.22 in P10 | — | 1 |
+| P10 🚀 | both | Releasing as 2026.10.22 (CalVer replaces v2.0.0; see the `release-manager` skill), after the offline 1.0.0 reached Android production. The cost load test (Firestore reads and writes, and reCAPTCHA assessments) was dropped on 2026-10-22; the budget and kill switch cap the risk. Scope: e2e on emulators for Android, a rewritten store listing (EN/VI), Data safety, privacy policy, enforce App Check (v2.0.0 is the first release that talks to Firebase, so enforcing at launch locks out no installed version) | AC20, AC24 | 2 |
 
 ## Release order
 
 1. **Android production with the offline app first.** The closed test runs the R-2
    offline build (no sign-in, no Firebase). Once it has 12 testers for 14 days, that
    build goes to production as is; nothing from R-3 ships in it.
-2. **P10: v2.0.0**, the first release with sign-in and shared groups, on Android and web.
+2. **P10: 2026.10.22**, the first release with sign-in and shared groups, on Android and web.
 3. **P8: iOS**, once Android is in production and the Apple Developer account is active.
 
 The total is about 27 focused days. P4 comes first after P3 so every later phase can be
@@ -126,6 +126,6 @@ These are listed in the stack's `_docs/setup.md` in `everything-as-code`:
 | The kill switch takes the app offline | It only fires at 100 % of a tiny budget. Recovery is a re-apply after fixing the cause (see setup doc). |
 | reCAPTCHA on web costs $8/month above 10,000 assessments, which would trip the kill switch | App Check tokens on web live 24 h (everything-as-code#221), so 100 daily web users need ~3,000 a month. The P9 load test counts assessments too. |
 | Budget notifications lag actual spend | Keep reads incremental (`updatedAt > cursor`). The P9 load test checks for ≥ 2× headroom. |
-| A script uses the public Firebase config to spam Firestore or Auth, trips the kill switch and takes the backend down for everyone | App Check, enforced on Firestore and Auth from v2.0.0 (P9), rejects requests that do not come from the genuine app. |
+| A script uses the public Firebase config to spam Firestore or Auth, trips the kill switch and takes the backend down for everyone | App Check, enforced on Firestore and Auth from 2026.10.22 (P9), rejects requests that do not come from the genuine app. |
 | The e2e suite breaks once sign-in is required | Until P4 the web build has no Firebase and so no sign-in gate; the e2e journey keeps running there (P2). From P4 it signs in against the Auth and Firestore emulators. |
 | Migrating v1 data | Upload with the same IDs, make it resumable, and test with a v2 database fixture (AC7, AC8). |

@@ -3,8 +3,9 @@
 A group expense tracking and splitting app — friends share a group, log expenses together
 and see the same balances, and every change is on record.
 
-Use it on the web at **[simsplit.web.app](https://simsplit.web.app)**. Android is in closed
-testing on Google Play; iOS follows once the Apple Developer account is active.
+Use it on the web at **[simsplit.web.app](https://simsplit.web.app)** or on Android from
+[Google Play](https://play.google.com/store/apps/details?id=com.mazino2d.simsplit); iOS
+follows once the Apple Developer account is active.
 
 ---
 
@@ -206,11 +207,11 @@ GitHub → Actions → **Build Android** → *Run workflow*. Pick the track
 ### Production release
 
 ```bash
-# 1. Bump the version name in pubspec.yaml (e.g. 1.0.0+5 → 1.1.0+5).
-#    The +N part is overridden in CI, so it does not need to change.
+# 1. Set the version in pubspec.yaml to today's CalVer date, YYYY.M.D without
+#    zero padding (e.g. 2026.10.22+6). The +N part is overridden in CI.
 # 2. Commit and merge the change to main
-git tag v1.1.0
-git push origin v1.1.0
+git tag v2026.10.22
+git push origin v2026.10.22
 ```
 
 `release.yml` checks that the tag matches the `pubspec.yaml` version, builds and
