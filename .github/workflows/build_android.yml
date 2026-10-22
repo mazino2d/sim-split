@@ -49,6 +49,11 @@ on:
       user_fraction:
         type: string
         default: ""
+      # The tag that triggered the caller (vYYYY.M.D or vYYYY.M.D-rc.N); empty
+      # builds a dev name. See "Build App Bundle".
+      release_tag:
+        type: string
+        default: ""
     secrets:
       ANDROID_KEYSTORE_BASE64:
         required: true
@@ -116,10 +121,22 @@ jobs:
         # elapsed since 2026-01-01 UTC: monotonic across all workflows and
         # re-runs, far above the old pubspec codes (<= 5) and far below Play's
         # 2,100,000,000 limit.
+        #
+        # The versionName tells the builds apart (Play only compares codes):
+        #   production  vYYYY.M.D tag       → YYYY.M.D
+        #   closed test vYYYY.M.D-rc.N tag  → YYYY.M.D-rc.N
+        #   anything else (main, manual)    → YYYY.M.D-dev.<sha7>, build date UTC
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           BUILD_NUMBER=$(( ($(date -u +%s) - 1767225600) / 60 ))
-          echo "versionCode: $BUILD_NUMBER"
-          flutter build appbundle --release --build-number="$BUILD_NUMBER"
+          if [ -n "$RELEASE_TAG" ]; then
+            BUILD_NAME="${RELEASE_TAG#v}"
+          else
+            BUILD_NAME="$(date -u +%Y.%-m.%-d)-dev.${GITHUB_SHA::7}"
+          fi
+          echo "versionName: $BUILD_NAME, versionCode: $BUILD_NUMBER" | tee -a "$GITHUB_STEP_SUMMARY"
+          flutter build appbundle --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v7
@@ -147,8 +164,8 @@ jobs:
           track: ${{ inputs.track || 'internal' }}
           status: ${{ inputs.status || (github.event_name == 'push' && 'completed') || 'draft' }}
           userFraction: ${{ inputs.user_fraction }}
-          # Release notes go with production releases only.
-          whatsNewDirectory: ${{ inputs.track == 'production' && 'android/fastlane/whatsnew' || '' }}
+          # Release notes go with tagged releases (production and closed test).
+          whatsNewDirectory: ${{ inputs.release_tag != '' && 'android/fastlane/whatsnew' || '' }}
 
       - name: Clean up keystore
         if: always()

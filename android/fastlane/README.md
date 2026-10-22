@@ -13,8 +13,8 @@ and recorded below so it can be re-entered or audited.
 | Phone / 7" / 10" screenshots | `metadata/android/<lang>/images/{phone,sevenInch,tenInch}Screenshots/` | `play_metadata.yml` |
 | Default language, contact email, website | `metadata/android/play.json` | `play_metadata.yml` |
 | Data safety form | `metadata/android/data_safety.csv` (export from Play Console) | `play_metadata.yml` when the CSV changes |
-| Production release notes (max 500 chars) | `whatsnew/whatsnew-<lang>` | `release.yml` on a `vYYYY.M.D` tag |
-| App bundles, tracks | `build_android.yml`, `release.yml` | push to `main` (internal) / manual dispatch / `vYYYY.M.D` tag (production, 20 %) |
+| Release notes (max 500 chars) | `whatsnew/whatsnew-<lang>` | `release.yml` / `release_candidate.yml` on a tag |
+| App bundles, tracks | `build_android.yml`, `release.yml` | push to `main` (internal, `YYYY.M.D-dev.<sha7>`) / manual dispatch / `vYYYY.M.D-rc.N` tag (closed testing) / `vYYYY.M.D` tag (production, 20 %) |
 | Staged rollout | `scripts/play_rollout.py` | `play_rollout.yml`, manual |
 
 - PRs touching `metadata/` run `scripts/play_metadata.py check` (text limits,
