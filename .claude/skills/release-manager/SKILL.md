@@ -1,6 +1,6 @@
 ---
 name: release-manager
-description: Plan, check and ship a SimSplit release to Google Play production (and later the App Store) — pick the CalVer version (YYYY.M.D), review what is in main since the last tag, walk the pre-release checklist (CI, e2e, Data safety, store listing, privacy policy, Firebase and App Check), bump pubspec.yaml, push the v-tag that runs release.yml, finish the draft release in Play Console and record it in the docs. Use when the user asks to "release", "ship", "go live", "lên production", "lên version mới", "tag a release", "promote to production", "what do I need before releasing", "release checklist", or invokes /release-manager. Not for internal/closed-test uploads of a branch (run build_android.yml manually) or for verifying a PR (e2e-tester).
+description: Plan, check and ship a SimSplit release to Google Play production (and later the App Store) — pick the CalVer version (YYYY.M.D), review what is in main since the last tag, walk the pre-release checklist (CI, e2e, Data safety, store listing, privacy policy, Firebase and App Check), bump pubspec.yaml, push the v-tag that runs release.yml (release notes, 20 % staged rollout sent for review), widen the rollout with play_rollout.yml and record it in the docs. Use when the user asks to "release", "ship", "go live", "lên production", "lên version mới", "tag a release", "promote to production", "what do I need before releasing", "release checklist", or invokes /release-manager. Not for internal-test uploads (every app-code merge to main uploads one; other branches: run build_android.yml manually) or for verifying a PR (e2e-tester).
 argument-hint: "[plan|preflight|ship|post] [YYYY.M.D]"
 allowed-tools: Read, Edit, Write, Grep, Glob, AskUserQuestion, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(python3 scripts/play_metadata.py check), Bash(python3 .claude/skills/docs-writer/scripts/*)
 ---
@@ -38,11 +38,13 @@ Releases use **CalVer `YYYY.M.D`** of the day the tag is pushed, e.g. `2026.10.2
 ## How a release flows
 
 ```
-main ──► PR "chore(release): YYYY.M.D" (pubspec bump, docs, listing)  ──► merge
+main ──► PR "chore(release): YYYY.M.D" (pubspec bump, whatsnew, docs, listing) ──► merge
      ──► git tag vYYYY.M.D && git push origin vYYYY.M.D                  (user confirms)
      ──► release.yml: validate-version → build_android.yml (track: production,
-         status: draft) → GitHub Release with the AAB
-     ──► Play Console: release notes, review the draft, send for review, rollout
+         status: inProgress, 20 %, notes from android/fastlane/whatsnew/)
+         → sent for review → GitHub Release with the AAB
+     ──► approved: live for 20 % (managed publishing is off)
+     ──► play_rollout.yml: 50 % → 100 % after checking Android vitals  (user confirms)
 ```
 
 Pushing the tag builds **whatever `main` is at that commit** — check what is in it.
@@ -66,7 +68,8 @@ Summarize for the user, grouped by user impact: new features, behaviour changes,
 data or permission changes (sign-in, network, new SDKs — these drive Data safety),
 DB schema bumps (migrations run on every upgraded device), and which roadmap
 release / implementation phase this closes (`docs/product/roadmap.md`,
-`docs/implementations/`). Draft the release notes (EN + VI, ≤ 500 chars each).
+`docs/implementations/`). Draft the release notes (EN + VI, ≤ 500 chars each) for
+`android/fastlane/whatsnew/whatsnew-{en-US,vi}`.
 
 ## 2. Preflight checklist
 
@@ -79,13 +82,13 @@ Run what can be run; list the rest as manual steps for the user.
 | 3 | Upgrade path | the previous production version upgrades cleanly: Drift migration test from its schema, first sign-in uploads local data (R-3 AC7/AC8) | you |
 | 4 | Store listing | EN and VI describe what the build does; `python3 scripts/play_metadata.py check` passes | you, via `docs-writer` |
 | 5 | Privacy policy | `docs/privacy-policy.html` names the right versions and the data collected | you, via `docs-writer` |
-| 6 | Data safety | Play Console → App content → Data safety matches the build (account name, email, user ID, user content; encrypted in transit; deletion via the app and the web) | user |
-| 7 | App access | if sign-in is required, Play Console → App content → App access says so and how reviewers get in (any Google account) | user |
-| 8 | Account deletion URL | an app with accounts must give Play a web link for deletion (Settings → Delete account on simsplit.web.app) | user |
+| 6 | Data safety | `android/fastlane/metadata/android/data_safety.csv` matches the build (account name, email, user ID, user content; encrypted in transit; deletion via the app and the web); `play_metadata.yml` uploads it on merge | you |
+| 7 | Sign in details | if sign-in is required, Play Console → App content → Sign in details (was App access) says so and how reviewers get in (any Google account); no API | user |
+| 8 | Account deletion URL | `PSL_ACCOUNT_DELETION_URL` in `data_safety.csv` points at `privacy-policy.html#delete` | you |
 | 9 | Signing fingerprints | Play App Signing SHA-1/SHA-256 are in Firebase (Google sign-in, Play Integrity) and in `assetlinks.json` (App Links); see everything-as-code `terraform/gcp/simsplit-as-se1-prd/_docs/setup.md` | user |
 | 10 | Backend ready | Firestore rules and indexes deployed from `main` (`firebase_deploy`); budget and kill switch healthy | you check runs, user checks console |
 | 11 | App Check | metrics show verified traffic on web; flip `app_check_enforced` in everything-as-code only when no installed build would be locked out | user approves the TF PR |
-| 12 | Release workflow inputs | `release.yml` track `production`, status `draft` (default; the user rolls out in Play Console) | you |
+| 12 | Release notes | `whatsnew/whatsnew-{en-US,vi}` describe this release; `python3 scripts/play_metadata.py check` passes | you |
 
 Any red gate is a no-go; say which and what fixes it.
 
@@ -94,6 +97,7 @@ Any red gate is a no-go; say which and what fixes it.
 On a branch `chore/release-YYYY.M.D`:
 
 - `pubspec.yaml` → `version: YYYY.M.D+N`.
+- `android/fastlane/whatsnew/whatsnew-{en-US,vi}` → this release's notes.
 - Docs that name the upcoming version (implementation plan, roadmap row,
   `docs/product/index.md`, privacy policy) → the CalVer number. Use the `docs-writer`
   skill so every mirror changes together.
@@ -103,7 +107,8 @@ Open it with the `pr-writer` skill, title `chore(release): YYYY.M.D`.
 
 ### Timing
 
-Listing and `docs/` publish on merge, the build only after the tag and Play review.
+Listing, Data safety and `docs/` publish on merge (listing changes after Play's
+review; managed publishing is off), the build only after the tag and Play review.
 If the release changes what the app does (e.g. offline → sign-in), merging early
 makes the listing describe a build users can't get yet. Merge the release PR and
 push the tag the same day, and tell the user the listing is live before the build
@@ -125,12 +130,16 @@ GH_TOKEN=$(gh auth token --user mazino2d) gh run watch \
 If `validate-version` fails, the tag and pubspec disagree: delete the tag
 (`git push origin :refs/tags/vYYYY.M.D`, with the user's OK), fix, re-tag.
 
-Then the user, in Play Console → Production:
+The upload goes to Play review by itself and reaches 20 % of users when approved;
+nothing to do in Play Console. Then, one step at a time and only on the user's yes
+after they checked Android vitals (crashes, ANRs):
 
-1. Open the draft release, paste the release notes (EN/VI).
-2. Review → Send for review (managed publishing on: publish after approval).
-3. Prefer a staged rollout (e.g. 20 % → 50 % → 100 %) for releases that change
-   data or sign-in; watch Android vitals (crashes, ANRs) between steps.
+```bash
+GH_TOKEN=$(gh auth token --user mazino2d) gh workflow run play_rollout.yml -f action=status
+GH_TOKEN=$(gh auth token --user mazino2d) gh workflow run play_rollout.yml -f action=50%
+GH_TOKEN=$(gh auth token --user mazino2d) gh workflow run play_rollout.yml -f action=100%
+# bad vitals: -f action=halt (users who have it keep it), later -f action=resume
+```
 
 ## 5. Post-release
 
@@ -145,10 +154,12 @@ Then the user, in Play Console → Production:
 
 - `release.yml` builds the tag's commit, not a closed-test build. To ship a build that
   is already in testing, promote it in Play Console instead of tagging.
-- Production releases are uploaded as `draft`; nothing reaches users until the user
-  sends it for review in Play Console.
-- Play rejects concurrent edits: don't run `build_android.yml` manually while
-  `release.yml` is uploading.
+- Pushing the tag sends the build for review with no draft step: everything that
+  must be right (notes, listing, Data safety) has to be on `main` before the tag.
+- Play rejects concurrent edits. Merges that change app code upload an internal
+  build; wait for that `build_android` run before pushing the tag, and don't run
+  `build_android.yml` or `play_rollout.yml` while `release.yml` is uploading. A release
+  PR that only bumps `pubspec.yaml` triggers no internal build.
 - Only `main` and `v*` tags can authenticate to Play (Workload Identity in
   everything-as-code), so a release from another branch fails at upload.
 - iOS is not in `release.yml` yet (R-3 P8); say so when the user asks for "all

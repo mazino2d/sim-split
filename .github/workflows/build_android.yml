@@ -1,9 +1,21 @@
 name: Build Android
 
-# Uploads to Google Play only when triggered explicitly:
+# Uploads to Google Play:
+#   - on push to main when app code changes (internal track, completed, so
+#     internal testers get it at once),
 #   - manually via workflow_dispatch (defaults to the internal track), or
 #   - from release.yml when a vX.Y.Z tag is pushed (production track).
 on:
+  push:
+    branches: [main]
+    # pubspec.yaml is left out on purpose: a release PR only bumps its version,
+    # and an internal upload then would race the tag's production upload.
+    # Dependency changes still show up in pubspec.lock.
+    paths:
+      - "lib/**"
+      - "android/**"
+      - "assets/**"
+      - "pubspec.lock"
   workflow_dispatch:
     inputs:
       track:
@@ -18,6 +30,11 @@ on:
         default: "draft"
         type: choice
         options: [completed, draft, inProgress, halted]
+      user_fraction:
+        description: "Staged rollout share, 0-1 (status inProgress only)"
+        required: false
+        default: ""
+        type: string
   workflow_call:
     inputs:
       track:
@@ -26,6 +43,9 @@ on:
       status:
         type: string
         default: "draft"
+      user_fraction:
+        type: string
+        default: ""
     secrets:
       ANDROID_KEYSTORE_BASE64:
         required: true
@@ -121,8 +141,11 @@ jobs:
           serviceAccountJson: ${{ steps.gcp-auth.outputs.credentials_file_path }}
           packageName: com.mazino2d.simsplit
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: ${{ inputs.track || github.event.inputs.track || 'internal' }}
-          status: ${{ inputs.status || github.event.inputs.status || 'draft' }}
+          track: ${{ inputs.track || 'internal' }}
+          status: ${{ inputs.status || (github.event_name == 'push' && 'completed') || 'draft' }}
+          userFraction: ${{ inputs.user_fraction }}
+          # Release notes go with production releases only.
+          whatsNewDirectory: ${{ inputs.track == 'production' && 'android/fastlane/whatsnew' || '' }}
 
       - name: Clean up keystore
         if: always()

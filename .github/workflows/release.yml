@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'  # e.g. v1.0.0
+      - 'v[0-9]+.[0-9]+.[0-9]+'  # CalVer, e.g. v2026.10.22
 
 # Least privilege by default; jobs that need more declare their own block.
 permissions:
@@ -41,7 +41,11 @@ jobs:
     uses: ./.github/workflows/build_android.yml
     with:
       track: production
-      status: draft  # TODO: change to 'completed' after app passes first Play Store review
+      # Committing an inProgress release sends it for review (managed publishing
+      # is off), and once approved it reaches 20 % of users. Widen, halt or
+      # resume it with play_rollout.yml.
+      status: inProgress
+      user_fraction: "0.2"
     secrets: inherit
 
   # build-ios:                         # disabled — Apple Developer account not yet active

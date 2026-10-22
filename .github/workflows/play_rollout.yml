@@ -1,0 +1,62 @@
+name: Play Rollout
+
+# Widens, halts or resumes the staged production rollout that release.yml
+# starts at 20 %. Check Android vitals (crashes, ANRs) before each step.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "What to do with the current production release"
+        type: choice
+        default: status
+        options: [status, "50%", "100%", halt, resume]
+
+permissions:
+  contents: read
+
+jobs:
+  rollout:
+    name: Rollout ${{ inputs.action }}
+    # Only main can authenticate to Play (Workload Identity in everything-as-code).
+    if: github.ref == 'refs/heads/main'
+    # Play rejects concurrent edits: rollout changes run one at a time.
+    concurrency:
+      group: play-rollout
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write # OIDC token for Workload Identity Federation
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            scripts/play_rollout.py
+            android/fastlane/metadata/android/play.json
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install --quiet google-api-python-client google-auth
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/113980760756/locations/global/workloadIdentityPools/github/providers/sim-split
+          service_account: gha-play-publisher@simsplit-as-se1-prd.iam.gserviceaccount.com
+
+      - name: Apply
+        env:
+          ACTION: ${{ inputs.action }}
+        run: |
+          set -o pipefail
+          case "$ACTION" in
+            status) args=(status) ;;
+            50%)    args=(set 0.5) ;;
+            100%)   args=(set 1) ;;
+            *)      args=("$ACTION") ;;
+          esac
+          python scripts/play_rollout.py "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"

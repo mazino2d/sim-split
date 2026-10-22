@@ -65,7 +65,7 @@ Use this to go from a diff to the rows above.
   internal URLs, secrets) goes there.
 - The store listing ships on merge to `main` (`play_metadata`), and `docs/` goes live
   on merge too. Treat both as user-facing releases.
-- Android 1.x is offline-only and collects nothing; the web app and Android 2.x sign in
-  and sync. Privacy text must keep both true until 1.x is gone.
+- Android 1.0 is offline-only and collects nothing; the web app and Android 2026.10.22
+  and later (CalVer) sign in and sync. Privacy text must keep both true until 1.0 is gone.
 - Specs and strategy belong to the `product-owner` skill. Don't change acceptance
   criteria, non-goals or the North Star from here — raise it instead.
