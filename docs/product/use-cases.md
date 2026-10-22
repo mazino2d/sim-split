@@ -6,7 +6,7 @@ nothing.
 
 Criteria marked *(R-3)* belong to online shared groups
 ([spec](specs/R-3-online-shared-groups.md)), live on the web and on Android since
-2026.10.22; iOS follows.
+2026.10.22; iOS is on hold.
 
 "Offline" below means signed in, with no network. "Every device" means every signed-in
 member of that group, on Android, iOS or the web.

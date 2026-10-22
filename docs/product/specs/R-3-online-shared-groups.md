@@ -172,7 +172,7 @@ when a number looks wrong, anyone can see who changed what and when.
 
 - UC-1.1 still holds in a shared group: a timed run on a mid-range Android phone, recorded
   in the PR.
-- AC15 is verified with two real devices on the same group.
+- AC15 is verified with two real devices on the same group (done 2026-10-23: changes showed in real time).
 - The cost load test (AC24) was dropped on 2026-10-22; the budget and kill switch cap the risk.
 - Crash-free users stay ≥ 99.5 % after release (Play vitals).
 
