@@ -63,6 +63,9 @@ def main() -> None:
             if args.fraction == 1:
                 release["status"] = "completed"
                 release.pop("userFraction", None)
+                # A track holds one completed release: the new one replaces the
+                # release it was rolling out over.
+                track["releases"] = [release]
             else:
                 if args.fraction <= release.get("userFraction", 0):
                     raise SystemExit(f"Rollout is already at {release['userFraction']:.0%}; it can only grow.")
