@@ -53,5 +53,6 @@ the matching `SKILL.md` before starting the task.
 | Keep README, site, privacy policy, store listing and other docs in sync with a change; audit docs for drift | [`docs-writer`](.claude/skills/docs-writer/SKILL.md) — doc map of every fact's source and mirrors |
 | Open a pull request | [`pr-writer`](.claude/skills/pr-writer/SKILL.md) |
 | Verify a branch or PR before merge (builds + end-to-end use cases) | [`e2e-tester`](.claude/skills/e2e-tester/SKILL.md) |
+| Plan, check and ship a release to Google Play (CalVer `YYYY.M.D`, tag, Play Console) | [`release-manager`](.claude/skills/release-manager/SKILL.md) — preflight checklist and release flow |
 | Triage ideas, write specs, update the roadmap | [`product-owner`](.claude/skills/product-owner/SKILL.md) — strategy and specs in `docs/product/` (public on GitHub Pages) |
 | App icon, splash, Play Store graphics | [`uiux-designer`](.claude/skills/uiux-designer/SKILL.md) — SVG masters in `design/` |

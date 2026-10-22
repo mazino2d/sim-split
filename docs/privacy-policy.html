@@ -84,14 +84,14 @@
     <header>
       <div class="app-name">SimSplit</div>
       <h1>Privacy Policy</h1>
-      <p class="meta">Last updated: October 6, 2026</p>
+      <p class="meta">Last updated: October 22, 2026</p>
     </header>
 
     <div class="highlight-box">
       <strong>Short version:</strong> To share groups with friends, SimSplit asks you to sign in with Google and keeps your groups in Google's Firebase. Only the members of a group can see it. There are no ads, no analytics and no tracking, and you can delete your account at any time from the app.
     </div>
 
-    <p>This policy covers the SimSplit web app at <a href="https://simsplit.web.app">simsplit.web.app</a> and SimSplit 2.0 and later for Android and iOS. Earlier versions of the Android app (1.x) work entirely offline: they collect nothing and store everything only on your device.</p>
+    <p>This policy covers the SimSplit web app at <a href="https://simsplit.web.app">simsplit.web.app</a> and SimSplit 2026.10.22 and later for Android and iOS. Earlier versions of the Android app (1.0) work entirely offline: they collect nothing and store everything only on your device.</p>
 
     <h2>1. Information We Collect</h2>
     <p><strong>Your account.</strong> When you sign in with Google, we receive your Google account's name, email address and a unique account ID through Firebase Authentication. We do not receive your Google password.</p>
@@ -112,7 +112,7 @@
     <ul>
       <li><strong>Members of a group</strong> can see everything in that group, including the activity history and the names of the members. Server-side security rules enforce this: someone who is not a member cannot read or change the group.</li>
       <li><strong>Anyone with a group's invite link</strong> can join that group. Its owner can reset the link at any time so that old links stop working.</li>
-      <li><strong>Google</strong> stores and processes the data on our behalf as the provider of Firebase Authentication, Cloud Firestore and Firebase Hosting (<a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase privacy and security</a>).</li>
+      <li><strong>Google</strong> stores and processes the data on our behalf as the provider of Firebase Authentication, Cloud Firestore, Firebase Hosting and Firebase App Check, which uses Google Play Integrity on Android and reCAPTCHA Enterprise on the web to confirm that requests come from the genuine app (<a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase privacy and security</a>).</li>
     </ul>
     <p>SimSplit contains no advertising networks, analytics or tracking SDKs, and no crash reporting services.</p>
 
@@ -120,7 +120,7 @@
     <p>Your groups are stored in Cloud Firestore in Google Cloud's Singapore region (asia-southeast1). Data is encrypted in transit and at rest by Google. A copy of your groups is also kept on your device (in the app's private storage, or in your browser for the web app), so the app keeps working offline; changes made offline sync once you are back online.</p>
     <p>On Android, SimSplit opts out of Android backup: the copy on your device is not included in Google cloud backups or device-to-device transfers.</p>
 
-    <h2>5. Keeping and Deleting Your Data</h2>
+    <h2 id="delete">5. Keeping and Deleting Your Data</h2>
     <ul>
       <li><strong>Sign out</strong> removes your groups from the device. They stay in your account.</li>
       <li><strong>Leave group</strong> removes your access to a group. Your member name and the expenses recorded under it stay in the group for the other members.</li>

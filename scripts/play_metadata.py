@@ -19,6 +19,7 @@ Layout (fastlane-compatible):
   <lang>/images/icon.png                   512x512
   <lang>/images/featureGraphic.png         1024x500
   <lang>/images/{phone,sevenInch,tenInch}Screenshots/*.png|jpg   2-8 each
+  ../../whatsnew/whatsnew-<lang>           release notes, max 500 chars
 """
 
 import argparse
@@ -29,6 +30,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent / "android/fastlane/metadata/android"
+# Release notes for the next tagged release (production or RC), uploaded by build_android.yml.
+WHATSNEW = ROOT.parent.parent / "whatsnew"
+WHATSNEW_LIMIT = 500
 
 TEXT_LIMITS = {"title.txt": 30, "short_description.txt": 80, "full_description.txt": 4000}
 LISTING_FIELDS = {
@@ -111,6 +115,13 @@ def check() -> list[str]:
                         f"{path.relative_to(ROOT)}: {w}x{h}; sides must be 320-3840 px "
                         "and the long side at most 2x the short side"
                     )
+
+    for path in sorted(WHATSNEW.glob("whatsnew-*")):
+        text = path.read_text().strip()
+        if not text:
+            errors.append(f"whatsnew/{path.name}: empty")
+        elif len(text) > WHATSNEW_LIMIT:
+            errors.append(f"whatsnew/{path.name}: {len(text)} chars, max {WHATSNEW_LIMIT}")
     return errors
 
 

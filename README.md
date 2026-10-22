@@ -3,8 +3,9 @@
 A group expense tracking and splitting app — friends share a group, log expenses together
 and see the same balances, and every change is on record.
 
-Use it on the web at **[simsplit.web.app](https://simsplit.web.app)**. Android is in closed
-testing on Google Play; iOS follows once the Apple Developer account is active.
+Use it on the web at **[simsplit.web.app](https://simsplit.web.app)** or on Android from
+[Google Play](https://play.google.com/store/apps/details?id=com.mazino2d.simsplit); iOS
+follows once the Apple Developer account is active.
 
 ---
 
@@ -57,8 +58,9 @@ cd sim-split
 # and downloads the web database assets matching pubspec.lock
 bash scripts/setup.sh
 
-# Run the app
-flutter run
+# Run the app (App Check is enforced: debug builds need the token in .env.local)
+cp .env.example .env.local
+flutter run --dart-define-from-file=.env.local
 ```
 
 ### Running on the web
@@ -111,7 +113,7 @@ Strict **Clean Architecture** with three layers:
 ```text
 lib/
 ├── domain/          # Pure Dart — entities, failures, repository interfaces, use cases
-├── data/            # Drift tables, DAOs, mappers, repository implementations
+├── data/            # Drift tables, DAOs, mappers, Drift + Firebase repositories, Firestore sync (sync/)
 ├── presentation/    # Riverpod providers/notifiers, go_router, screens, widgets
 └── core/
     └── di/          # Dependency injection (DB → DAO → Repo → UseCase)
@@ -121,7 +123,7 @@ lib/
 
 ### Key rules
 
-- `lib/domain/` must not import Flutter, Drift, or Riverpod
+- `lib/domain/` is pure Dart — no Flutter, Drift, Firebase, Riverpod or go_router imports; presentation never imports data
 - Money is always **integer cents** (`amountCents: int`) — never `double`
 - Error handling uses `Either<Failure, T>` from `fpdart`
 
@@ -132,21 +134,26 @@ lib/
 | Workflow | Trigger | Result |
 | --- | --- | --- |
 | `pr_validate` | Every PR → `main` | Parallel format/analyze/test, store-metadata check, Firestore rules tests and actionlint, each skipped unless its files change; `PR Validation` is the required check |
-| `build_android` | Manual (`workflow_dispatch`), or called by `release` | Signed AAB → Google Play (track selectable, default `internal`) |
+| `build_android` | Push to `main` touching app code, manual (`workflow_dispatch`), or called by `release` / `release_candidate` | Signed AAB → Google Play; on push straight to internal testers, manual runs pick the track (default `internal`) |
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
-| `release` | Push a `vX.Y.Z` tag | Validates the tag, uploads AAB to the `production` track (as draft), creates a GitHub Release |
+| `release_candidate` | Push a `vYYYY.M.D-rc.N` tag | Uploads the AAB as `YYYY.M.D-rc.N` with release notes to the closed testing track (`alpha`), creates a GitHub pre-release |
+| `release` | Push a `vYYYY.M.D` tag | Validates the tag, uploads the AAB with release notes to the `production` track as a 20 % staged rollout (sent for review), creates a GitHub Release |
+| `play_rollout` | Manual, from `main` | Widens the production rollout to 50 % or 100 %, or halts / resumes it |
 | `play_metadata` | Push to `main` touching `android/fastlane/metadata/**`, or manual (dry run by default) | Syncs the Play store listing, images, contact details and Data safety form — see [android/fastlane/README.md](android/fastlane/README.md) |
 | `firebase_deploy` | Push to `main` touching the app, `web/` or `firebase/**`, or manual | Builds the web app and deploys it to [simsplit.web.app](https://simsplit.web.app), with the Firestore rules and indexes |
+| `pages` | Push to `main` touching `docs/**`, or manual; PRs build only | Publishes `docs/` (landing page, privacy policy) to [mazino2d.github.io/sim-split](https://mazino2d.github.io/sim-split/) |
+| `codeql` | Workflow changes, weekly | CodeQL scan of the workflows |
 
-Pushing to `main` does **not** upload anything to Google Play.
+Shared logic comes from [mazino2d/github-workflows](https://github.com/mazino2d/github-workflows) (`@v1`): `pages`, `codeql` and the actionlint job of `pr_validate` call its reusable workflows, and `.github/actions/flutter-setup` pins the Flutter version for its shared `flutter-setup` action.
 
 ### versionCode
 
 Google Play needs a unique, increasing `versionCode` for every upload. CI ignores
 the `+N` build number in `pubspec.yaml` and passes
 `--build-number=<minutes since 2026-01-01 UTC>` to `flutter build appbundle`, which
-is monotonic across manual and tag-triggered runs. The `versionName` still comes
-from `pubspec.yaml`.
+is monotonic across manual and tag-triggered runs. The `versionName` comes from the
+tag (`YYYY.M.D`, `YYYY.M.D-rc.N`), or is `YYYY.M.D-dev.<sha7>` for untagged builds;
+`pubspec.yaml`'s version is only checked against the production tag.
 
 ### Required GitHub Secrets
 
@@ -196,29 +203,46 @@ Never commit either file.
 
 ### Internal testing build
 
-GitHub → Actions → **Build Android** → *Run workflow*. Pick the track
-(default `internal`) and release status (default `draft`).
+Every merge to `main` that changes app code (`lib/`, `android/`, `assets/`,
+`pubspec.lock`) uploads a build to the Play **internal** track, released to internal
+testers at once. To upload another branch's build or pick another track: GitHub →
+Actions → **Build Android** → *Run workflow* (default `internal`, `draft`).
+
+### Closed test (release candidate)
+
+```bash
+git tag v2026.10.25-rc.1      # the day it is cut, then rc.2, rc.3 …
+git push origin v2026.10.25-rc.1
+```
+
+`release_candidate.yml` builds `main` at that tag as `2026.10.25-rc.1` and uploads it
+to the closed testing track with the notes in `android/fastlane/whatsnew/`.
 
 ### Production release
 
 ```bash
-# 1. Bump the version name in pubspec.yaml (e.g. 1.0.0+5 → 1.1.0+5).
-#    The +N part is overridden in CI, so it does not need to change.
-# 2. Commit and merge the change to main
-git tag v1.1.0
-git push origin v1.1.0
+# 1. Set the version in pubspec.yaml to today's CalVer date, YYYY.M.D without
+#    zero padding (e.g. 2026.10.22+6). The +N part is overridden in CI.
+# 2. Write the release notes in android/fastlane/whatsnew/whatsnew-{en-US,vi}
+#    (max 500 chars each)
+# 3. Commit and merge the change to main
+git tag v2026.10.22
+git push origin v2026.10.22
 ```
 
 `release.yml` checks that the tag matches the `pubspec.yaml` version, builds and
-uploads the AAB to the Play **production** track as a draft, and creates a GitHub
-Release with the AAB attached. Review and roll out the draft in the Play Console.
+uploads the AAB with the release notes to the Play **production** track as a staged
+rollout at 20 %, and creates a GitHub Release with the AAB attached. Managed
+publishing is off, so the upload goes to review at once and reaches 20 % of users when
+approved. After checking Android vitals, widen it with GitHub → Actions → **Play
+Rollout** (`50%`, `100%`, or `halt` / `resume`).
 
 ---
 
 ## Privacy
 
-SimSplit stores your Google account's name and email and your groups in Firebase, visible
-only to the members of each group. No ads, no analytics, no tracking. See
+SimSplit keeps your Google account's name and email in Firebase Authentication and your
+groups in Cloud Firestore; a group is visible only to its members. No ads, no analytics, no tracking. See
 [docs/privacy-policy.html](docs/privacy-policy.html).
 
 ---

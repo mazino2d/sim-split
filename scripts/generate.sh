@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run all code generators: Drift, Freezed, Riverpod, and flutter_gen (l10n)
+# Run all generators: build_runner (Drift, Freezed, json_serializable, Riverpod), gen-l10n, launcher icons and splash screens.
 set -e
 
 echo "🔨 Running build_runner..."

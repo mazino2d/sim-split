@@ -1,7 +1,8 @@
 name: Play Store Metadata
 
 # Syncs the store listing (text, icon, feature graphic, screenshots, contact
-# details) from android/fastlane/metadata/android to Google Play, plan/apply
+# details) and, when data_safety.csv changes, the Data safety form from
+# android/fastlane/metadata/android to Google Play, plan/apply
 # style:
 #   - pull request → dry run against Play, result posted as a PR comment
 #   - push to main  → real sync

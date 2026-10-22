@@ -100,7 +100,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
   bool _isLoading = false;
   bool _isDirty = false;
 
-  // ── "Tôi" (me) member ────────────────────────────────────────────────────
+  // ── "Me" member ──────────────────────────────────────────────────────────
   final _meNameController = TextEditingController();
   String? _meEmoji;
   // Edit mode only — track the existing me member to update it
@@ -169,7 +169,6 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     final group = await ref.read(groupDetailProvider(groupId).future);
     if (!mounted) return;
 
-    // Load the isMe member
     final members = await ref.read(memberListProvider(groupId).future);
     final meM = members.where((m) => m.isMe).firstOrNull;
 
@@ -967,7 +966,7 @@ class _BottomAction extends StatelessWidget {
   }
 }
 
-// ── "Tôi" row ─────────────────────────────────────────────────────────────────
+// ── "Me" row ──────────────────────────────────────────────────────────────────
 
 class _MeRow extends StatelessWidget {
   const _MeRow({

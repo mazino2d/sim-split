@@ -1,6 +1,6 @@
 # R-3 Co-worked groups
 
-Status: ready   ·   Serves: UC-1, UC-2, UC-3, UC-4, UC-7, UC-8, UC-9   ·   Roadmap: Now
+Status: in progress (live on web and Android 2026.10.22; iOS next)   ·   Serves: UC-1, UC-2, UC-3, UC-4, UC-7, UC-8, UC-9   ·   Roadmap: Now
 
 ## Problem
 
@@ -173,7 +173,7 @@ when a number looks wrong, anyone can see who changed what and when.
 - UC-1.1 still holds in a shared group: a timed run on a mid-range Android phone, recorded
   in the PR.
 - AC15 is verified with two real devices on the same group.
-- The cost load test (AC24) is recorded in the PR before release.
+- The cost load test (AC24) was dropped on 2026-10-22; the budget and kill switch cap the risk.
 - Crash-free users stay ≥ 99.5 % after release (Play vitals).
 
 ## Out of scope
@@ -188,14 +188,6 @@ when a number looks wrong, anyone can see who changed what and when.
 
 ## Follow-ups this spec requires
 
-- The web app gets sign-in and sync like Android (plan phase P4). It also gives the web
-  account-deletion path below.
-- Rewrite the Play Store listing (EN + VI): it currently promises "completely offline" and
-  "No account needed".
-- Update the Play Data safety form: account info (email, name) and user content are now
-  collected and stored in the cloud. Publish a privacy policy page.
-- Add an in-app and web account-deletion path (a Play policy requirement for apps with
-  accounts).
 - iOS release: Apple Developer Program membership (99 USD/year — not a backend cost, but
   the only paid item), App Store Connect listing in EN + VI, App Privacy labels matching
   the Data safety form, and Universal Links for invite links (Android: App Links).

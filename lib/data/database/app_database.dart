@@ -51,7 +51,6 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
-          // Enable foreign key enforcement for SQLite
           await customStatement('PRAGMA foreign_keys = ON');
         },
         onUpgrade: (m, from, to) async {

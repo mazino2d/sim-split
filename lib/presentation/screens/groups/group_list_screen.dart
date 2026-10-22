@@ -26,8 +26,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
   @override
   void initState() {
     super.initState();
-    // Remove splash after the first frame is fully rasterized,
-    // ensuring icon fonts are already loaded before user sees the UI.
+    // Remove the native splash once the first frame of the list is drawn.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       FlutterNativeSplash.remove();
     });

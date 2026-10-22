@@ -55,7 +55,7 @@ git diff origin/<base>...HEAD -U0 | grep -nE '^\+.*\.members\b'
 
 ## 3. Run CI checks locally
 
-Same as `.github/workflows/pr_validate.yml`. Run them even for docs-only PRs — the format check covers the whole repo, so pre-existing issues on the base branch still fail CI.
+Same as `.github/workflows/pr_validate.yml`. Run them whenever the PR touches Dart sources or their build inputs (the `dart` filter in `pr_validate.yml`); docs-only PRs skip these jobs. The format check covers the whole repo, so pre-existing issues on the base branch fail CI too.
 
 Resolve packages and regenerate code first. Without `pub get`, `dart format` can't read the package language version and reformats far more files than CI does.
 
@@ -76,7 +76,7 @@ Report results honestly. If something fails, show the output and ask whether to 
 Conventional Commits, imperative, ≤ 72 chars, no trailing period:
 
 `<type>(<optional scope>): <summary>` — types: `feat`, `fix`, `refactor`, `chore`, `test`, `docs`, `ci`, `perf`.
-Scopes match the feature area: `groups`, `members`, `expenses`, `settlements`, `activity`, `sync`, `auth`, `invites`, `firebase`, `l10n`, `db`, `ui`, `ci`, `store`, `deps`, `skills`, `ios`, `android`; for docs, the doc area (`product`, `roadmap`, `r3`). Check `git log --oneline -30` when unsure.
+Scopes match the feature area: `groups`, `members`, `expenses`, `settlements`, `activity`, `sync`, `auth`, `invites`, `firebase`, `l10n`, `db`, `ui`, `ci`, `store`, `deps`, `skills`, `release`, `ios`, `android`; for docs, the doc area (`product`, `roadmap`, `r3`). Check `git log --oneline -30` when unsure.
 
 Example: `feat(expenses): add paid-by dropdown to expense form`
 

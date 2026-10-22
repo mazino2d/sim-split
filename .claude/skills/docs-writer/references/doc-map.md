@@ -21,7 +21,7 @@ Sources marked *(code)* are not docs: read the code or config, never another doc
 
 | Fact | Source of truth | Mirrors |
 | --- | --- | --- |
-| What data is collected, where it lives, who sees it | *(code)* `lib/data/`, `firebase/firestore.rules`, `firebase.json` | `docs/privacy-policy.html` · `README.md` § Privacy · `docs/index.html` privacy section · `SECURITY.md` scope · Play Data safety (`android/fastlane/README.md`, set in Play Console) |
+| What data is collected, where it lives, who sees it | *(code)* `lib/data/`, `firebase/firestore.rules`, `firebase.json` | `docs/privacy-policy.html` · `README.md` § Privacy · `docs/index.html` privacy section · `SECURITY.md` scope · Play Data safety (`android/fastlane/metadata/android/data_safety.csv`, uploaded by `play_metadata.yml`) |
 | How to report a vulnerability | `SECURITY.md` | `CODE_OF_CONDUCT.md` § Enforcement · `CONTRIBUTING.md` · `.github/ISSUE_TEMPLATE/config.yml` |
 | License | `LICENSE` | `README.md` § License · `CONTRIBUTING.md` § License |
 
@@ -33,7 +33,7 @@ Sources marked *(code)* are not docs: read the code or config, never another doc
 | Developer commands (setup, codegen, l10n, CI checks, run) | `AGENTS.md` § Commands, checked against `scripts/` and `.github/workflows/pr_validate.yml` | `README.md` § Getting Started / Common commands · `CONTRIBUTING.md` § Set up / Before you open a pull request · `.claude/skills/software-engineer/SKILL.md` · `.claude/skills/pr-writer/SKILL.md` step 3 |
 | Flutter version, toolchain | *(code)* `.github/actions/flutter-setup/action.yml`, `pubspec.yaml` | `README.md` § Tech Stack / Requirements · `CONTRIBUTING.md` § Set up · `.devcontainer/Dockerfile` (`FLUTTER_VERSION`) |
 | Workflow triggers and results | *(code)* `.github/workflows/*.yml` | `README.md` § CI/CD · `.claude/skills/software-engineer/references/ci.md` |
-| Release process, versionCode | *(code)* `.github/workflows/release.yml`, `build_android.yml` | `README.md` § Releasing / versionCode · `.claude/skills/software-engineer/references/ci.md` |
+| Release process, versionCode, tracks | *(code)* `.github/workflows/release.yml`, `release_candidate.yml`, `play_rollout.yml`, `build_android.yml` | `README.md` § Releasing / versionCode · `.claude/skills/software-engineer/references/ci.md` · `.claude/skills/release-manager/SKILL.md` § Version scheme / How a release flows |
 | Required secrets, WIF identities | *(code)* workflows + `mazino2d/everything-as-code` | `README.md` § Required GitHub Secrets · `android/fastlane/README.md` |
 | Local build settings (`--dart-define`s) | `.env.example` | `.claude/skills/software-engineer/SKILL.md` § Local build settings · `AGENTS.md` § Commands |
 | Store text limits, metadata pipeline | *(code)* `scripts/play_metadata.py` | `android/fastlane/README.md` |
@@ -65,7 +65,7 @@ Use this to go from a diff to the rows above.
   internal URLs, secrets) goes there.
 - The store listing ships on merge to `main` (`play_metadata`), and `docs/` goes live
   on merge too. Treat both as user-facing releases.
-- Android 1.x is offline-only and collects nothing; the web app and Android 2.x sign in
-  and sync. Privacy text must keep both true until 1.x is gone.
+- Android 1.0 is offline-only and collects nothing; the web app and Android 2026.10.22
+  and later (CalVer) sign in and sync. Privacy text must keep both true until 1.0 is gone.
 - Specs and strategy belong to the `product-owner` skill. Don't change acceptance
   criteria, non-goals or the North Star from here — raise it instead.

@@ -46,6 +46,7 @@ jobs:
               - ".github/actions/flutter-setup/**"
             metadata:
               - "android/fastlane/metadata/**"
+              - "android/fastlane/whatsnew/**"
               - "scripts/play_metadata.py"
               - ".github/workflows/pr_validate.yml"
             workflows:
@@ -135,14 +136,7 @@ jobs:
     name: Lint workflows
     needs: changes
     if: needs.changes.outputs.workflows == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7
-      - name: actionlint
-        run: |
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
-          ./actionlint -color
+    uses: mazino2d/github-workflows/.github/workflows/lint.yml@v1
 
   # Single check to mark as required in branch protection. Passes when every
   # job above succeeded or was skipped; fails if any failed or was cancelled.
