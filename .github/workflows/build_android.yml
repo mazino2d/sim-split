@@ -14,6 +14,9 @@ on:
     paths:
       - "lib/**"
       - "android/**"
+      # Store listing, Data safety and release notes ship through
+      # play_metadata.yml and release.yml, not as a new build.
+      - "!android/fastlane/**"
       - "assets/**"
       - "pubspec.lock"
   workflow_dispatch:
