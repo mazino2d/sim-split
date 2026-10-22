@@ -17,7 +17,7 @@ permissions:
 jobs:
   rollout:
     name: Rollout ${{ inputs.action }}
-    # Only main can authenticate to Play (Workload Identity in everything-as-code).
+    # Rollouts run from main only (Workload Identity would also admit v* tags).
     if: github.ref == 'refs/heads/main'
     # Play rejects concurrent edits: rollout changes run one at a time.
     concurrency:

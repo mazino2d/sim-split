@@ -11,7 +11,7 @@ class Money {
     );
   }
 
-  /// Integer cents. Always >= 0.
+  /// Integer cents (amount × 100).
   final int amountCents;
 
   /// ISO 4217 currency code, e.g. 'VND', 'USD'.

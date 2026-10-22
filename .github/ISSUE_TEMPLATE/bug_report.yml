@@ -28,7 +28,6 @@ body:
       options:
         - Android
         - Web (simsplit.web.app)
-        - iOS
     validations:
       required: true
   - type: input

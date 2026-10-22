@@ -5,8 +5,8 @@ import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/repositories/sync_repository.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
 
-/// Uploads local data on first sign-in and keeps pushing changes (AC7,
-/// AC16).
+/// Uploads local data on first sign-in, keeps pushing changes and pulls the
+/// account's groups (AC7, AC15, AC16).
 class StartSync implements AsyncUseCase<Unit, AuthUser> {
   const StartSync({required SyncRepository syncRepository})
       : _syncRepository = syncRepository;

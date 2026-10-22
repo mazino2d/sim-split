@@ -1,8 +1,8 @@
 /// Formats an amount stored as integer cents into a human-readable string
 /// with thousands separators and a currency symbol.
 ///
-/// Convention: amountCents is always the stored value * 100.
-/// For VND (no subunit), 100,000 VND is stored as 10,000,000 cents.
+/// Convention: amountCents is the amount × 100 for every currency, so
+/// 100,000 VND is stored as 10,000,000.
 String formatMoney(int amountCents, String currencyCode) {
   // For currencies without decimal subunits (VND, JPY, KRW…) we still
   // divide by 100 since the app stores everything *100 for consistency.

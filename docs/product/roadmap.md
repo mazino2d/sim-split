@@ -22,7 +22,7 @@ records its story. (Renumbered 2026-10-03; earlier backlog items are folded into
 
 | ID | Item | Serves | Notes |
 | --- | --- | --- | --- |
-| R-1 | v1.0 offline app: groups, members, expenses with 4 split types, balances with simplified debts, settlements, EN + VI, light/dark | UC-1 – UC-4, UC-6 | Built under the original offline, no-account strategy. Closed test on Google Play submitted 2026-10-03. Story: [R-1](specs/R-1-offline-app.md). Implementation: [R-1](../implementations/R-1-offline-app.md). |
+| R-1 | v1.0 offline app: groups, members, expenses with 4 split types, balances with simplified debts, settlements, EN + VI, light/dark | UC-1 – UC-4, UC-6 | Built under the original offline, no-account strategy. Closed test on Google Play submitted 2026-10-03; the offline build (with R-2) reached production as 1.0.0, superseded by 2026.10.22. Story: [R-1](specs/R-1-offline-app.md). Implementation: [R-1](../implementations/R-1-offline-app.md). |
 | R-2 | UI/UX polish and strategy clarity: redesign, faster expense and group flows, product docs, timed audit of UC-1 | UC-1.1, all UCs | Redesign shipped in #16; product docs (strategy, principles, use cases, roadmap) written. Timed UC-1 audit passed on 2026-10-07 on a mid-range Android phone: median 5 s (worst 7 s), 2–3 taps. Story: [R-2](specs/R-2-ux-polish-and-strategy.md). Implementation: [R-2](../implementations/R-2-ux-polish-and-strategy.md). |
 
 ## Now

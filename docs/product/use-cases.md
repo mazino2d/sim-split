@@ -5,11 +5,11 @@ Supporting use cases must work correctly but are optimised only when it costs th
 nothing.
 
 Criteria marked *(R-3)* belong to online shared groups
-([spec](specs/R-3-online-shared-groups.md)) and are not built yet. Until R-3 ships, the
-app is local-only and those criteria do not apply.
+([spec](specs/R-3-online-shared-groups.md)), live on the web and on Android since
+2026.10.22; iOS follows.
 
 "Offline" below means signed in, with no network. "Every device" means every signed-in
-member of that group, on Android or iOS.
+member of that group, on Android, iOS or the web.
 
 ## Core
 
@@ -59,7 +59,7 @@ member of that group, on Android or iOS.
 | --- | --- |
 | 4.1 | Any member can record a settlement, online or offline. Settled debts disappear from balances on every device after sync. |
 | 4.2 | Settlement history is visible and shows who recorded each entry. *(R-3 for "who")* |
-| 4.3 | Any member can edit or delete a settlement. Balances recompute exactly. |
+| 4.3 | Any member can edit or delete a settlement. Balances recompute exactly. *(Edit not built.)* |
 
 ### UC-5 Share the result with the group
 

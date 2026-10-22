@@ -9,8 +9,8 @@ Presentation  →  Domain  ←  Data
 | Layer | Allowed imports | Must NOT import |
 | --- | --- | --- |
 | `lib/domain/` | dart:core, freezed_annotation, fpdart, uuid | flutter, drift, firebase / cloud_firestore, riverpod, go_router |
-| `lib/data/` | domain/ + drift + path_provider + firebase_auth / cloud_firestore | flutter/widgets, riverpod (except adapter) |
-| `lib/presentation/` | domain/use_cases/ + flutter + riverpod + go_router | drift, DAO, mapper, table models |
+| `lib/data/` | domain/ + drift + drift_flutter + firebase_auth / cloud_firestore / google_sign_in | flutter/widgets, riverpod (except adapter) |
+| `lib/presentation/` | domain/ (entities, failures, use_cases) + flutter + riverpod + go_router | `lib/data/` (drift, DAOs, mappers, table models) |
 
 ## Layer responsibilities
 
@@ -20,7 +20,8 @@ Presentation  →  Domain  ←  Data
   mappers (`DriftRow ↔ DomainEntity`), repository implementations.
   `lib/data/database/app_database.dart` is the Drift root (all tables + DAOs).
   Firebase-backed repositories (`firebase_auth_repository`,
-  `firestore_invite_repository`, `firestore_sync_repository`) and the sync
+  `firebase_web_auth_repository`, `firestore_invite_repository`,
+  `firestore_sync_repository`) and the sync
   engine in `lib/data/sync/` live here too.
 - **`lib/presentation/`** — Riverpod providers/notifiers, go_router screens,
   widgets.

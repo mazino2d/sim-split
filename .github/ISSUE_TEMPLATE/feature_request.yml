@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the idea! Please check the [roadmap and strategy](https://mazino2d.github.io/sim-split/)
+        Thanks for the idea! Please check the [roadmap and strategy](https://mazino2d.github.io/sim-split/product/)
         first — some features are deliberate non-goals.
   - type: textarea
     id: problem
