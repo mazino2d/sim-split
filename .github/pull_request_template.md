@@ -23,3 +23,6 @@
 - [ ] Money stays in `int` cents
 - [ ] New strings are in both `app_en.arb` and `app_vi.arb`
 - [ ] Generated files were regenerated, not hand-edited
+
+## Notes for reviewers
+<!-- Risky areas, migrations, rules changes, follow-ups. Delete if none. -->

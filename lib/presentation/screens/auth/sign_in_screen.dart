@@ -9,7 +9,7 @@ import 'package:simsplit/presentation/notifiers/auth_notifier.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 
 /// The only screen before the group list (R-3 AC1): the app name, one line
-/// on why, and the provider buttons. The router leaves it on its own once
+/// on why, and the Google button (Sign in with Apple joins in R-3 P8). The router leaves it on its own once
 /// the user is signed in.
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});

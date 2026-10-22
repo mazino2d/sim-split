@@ -56,8 +56,9 @@ Follow `docs/product/principles.md` — **Calm** beats **Fast capture**:
 
 ## Routing
 
-`lib/presentation/router/app_router.dart`. All routes nest under `/` so Back
-from a group returns to the list. Pass small options as query parameters
+`lib/presentation/router/app_router.dart`. Every in-app screen nests under `/`
+so Back from a group returns to the list; `/starting` and `/sign-in` sit outside
+it so Back exits the app. Pass small options as query parameters
 (e.g. `…/edit?focus=title`), not `extra`, so they survive deep links.
 
 ## Localization

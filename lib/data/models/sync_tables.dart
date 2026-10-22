@@ -7,7 +7,7 @@ class Activities extends Table {
   TextColumn get groupId => text()();
   TextColumn get actorUid => text()();
 
-  /// 'create' | 'update' | 'delete'
+  /// 'create' | 'update' | 'delete' | 'join' (join only arrives by pull)
   TextColumn get action => text()();
 
   /// 'group' | 'member' | 'expense' | 'settlement'
@@ -15,7 +15,7 @@ class Activities extends Table {
   TextColumn get entityId => text()();
 
   /// JSON snapshots of the record before and after the change (see
-  /// SyncCodec). `before` is null for a create.
+  /// SyncCodec). `before` is null for a create or a join.
   TextColumn get before => text().nullable()();
   TextColumn get after => text()();
 

@@ -18,8 +18,8 @@ Stream<Set<String>> unsyncedRecordIds(Ref ref, String groupId) {
 }
 
 /// Keeps sync running while an account is signed in: uploads local data on
-/// first sign-in, then pushes every change (R-3). Watch it once from the app
-/// root.
+/// first sign-in, then pushes every change and pulls the account's groups in
+/// real time (R-3). Watch it once from the app root.
 @Riverpod(keepAlive: true)
 Future<void> syncRunner(Ref ref) async {
   if (!ref.watch(authAvailableProvider)) return;

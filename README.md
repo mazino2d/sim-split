@@ -58,8 +58,9 @@ cd sim-split
 # and downloads the web database assets matching pubspec.lock
 bash scripts/setup.sh
 
-# Run the app
-flutter run
+# Run the app (App Check is enforced: debug builds need the token in .env.local)
+cp .env.example .env.local
+flutter run --dart-define-from-file=.env.local
 ```
 
 ### Running on the web
@@ -112,7 +113,7 @@ Strict **Clean Architecture** with three layers:
 ```text
 lib/
 ├── domain/          # Pure Dart — entities, failures, repository interfaces, use cases
-├── data/            # Drift tables, DAOs, mappers, repository implementations
+├── data/            # Drift tables, DAOs, mappers, Drift + Firebase repositories, Firestore sync (sync/)
 ├── presentation/    # Riverpod providers/notifiers, go_router, screens, widgets
 └── core/
     └── di/          # Dependency injection (DB → DAO → Repo → UseCase)
@@ -122,7 +123,7 @@ lib/
 
 ### Key rules
 
-- `lib/domain/` must not import Flutter, Drift, or Riverpod
+- `lib/domain/` is pure Dart — no Flutter, Drift, Firebase, Riverpod or go_router imports; presentation never imports data
 - Money is always **integer cents** (`amountCents: int`) — never `double`
 - Error handling uses `Either<Failure, T>` from `fpdart`
 
@@ -133,7 +134,7 @@ lib/
 | Workflow | Trigger | Result |
 | --- | --- | --- |
 | `pr_validate` | Every PR → `main` | Parallel format/analyze/test, store-metadata check, Firestore rules tests and actionlint, each skipped unless its files change; `PR Validation` is the required check |
-| `build_android` | Push to `main` touching app code, manual (`workflow_dispatch`), or called by `release` | Signed AAB → Google Play; on push straight to internal testers, manual runs pick the track (default `internal`) |
+| `build_android` | Push to `main` touching app code, manual (`workflow_dispatch`), or called by `release` / `release_candidate` | Signed AAB → Google Play; on push straight to internal testers, manual runs pick the track (default `internal`) |
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
 | `release_candidate` | Push a `vYYYY.M.D-rc.N` tag | Uploads the AAB as `YYYY.M.D-rc.N` with release notes to the closed testing track (`alpha`), creates a GitHub pre-release |
 | `release` | Push a `vYYYY.M.D` tag | Validates the tag, uploads the AAB with release notes to the `production` track as a 20 % staged rollout (sent for review), creates a GitHub Release |
@@ -145,15 +146,14 @@ lib/
 
 Shared logic comes from [mazino2d/github-workflows](https://github.com/mazino2d/github-workflows) (`@v1`): `pages`, `codeql` and the actionlint job of `pr_validate` call its reusable workflows, and `.github/actions/flutter-setup` pins the Flutter version for its shared `flutter-setup` action.
 
-Pushing to `main` does **not** upload anything to Google Play.
-
 ### versionCode
 
 Google Play needs a unique, increasing `versionCode` for every upload. CI ignores
 the `+N` build number in `pubspec.yaml` and passes
 `--build-number=<minutes since 2026-01-01 UTC>` to `flutter build appbundle`, which
-is monotonic across manual and tag-triggered runs. The `versionName` still comes
-from `pubspec.yaml`.
+is monotonic across manual and tag-triggered runs. The `versionName` comes from the
+tag (`YYYY.M.D`, `YYYY.M.D-rc.N`), or is `YYYY.M.D-dev.<sha7>` for untagged builds;
+`pubspec.yaml`'s version is only checked against the production tag.
 
 ### Required GitHub Secrets
 
@@ -218,10 +218,6 @@ git push origin v2026.10.25-rc.1
 `release_candidate.yml` builds `main` at that tag as `2026.10.25-rc.1` and uploads it
 to the closed testing track with the notes in `android/fastlane/whatsnew/`.
 
-Version names: internal builds are `YYYY.M.D-dev.<sha7>` (build date), release
-candidates `YYYY.M.D-rc.N`, production `YYYY.M.D`. The versionCode is minutes since
-2026-01-01 UTC for all of them.
-
 ### Production release
 
 ```bash
@@ -245,8 +241,8 @@ Rollout** (`50%`, `100%`, or `halt` / `resume`).
 
 ## Privacy
 
-SimSplit stores your Google account's name and email and your groups in Firebase, visible
-only to the members of each group. No ads, no analytics, no tracking. See
+SimSplit keeps your Google account's name and email in Firebase Authentication and your
+groups in Cloud Firestore; a group is visible only to its members. No ads, no analytics, no tracking. See
 [docs/privacy-policy.html](docs/privacy-policy.html).
 
 ---

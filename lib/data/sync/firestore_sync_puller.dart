@@ -11,7 +11,8 @@ typedef _Doc = DocumentSnapshot<Map<String, dynamic>>;
 /// keeps it up to date in real time (AC15, AC18b).
 ///
 /// One listener watches the account's groups. Each group gets one listener
-/// per subcollection, filtered on `updatedAt` after the last change pulled,
+/// per subcollection, filtered on its server time (`updatedAt`, or
+/// `syncedAt` for activity) after the last change pulled,
 /// so a restart reads only what changed meanwhile. A remote record replaces
 /// the local one as a whole: the last write to reach the server wins
 /// (AC17). Records with changes still in the outbox are skipped: those
@@ -46,7 +47,8 @@ class FirestoreSyncPuller {
   static void _noLog(String message) {}
 
   /// Sync-state keys: `pulled:<group>` marks a group that was pulled, and
-  /// `pull:<group>:<collection>` holds the newest `updatedAt` pulled, in
+  /// `pull:<group>:<collection>` holds the newest server time pulled (see
+  /// [_timeField]), in
   /// epoch microseconds (Firestore's precision).
   static String _pulledKey(String groupId) => 'pulled:$groupId';
   static String _cursorKey(String groupId, String collection) =>
@@ -508,7 +510,8 @@ class FirestoreSyncPuller {
 class _GroupPull {
   final subs = <StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>[];
 
-  /// Newest `updatedAt` seen per collection, in epoch microseconds.
+  /// Newest server time ([_timeField]) seen per collection, in epoch
+  /// microseconds.
   final newest = <String, int>{};
 
   /// Expenses and settlements whose members have not arrived yet, by ID.

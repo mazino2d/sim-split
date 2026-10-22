@@ -20,7 +20,6 @@
   "forwardPorts": [3000],
   "portsAttributes": {
     "3000": { "label": "SimSplit web", "onAutoForward": "openBrowser" },
-    "4000": { "label": "Firebase emulator UI", "onAutoForward": "silent" },
     "8080": { "label": "Firestore emulator", "onAutoForward": "silent" },
     "9099": { "label": "Auth emulator", "onAutoForward": "silent" }
   },

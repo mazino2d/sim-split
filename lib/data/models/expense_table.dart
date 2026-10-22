@@ -23,7 +23,7 @@ class Expenses extends Table {
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
   /// Account uid that created / last changed the row (R-3). Null for rows
-  /// written while signed out (v1 data, web).
+  /// written without an account (desktop, or before the first sign-in uploads them).
   TextColumn get createdBy => text().nullable()();
   TextColumn get updatedBy => text().nullable()();
 

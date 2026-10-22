@@ -50,8 +50,8 @@ Bring docs in line with a change. Run it on the current branch before a PR.
    - User-visible changes on Android also change both store descriptions, EN and VI
      together; `python3 scripts/play_metadata.py check` enforces their length limits.
    - A change to what data is collected or who can see it needs the privacy policy,
-     the landing page privacy section and the README — and tell the user to check the
-     Play Data safety form by hand.
+     the landing page privacy section, the README and
+     `android/fastlane/metadata/android/data_safety.csv` (`play_metadata.yml` uploads it on merge).
 4. **Check** (below). Then list for the user, per fact: the source, every file you
    changed, and any mirror you deliberately left alone and why.
 

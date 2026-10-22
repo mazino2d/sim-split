@@ -61,8 +61,8 @@ Compile-time settings come from `--dart-define`s. Locally they live in
 `.env.local` (gitignored, copied from the committed `.env.example`), so always
 run the app with `--dart-define-from-file=.env.local`:
 
-- `APP_CHECK_DEBUG_TOKEN` — lets debug builds pass App Check once it is
-  enforced. Without it, Firestore and Auth reject a debug build.
+- `APP_CHECK_DEBUG_TOKEN` — lets debug builds pass App Check, which is
+  enforced: without it, Firestore and Auth reject a debug build.
 - `FIREBASE_EMULATOR_HOST` — `localhost` to use the local emulators.
 
 A new `--dart-define` goes into `.env.example` with a comment, and into the CI

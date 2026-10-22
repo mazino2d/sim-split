@@ -50,7 +50,7 @@ jobs:
 
       # Keyless auth via Workload Identity Federation, managed in
       # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-prd/github_actions.tf).
-      # Only main and vX.Y.Z tags of this repo can impersonate the account.
+      # Only main and v* tags (vYYYY.M.D, vYYYY.M.D-rc.N) of this repo can impersonate the account.
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:

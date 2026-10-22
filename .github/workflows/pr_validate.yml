@@ -46,6 +46,7 @@ jobs:
               - ".github/actions/flutter-setup/**"
             metadata:
               - "android/fastlane/metadata/**"
+              - "android/fastlane/whatsnew/**"
               - "scripts/play_metadata.py"
               - ".github/workflows/pr_validate.yml"
             workflows:

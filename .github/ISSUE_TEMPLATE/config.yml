@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/mazino2d/sim-split/security/advisories/new
     about: Report privately. Please do not open a public issue.
   - name: Product strategy and roadmap
-    url: https://mazino2d.github.io/sim-split/
+    url: https://mazino2d.github.io/sim-split/product/
     about: Check what is planned and what is out of scope before requesting a feature.

@@ -28,10 +28,12 @@ order.
 
 ```
 lib/domain      (pure Dart)
-  + entities: AuthUser, ActivityEntry, Invite
-  + repositories: AuthRepository, InviteRepository, ActivityRepository, SyncStatusRepository
-  + use cases: SignInWithGoogle/Apple, SignOut, DeleteAccount, CreateInvite, ResolveInvite,
-               JoinGroup, LeaveGroup, ResetInvite, WatchActivity, WatchSyncStatus
+  + entities: AuthUser, ActivityEntry
+  + repositories: AuthRepository, InviteRepository, ActivityRepository, SyncRepository,
+                  LocalDataRepository
+  + use cases: SignInWithGoogle (Apple in P8), SignOut, DeleteAccount, WatchCurrentUser,
+               GetInviteLink, JoinGroup, LeaveGroup, ResetInviteLink, WatchActivity,
+               StartSync, StopSync, WatchUnsyncedRecordIds
   existing use cases unchanged
 
 lib/data
@@ -49,12 +51,11 @@ lib/data
                  restart) or setting the oldest entry aside
         puller:  one listener per group, filtered on updatedAt > cursor → upsert into
                  Drift, skipping records that still have pending outbox rows
-  Firebase repositories: auth, invites, activity (all behind domain interfaces)
+  Firebase repositories: auth (native and web), invites, sync (all behind domain interfaces)
   Member.isMe: stays a local column. Marking a member as me links it (linkedUid = uid)
                and releases the previous one; P5 sets isMe from linkedUid when pulling
 
 Firestore
-  users/{uid}
   invites/{token}                    groupId (get by token only, never listed)
   groups/{g}                         memberUids[], ownerUid, inviteToken, updatedAt, deleted
   groups/{g}/members/{m}             linkedUid?, updatedAt, deleted
@@ -89,7 +90,7 @@ Security rules, in short:
 | P7 ✅ | sim-split | Done in #41. Activity screen: the list and an old → new detail view. Built as: the puller also pulls `activity` (cursor on `syncedAt`) into the local `activities` table, so the history reads offline and live, unpushed entries included; names of removed members come from the history itself | AC25–AC28, AC30 | 2 |
 | P8 | both | Next: the Android production release it waited for is out (see Release order). iOS: Apple Developer account, Sign in with Apple (iOS, Android and web through the Services ID), signing, TestFlight in `release.yml`, App Attest for App Check. The unsigned iOS CI build already runs on `macos-15` (firebase-ios-sdk 12 needs Xcode 16.3+, Swift tools 6.1) and passes on `main` | AC1b | 2 |
 | P9 ✅ | both | Done in #45 and everything-as-code#221. App Check, unenforced: Play Integrity in Android release builds, reCAPTCHA (score-based, 24 h token TTL to stay inside the free assessments) on web, a shared debug token for debug builds (`.env.local`), off against the emulators and on iOS until P8. Enforcement on Firestore and Auth is one flag (`app_check_enforced`), switched on with 2026.10.22 in P10 | — | 1 |
-| P10 ✅ | both | Done in #64–#67: released as 2026.10.22 (CalVer replaces v2.0.0; see the `release-manager` skill) after the offline 1.0.0 reached Android production; approved by Play and rolled out to 100 % on 2026-10-22. The cost load test (Firestore reads and writes, and reCAPTCHA assessments) was dropped on 2026-10-22; the budget and kill switch cap the risk. Scope: e2e on emulators for Android, a rewritten store listing (EN/VI), Data safety, privacy policy, enforce App Check (v2.0.0 is the first release that talks to Firebase, so enforcing at launch locks out no installed version) | AC20, AC24 | 2 |
+| P10 ✅ | both | Done in #64–#67: released as 2026.10.22 (CalVer replaces v2.0.0; see the `release-manager` skill) after the offline 1.0.0 reached Android production; approved by Play and rolled out to 100 % on 2026-10-22. The cost load test (Firestore reads and writes, and reCAPTCHA assessments) was dropped on 2026-10-22; the budget and kill switch cap the risk. Scope: e2e on emulators for Android, a rewritten store listing (EN/VI), Data safety, privacy policy, enforce App Check (2026.10.22 is the first release that talks to Firebase, so enforcing at launch locks out no installed version) | AC20, AC24 | 2 |
 
 ## Release order
 
@@ -124,8 +125,7 @@ These are listed in the stack's `_docs/setup.md` in `everything-as-code`:
 | --- | --- |
 | The Apple Developer account is not active in time | Ship Android with Google sign-in first (P8 later). |
 | The kill switch takes the app offline | It only fires at 100 % of a tiny budget. Recovery is a re-apply after fixing the cause (see setup doc). |
-| reCAPTCHA on web costs $8/month above 10,000 assessments, which would trip the kill switch | App Check tokens on web live 24 h (everything-as-code#221), so 100 daily web users need ~3,000 a month. The P9 load test counts assessments too. |
-| Budget notifications lag actual spend | Keep reads incremental (`updatedAt > cursor`). The P9 load test checks for ≥ 2× headroom. |
-| A script uses the public Firebase config to spam Firestore or Auth, trips the kill switch and takes the backend down for everyone | App Check, enforced on Firestore and Auth from 2026.10.22 (P9), rejects requests that do not come from the genuine app. |
-| The e2e suite breaks once sign-in is required | Until P4 the web build has no Firebase and so no sign-in gate; the e2e journey keeps running there (P2). From P4 it signs in against the Auth and Firestore emulators. |
+| reCAPTCHA on web costs $8/month above 10,000 assessments, which would trip the kill switch | App Check tokens on web live 24 h (everything-as-code#221), so 100 daily web users need ~3,000 a month. |
+| Budget notifications lag actual spend | Keep reads incremental (`updatedAt > cursor`); the budget alerts and kill switch cap the risk. |
+| A script uses the public Firebase config to spam Firestore or Auth, trips the kill switch and takes the backend down for everyone | App Check, enforced on Firestore and Auth from 2026.10.22 (P9, enforced in P10), rejects requests that do not come from the genuine app. |
 | Migrating v1 data | Upload with the same IDs, make it resumable, and test with a v2 database fixture (AC7, AC8). |

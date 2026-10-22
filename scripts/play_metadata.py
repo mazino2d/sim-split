@@ -30,7 +30,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent / "android/fastlane/metadata/android"
-# Release notes for the next production release, uploaded by build_android.yml.
+# Release notes for the next tagged release (production or RC), uploaded by build_android.yml.
 WHATSNEW = ROOT.parent.parent / "whatsnew"
 WHATSNEW_LIMIT = 500
 

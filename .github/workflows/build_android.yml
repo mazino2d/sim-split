@@ -4,7 +4,8 @@ name: Build Android
 #   - on push to main when app code changes (internal track, completed, so
 #     internal testers get it at once),
 #   - manually via workflow_dispatch (defaults to the internal track), or
-#   - from release.yml when a vX.Y.Z tag is pushed (production track).
+#   - from release.yml (vYYYY.M.D tag → production, inProgress 20 %) or
+#     release_candidate.yml (vYYYY.M.D-rc.N tag → alpha, completed).
 on:
   push:
     branches: [main]
@@ -147,7 +148,7 @@ jobs:
 
       # Keyless auth via Workload Identity Federation, managed in
       # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-prd/github_actions.tf).
-      # Only main and vX.Y.Z tags of this repo can impersonate the account.
+      # Only main and v* tags (vYYYY.M.D, vYYYY.M.D-rc.N) of this repo can impersonate the account.
       - name: Authenticate to Google Cloud
         id: gcp-auth
         uses: google-github-actions/auth@v3

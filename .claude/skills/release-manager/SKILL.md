@@ -68,14 +68,10 @@ The store listing (`android/fastlane/metadata/`) and `docs/` go live on merge to
 
 ```bash
 git fetch origin --tags --quiet
-git describe --tags --abbrev=0 origin/main 2>/dev/null   # last tag, if any
-git log --oneline <last-tag-or-production-commit>..origin/main
+git describe --tags --abbrev=0 --exclude='*-rc.*' origin/main   # last production tag
+git log --oneline <last-tag>..origin/main
 grep '^version:' pubspec.yaml
 ```
-
-The production build before the first tag was promoted from closed testing, so
-there may be no tag for it; then compare against the commit that build was made
-from (ask the user, or read it from the Play Console release / GitHub Actions run).
 
 Summarize for the user, grouped by user impact: new features, behaviour changes,
 data or permission changes (sign-in, network, new SDKs — these drive Data safety),
@@ -90,7 +86,7 @@ Run what can be run; list the rest as manual steps for the user.
 
 | # | Gate | How | Who |
 | --- | --- | --- | --- |
-| 1 | CI green on the release commit | `gh run list --branch main --limit 5`; `pr_validate`, `codeql` passing | you |
+| 1 | CI green on the release commit | the release PR's checks passed (`gh pr checks <n>`, required `PR Validation`); `gh run list --branch main --limit 5` shows the push runs green | you |
 | 2 | End-to-end | run the `e2e-tester` skill on `main`; for a Firebase release also on Android against the emulators | you |
 | 3 | Upgrade path | the previous production version upgrades cleanly: Drift migration test from its schema, first sign-in uploads local data (R-3 AC7/AC8) | you |
 | 4 | Store listing | EN and VI describe what the build does; `python3 scripts/play_metadata.py check` passes | you, via `docs-writer` |
@@ -100,7 +96,7 @@ Run what can be run; list the rest as manual steps for the user.
 | 8 | Account deletion URL | `PSL_ACCOUNT_DELETION_URL` in `data_safety.csv` points at `privacy-policy.html#delete` | you |
 | 9 | Signing fingerprints | Play App Signing SHA-1/SHA-256 are in Firebase (Google sign-in, Play Integrity) and in `assetlinks.json` (App Links); see everything-as-code `terraform/gcp/simsplit-as-se1-prd/_docs/setup.md` | user |
 | 10 | Backend ready | Firestore rules and indexes deployed from `main` (`firebase_deploy`); budget and kill switch healthy | you check runs, user checks console |
-| 11 | App Check | metrics show verified traffic on web; flip `app_check_enforced` in everything-as-code only when no installed build would be locked out | user approves the TF PR |
+| 11 | App Check | still enforced (`app_check_enforced = true` in everything-as-code); App Check metrics show verified traffic on Android and web | user checks console |
 | 12 | Release notes | `whatsnew/whatsnew-{en-US,vi}` describe this release; `python3 scripts/play_metadata.py check` passes | you |
 
 Any red gate is a no-go; say which and what fixes it.

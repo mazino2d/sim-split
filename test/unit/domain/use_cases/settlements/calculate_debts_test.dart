@@ -90,7 +90,7 @@ void main() {
   test('simple A pays for all, B owes A', () async {
     stubMembers([m1, m2]);
     stubSettlements([]);
-    // A paid 20000 for both; A owes 10000, B owes 10000
+    // A paid 20000 split equally: B owes A 10000
     stubExpenses([
       _expense(
         id: 'e1',

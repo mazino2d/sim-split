@@ -262,7 +262,8 @@ extension on WidgetTester {
     await waitFor(find.byTooltip('Settings'));
   }
 
-  /// Signs in as [_e2eUser] where the sign-in screen's Google popup would.
+  /// Signs in as [user] ([_e2eUser] by default), where the sign-in screen's
+  /// Google popup would.
   /// The router leaves the sign-in screen on its own.
   Future<void> signIn([Map<String, Object> user = _e2eUser]) async {
     await FirebaseAuth.instance.signInWithCredential(

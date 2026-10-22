@@ -16,7 +16,7 @@ import 'package:simsplit/firebase_options.dart';
 var _urlStrategySet = false;
 
 void main() async {
-  // Must be called before anything else; also triggers font loading
+  // Needed before plugins (native splash, Firebase) are used.
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
   // Keep native splash visible until we explicitly remove it,
@@ -74,9 +74,10 @@ Future<void> _initFirebase() async {
 }
 
 /// Attaches an App Check token to Auth and Firestore requests, so the
-/// project can reject requests that do not come from the genuine app. A
-/// failure is logged and the app carries on: until enforcement is on, the
-/// backend accepts requests without a token.
+/// project can reject requests that do not come from the genuine app. Both
+/// enforce App Check, so without a token the backend rejects the app's
+/// requests; a failure is only logged, so the app still opens on its local
+/// data.
 Future<void> _activateAppCheck({required bool useEmulators}) async {
   final mode = appCheckModeFor(
     isWeb: kIsWeb,
