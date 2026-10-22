@@ -4,8 +4,6 @@
 /// Convention: amountCents is the amount × 100 for every currency, so
 /// 100,000 VND is stored as 10,000,000.
 String formatMoney(int amountCents, String currencyCode) {
-  // For currencies without decimal subunits (VND, JPY, KRW…) we still
-  // divide by 100 since the app stores everything *100 for consistency.
   final isDecimalCurrency = _hasDecimals(currencyCode);
   final symbol = _currencySymbol(currencyCode);
 
@@ -18,18 +16,6 @@ String formatMoney(int amountCents, String currencyCode) {
     final amount = amountCents ~/ 100;
     final formatted = _addThousandsDots(amount);
     return '$formatted $symbol';
-  }
-}
-
-/// Short form: same as [formatMoney] but omits the symbol, useful for inputs.
-String formatAmount(int amountCents, String currencyCode) {
-  final isDecimalCurrency = _hasDecimals(currencyCode);
-  if (isDecimalCurrency) {
-    final whole = amountCents ~/ 100;
-    final frac = (amountCents % 100).abs();
-    return '${_addThousandsDots(whole)},${frac.toString().padLeft(2, '0')}';
-  } else {
-    return _addThousandsDots(amountCents ~/ 100);
   }
 }
 

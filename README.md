@@ -218,10 +218,6 @@ git push origin v2026.10.25-rc.1
 `release_candidate.yml` builds `main` at that tag as `2026.10.25-rc.1` and uploads it
 to the closed testing track with the notes in `android/fastlane/whatsnew/`.
 
-Version names: internal builds are `YYYY.M.D-dev.<sha7>` (build date), release
-candidates `YYYY.M.D-rc.N`, production `YYYY.M.D`. The versionCode is minutes since
-2026-01-01 UTC for all of them.
-
 ### Production release
 
 ```bash

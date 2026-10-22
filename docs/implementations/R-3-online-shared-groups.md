@@ -128,5 +128,4 @@ These are listed in the stack's `_docs/setup.md` in `everything-as-code`:
 | reCAPTCHA on web costs $8/month above 10,000 assessments, which would trip the kill switch | App Check tokens on web live 24 h (everything-as-code#221), so 100 daily web users need ~3,000 a month. |
 | Budget notifications lag actual spend | Keep reads incremental (`updatedAt > cursor`); the budget alerts and kill switch cap the risk. |
 | A script uses the public Firebase config to spam Firestore or Auth, trips the kill switch and takes the backend down for everyone | App Check, enforced on Firestore and Auth from 2026.10.22 (P9, enforced in P10), rejects requests that do not come from the genuine app. |
-| The e2e suite breaks once sign-in is required | Until P4 the web build has no Firebase and so no sign-in gate; the e2e journey keeps running there (P2). From P4 it signs in against the Auth and Firestore emulators. |
 | Migrating v1 data | Upload with the same IDs, make it resumable, and test with a v2 database fixture (AC7, AC8). |

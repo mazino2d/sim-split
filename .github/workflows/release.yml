@@ -59,7 +59,7 @@ jobs:
 
   create-github-release:
     name: Create GitHub Release
-    needs: [build-android]            # removed build-ios until Apple account is ready
+    needs: [build-android]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

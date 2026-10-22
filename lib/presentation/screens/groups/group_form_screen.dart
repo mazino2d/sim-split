@@ -169,7 +169,6 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     final group = await ref.read(groupDetailProvider(groupId).future);
     if (!mounted) return;
 
-    // Load the isMe member
     final members = await ref.read(memberListProvider(groupId).future);
     final meM = members.where((m) => m.isMe).firstOrNull;
 

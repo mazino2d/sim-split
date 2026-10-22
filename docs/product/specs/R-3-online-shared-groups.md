@@ -188,14 +188,6 @@ when a number looks wrong, anyone can see who changed what and when.
 
 ## Follow-ups this spec requires
 
-- The web app gets sign-in and sync like Android (plan phase P4). It also gives the web
-  account-deletion path below.
-- Rewrite the Play Store listing (EN + VI): it currently promises "completely offline" and
-  "No account needed".
-- Update the Play Data safety form: account info (email, name) and user content are now
-  collected and stored in the cloud. Publish a privacy policy page.
-- Add an in-app and web account-deletion path (a Play policy requirement for apps with
-  accounts).
 - iOS release: Apple Developer Program membership (99 USD/year — not a backend cost, but
   the only paid item), App Store Connect listing in EN + VI, App Privacy labels matching
   the Data safety form, and Universal Links for invite links (Android: App Links).
