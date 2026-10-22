@@ -35,6 +35,19 @@ Releases use **CalVer `YYYY.M.D`** of the day the tag is pushed, e.g. `2026.10.2
 - The last semver release is `1.0.0` (the offline R-2 build). Everything after it is
   CalVer; Play only compares versionCodes, so the jump from 1.0.0 is fine.
 
+Every build gets a versionName that says what it is (`build_android.yml` passes
+`--build-name`; pubspec only has to match production tags):
+
+| Build | Trigger | versionName | Play track |
+| --- | --- | --- | --- |
+| Dev | merge to `main` touching app code, or a manual run | `YYYY.M.D-dev.<sha7>` (build date, UTC) | internal |
+| Release candidate | tag `vYYYY.M.D-rc.N` (`release_candidate.yml`) | `YYYY.M.D-rc.N` | closed testing (`alpha`) |
+| Production | tag `vYYYY.M.D` (`release.yml`) | `YYYY.M.D` | production, 20 % |
+
+An RC's date is the day it is cut and N counts that day's candidates from 1; it
+does not need to match pubspec or the later production date. RC builds carry the
+`whatsnew/` notes and a GitHub pre-release.
+
 ## How a release flows
 
 ```

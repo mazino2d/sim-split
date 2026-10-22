@@ -135,6 +135,7 @@ lib/
 | `pr_validate` | Every PR → `main` | Parallel format/analyze/test, store-metadata check, Firestore rules tests and actionlint, each skipped unless its files change; `PR Validation` is the required check |
 | `build_android` | Push to `main` touching app code, manual (`workflow_dispatch`), or called by `release` | Signed AAB → Google Play; on push straight to internal testers, manual runs pick the track (default `internal`) |
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
+| `release_candidate` | Push a `vYYYY.M.D-rc.N` tag | Uploads the AAB as `YYYY.M.D-rc.N` with release notes to the closed testing track (`alpha`), creates a GitHub pre-release |
 | `release` | Push a `vYYYY.M.D` tag | Validates the tag, uploads the AAB with release notes to the `production` track as a 20 % staged rollout (sent for review), creates a GitHub Release |
 | `play_rollout` | Manual, from `main` | Widens the production rollout to 50 % or 100 %, or halts / resumes it |
 | `play_metadata` | Push to `main` touching `android/fastlane/metadata/**`, or manual (dry run by default) | Syncs the Play store listing, images, contact details and Data safety form — see [android/fastlane/README.md](android/fastlane/README.md) |
@@ -206,6 +207,20 @@ Every merge to `main` that changes app code (`lib/`, `android/`, `assets/`,
 `pubspec.lock`) uploads a build to the Play **internal** track, released to internal
 testers at once. To upload another branch's build or pick another track: GitHub →
 Actions → **Build Android** → *Run workflow* (default `internal`, `draft`).
+
+### Closed test (release candidate)
+
+```bash
+git tag v2026.10.25-rc.1      # the day it is cut, then rc.2, rc.3 …
+git push origin v2026.10.25-rc.1
+```
+
+`release_candidate.yml` builds `main` at that tag as `2026.10.25-rc.1` and uploads it
+to the closed testing track with the notes in `android/fastlane/whatsnew/`.
+
+Version names: internal builds are `YYYY.M.D-dev.<sha7>` (build date), release
+candidates `YYYY.M.D-rc.N`, production `YYYY.M.D`. The versionCode is minutes since
+2026-01-01 UTC for all of them.
 
 ### Production release
 

@@ -46,6 +46,7 @@ jobs:
       # resume it with play_rollout.yml.
       status: inProgress
       user_fraction: "0.2"
+      release_tag: ${{ github.ref_name }}
     secrets: inherit
 
   # build-ios:                         # disabled — Apple Developer account not yet active
