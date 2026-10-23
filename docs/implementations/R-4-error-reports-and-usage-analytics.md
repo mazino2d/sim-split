@@ -5,7 +5,7 @@ Status: planned   ·   Spec: [R-4 Error reports and usage analytics](../product/
 How R-4 gets built: the architecture, the phases (one or two PRs each) and the decisions
 behind them. The spec defines *what* must be true. This plan defines *how* and in what
 order. Work spans three repos: this one (app, endpoint, rules), `everything-as-code`
-(infrastructure) and `data-platform` (ingestion and dbt models).
+(infrastructure) and `data-platform` (ingestion, dbt models and the dashboard).
 
 ## Decisions
 
@@ -24,10 +24,12 @@ order. Work spans three repos: this one (app, endpoint, rules), `everything-as-c
 | Client queue | A Drift table `telemetry_queue` (schema v5): kind, JSON payload, created time; capped per kind, oldest dropped | Survives restarts and works offline (AC13) with the storage the app already has. |
 | Sending | Usage events in batches (at most one request a minute, plus one on going to the background); error reports right away. App Check token from `getToken()` (cached), never `getLimitedUseToken()`; ID token only on usage batches | On web each fresh App Check token costs a reCAPTCHA assessment; the cached 24-hour token keeps assessments at R-3's level. |
 | Scrubbing | In the app before queueing, and again in the endpoint: emails, Firestore paths and document IDs, UUIDs, invite tokens, digit runs and the current user's names and group names are replaced by placeholders; breadcrumbs only ever hold route patterns and action names from a fixed enum | Free text never enters a report, so AC4 holds even if an error message quotes data. The endpoint pass is a second line of defence. |
-| Action names | A Dart enum `UsageAction` (`createGroup`, `saveExpense`, `signIn`, …), tracked from notifiers at the start of each user action | One fixed vocabulary for breadcrumbs (AC3) and usage events (AC8); no names or IDs can slip in. |
-| Screen names | A `NavigatorObserver` on the router records `GoRouterState.fullPath` (the pattern, e.g. `/groups/:id`) | Patterns never contain real IDs (AC3). |
+| Event names | A Dart enum `UsageEvent` holds every name (`tap_add_expense`, `submit_expense_form`, `op_save_expense`, …) | One fixed vocabulary for breadcrumbs (AC3) and usage events (AC8); no names or IDs can slip in. |
+| Tracking every action | Automatic, in four places rather than call by call: (1) the design system's interactive widgets (buttons, list tiles, switches, tabs, chips, menu items, dialogs, sheets, forms) take a required `event` argument and record the tap, open, close, submit or abandon themselves; (2) every use case is registered in DI through a `TrackedUseCase` wrapper that records `op_<name>` with the result (`Either` right, or the `Failure` type) and the duration; (3) a `NavigatorObserver` records screens, dialogs and sheets as `GoRouterState.fullPath` patterns; (4) a custom lint plus a test that scans `lib/presentation` fail the build on a raw `onTap` / `onPressed` outside the design system or a use case not wrapped (AC8a) | New screens are tracked by construction instead of relying on someone remembering a call. |
+| Sessions | A random session ID per app launch, renewed after 30 minutes in the background; sent with usage events and error reports | Sessions and "errors per 100 sessions" (AC31) need a denominator; the ID is random, so error reports stay anonymous. |
 | Cost guards | Cloud Run: min 0, max 1 instance, 256 MiB, request-based billing, 10 s timeout, 64 KB body limit. Endpoint: in-memory per-install daily counters (exact with a single instance). Logging: default bucket only. Artifact Registry: keep the last 2 images | Each guard is a hard limit, so a bug or abuse hits a wall instead of the bill (AC20–AC23). |
 | Alerts | A log-based alert on error reports (email, rate-limited to one notification per hour), and a Cloud Monitoring alert on `simsplit_raw` storage at 8 GiB, both in Terraform | AC19 and AC23. Alerting policy pricing must be checked before P0 merges (spec open question). |
+| Dashboard | An [Evidence](https://evidence.dev) project in data-platform (`evidence/`, one folder of pages per project, `simsplit/` first), whose sources query only aggregate dbt models in `simsplit_metrics` (no uid, name or email columns). A DAG task after the marts builds it in GitHub Actions (Workload Identity Federation) and deploys the static output with `wrangler pages deploy` to a Cloudflare Pages project behind Cloudflare Access that admits only the maintainer's Google account | Evidence bakes query results into the static site, so it must not go to GitHub Pages; Cloudflare Pages direct uploads and Access (up to 50 users) are free, and the Cloudflare account is already managed in everything-as-code. Aggregate-only sources keep personal data out of the built site even behind Access. |
 | Existing accounts | A one-off script in `scripts/` (Admin SDK, run by the maintainer) deletes every Auth user and all Firestore data at release time. The app treats `user-not-found` / `user-disabled` on token refresh as a forced sign-out that discards the outbox and local data | AC12. The normal sign-out refuses while changes are unsynced; a deleted account can never sync them. |
 
 ## Architecture
@@ -41,8 +43,10 @@ App (Flutter)
                  WatchErrorReportSettings, GetConsent, AgreeToTracking, DeclineTracking
   lib/data
     Drift (schema v5): telemetry_queue
-    telemetry/ recorder:  breadcrumbs ring buffer (30), dedupe per session, daily caps,
-                          scrubber, writes to telemetry_queue
+    telemetry/ recorder:  session ID, breadcrumbs ring buffer (30), dedupe per session,
+                          daily caps, scrubber, writes to telemetry_queue
+               tracking:  TrackedUseCase wrapper (DI), design-system widgets with a
+                          required event, navigator observer
                sender:    drains the queue in batches with App Check (and ID token for
                           usage), exponential backoff, silent failures
                hooks:     FlutterError.onError, PlatformDispatcher.onError, the shared
@@ -65,6 +69,12 @@ BigQuery dataplatform-as-se1-prd
   simsplit_*       dbt models in data-platform: staging, dim_user, fct_usage_events,
                    fct_error_reports, group facts and SCD snapshots of groups and members
 
+Dashboard (data-platform)
+  dbt simsplit_metrics   aggregate models: active users, sessions, screens and actions,
+                         funnel, errors per session, operation failures and durations
+  evidence/simsplit      pages on those models → static build in GitHub Actions →
+                         Cloudflare Pages behind Cloudflare Access (maintainer only)
+
 Firestore
   users/{uid}      displayName, email, createdAt, consent {agreedAt, policyVersion}
                    read/create by the owner only; consent immutable; deleted with the
@@ -73,10 +83,13 @@ Firestore
 
 Payloads, in short:
 - Error report: `report_id`, `client_time`, `platform`, `os`, `app_version`, `language`,
-  `signed_in`, `online`, `error_type`, `message`, `stack`, `count`, `breadcrumbs[]`.
+  `signed_in`, `online`, `session_id`, `error_type`, `message`, `stack`, `count`,
+  `breadcrumbs[]`.
   The endpoint adds `received_at`.
-- Usage event: `uid`, `client_time`, `kind` (`screen` or `action`), `name`, `platform`,
-  `app_version`, `language`, `online`, plus `received_at`.
+- Usage event: `uid`, `session_id`, `client_time`, `kind` (`screen`, `tap`, `form`,
+  `dialog`, `gesture` or `op`), `name`, `screen` (route pattern), `result` and
+  `duration_ms` (operations only), `platform`, `app_version`, `language`, `online`, plus
+  `received_at`.
 
 ## Phases
 
@@ -84,15 +97,17 @@ Payloads, in short:
 | --- | --- | --- | --- | --- |
 | P0 | everything-as-code | Infrastructure. simsplit stack: Artifact Registry repo (cleanup: keep 2), `telemetry` service account, Cloud Run service (limits above; image managed by CI, `ignore_changes`), public invoker, deployer role for `gha-firebase-deployer`, log-based metric and alert with an email channel. dataplatform stack: dataset `simsplit_raw` (time travel 48 h) with the two tables, `bigquery.dataEditor` on it for the `telemetry` SA, `datastore.viewer` on simsplit for `gha-data-platform`, storage alert | AC19, AC21, AC23 | 1.5 |
 | P1 | sim-split | Endpoint in `services/telemetry/`: token verification, schema validation, size limit, scrub, per-install caps, stdout log, `JSONWriter` append; unit tests with fakes for Firebase and BigQuery; deploy workflow (build in GitHub Actions, push, `gcloud run deploy`) on `main` | AC18–AC22 | 2 |
-| P2 | sim-split | Error reports in the app: domain, Drift v5 queue, recorder, scrubber with the AC4 test, sender, error hooks, breadcrumbs (router observer, `UsageAction`), Settings switch and report ID, EN/VI | AC1–AC5, AC13, AC15–AC17, AC25–AC29 | 3 |
-| P3 | sim-split | Consent and usage events: `users/{uid}` and rules (consent required for groups) with rules tests, `/consent` screen and redirect, decline deletes the Auth user, usage batches with ID token, forced sign-out for deleted accounts, e2e step for the consent screen | AC6–AC9, AC14 | 2.5 |
+| P2 | sim-split | Error reports in the app: domain, Drift v5 queue, recorder (session ID), scrubber with the AC4 test, sender, error hooks, breadcrumbs (navigator observer, `UsageEvent`), Settings switch and report ID, EN/VI | AC1–AC5, AC13, AC15–AC17, AC25–AC29 | 3 |
+| P3 | sim-split | Consent and usage events: `users/{uid}` and rules (consent required for groups) with rules tests, `/consent` screen and redirect, decline deletes the Auth user, usage batches with ID token, forced sign-out for deleted accounts, e2e step for the consent screen | AC6, AC7, AC9, AC14 | 2.5 |
+| P3b | sim-split | Tracking every action: event argument on every design-system interactive widget, `TrackedUseCase` in DI, every existing screen migrated, the lint and the AC8a test | AC8, AC8a | 2 |
 | P4 | data-platform (+ indexes here) | `simsplit` project: dlt Firestore source (users replace, the rest incremental), collection-group indexes on `updatedAt` / `syncedAt` in `firestore.indexes.json`, dbt staging, `dim_user`, `fct_usage_events`, `fct_error_reports`, group models, DAG YAMLs | AC10, AC11, AC18 | 3 |
+| P4b | data-platform + everything-as-code | Dashboard: `simsplit_metrics` aggregate models, Evidence project and `simsplit` pages, DAG task to build and deploy; Cloudflare Pages project, Access application and policy, and the deploy token as a data-platform secret (everything-as-code cloudflare and github stacks) | AC31, AC32 | 2.5 |
 | P5 | sim-split | Release: privacy policy, `data_safety.csv`, store listing, site and release notes (EN/VI) announced before rollout; the account wipe script, run when the rollout starts; verify the three known bugs produce reports and alerts; billing check after a month | AC12, AC24, AC30, success check | 2 |
 
-The total is about 14 focused days, above the roadmap's estimate of 8; the product owner
-should re-score R-4 (14 days gives 0.11, still above R-3). P0 comes first because P1
-deploys to it. P2 and P4 can run in parallel once P1 is live. P3 must ship in the same
-release as P5: the consent rule and the account wipe go out together.
+The total is about 17 focused days (the roadmap uses this estimate). P0 comes first
+because P1 deploys to it. P2 and P4 can run in parallel once P1 is live; P3b follows P2,
+and P4b needs P4's models plus a few days of events. P3 and P3b must ship in the same
+release as P5: the consent rule, full tracking and the account wipe go out together.
 
 ## Manual steps (no API or Terraform support)
 
@@ -110,6 +125,8 @@ release as P5: the consent rule and the account wipe go out together.
 | BigQuery time travel keeps a deleted user's rows readable for up to 48 hours after the daily load removes them, beyond AC11's 24 hours | Time travel set to its 48-hour minimum on `simsplit_raw` and the simsplit model datasets. Raise with the product owner to read AC11 as "within 24 hours from tables, 48 more in time travel", or accept the gap. |
 | Installed 2026.10.22 builds keep running after the account wipe | Rules require `users/{uid}` for every group access, so they cannot sync; they show sync errors until updated. Play auto-updates most installs within days. |
 | Users lose their groups and unsynced local data in the wipe | Announced in release notes and on the site before the rollout (AC12); accepted by the spec. |
+| Tracking every tap fills the free 10 GiB of BigQuery storage, since nothing is deleted | ~100 users × ~300 events a day × ~300 bytes ≈ 3 GiB a year, shared with jaffle_shop. The 5,000-a-day cap bounds a runaway client, and the storage alert at 8 GiB is the trigger to aggregate or archive old events. |
+| The Evidence build bakes query results into static files | Sources read aggregate models only, the output is deployed straight from CI to Cloudflare Pages behind Access, and it is never committed or uploaded as a public artifact. |
 | Abuse floods the endpoint and the bill | App Check on every request, 64 KB limit, one instance, per-install caps, budget and kill switch on both projects. |
 | A scrubber miss leaks personal data into an error report | Scrubbing twice (app and endpoint), breadcrumbs from a fixed vocabulary, and the AC4 test feeding real-looking values through an error. |
 | Storage Write API default stream: rows are briefly in the streaming buffer and cannot be changed by DML | Nothing in R-4 updates or deletes these rows; `dim_user` deletion works on dlt-loaded tables. |

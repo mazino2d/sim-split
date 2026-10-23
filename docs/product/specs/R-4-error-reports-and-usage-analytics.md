@@ -25,10 +25,11 @@ clear before the account is created. All of it must cost nothing to run.
 | --- | --- |
 | Pipeline | The app sends error reports and usage events to one endpoint of its own (a Cloud Run service in the app's Google Cloud project). The endpoint writes each one to two places: Cloud Logging, for alerts, and the maintainer's BigQuery warehouse ([data-platform](https://github.com/mazino2d/data-platform), modelled with dbt), for analysis. No third-party SDK (Crashlytics, Google Analytics for Firebase, PostHog and Mixpanel were ruled out). |
 | Retention | Kept indefinitely in BigQuery; there is no plan to delete them. Cloud Logging keeps its default 30 days, since it only serves alerts. The one exception is account deletion (below). |
-| Alerts | From Cloud Logging only: log-based alerts email the maintainer. No dashboard or paging service. |
+| Alerts | From Cloud Logging only: log-based alerts email the maintainer. No paging service. |
+| Dashboard | Built with [Evidence](https://evidence.dev) on top of the dbt models in data-platform, refreshed daily after the pipeline, and visible only to the maintainer. |
 | Zero cost | Enforced by hard limits, not by watching the bill: App Check on the endpoint, size and rate caps, an endpoint that scales to zero with at most one instance, the free BigQuery write path, and the existing budget and kill switch (AC20–AC24). |
 | Error reports | Anonymous and on by default, with an off switch in Settings (opt-out). Acceptable only because they are anonymous: errors plus breadcrumbs, platform and app version, never the account, email, uid, group or member names, expense descriptions or amounts. Errors before sign-in are reported too. |
-| Usage analytics | Per user and **required**: every screen opened and action taken, linked to the account's uid. Agreeing to it is a condition of using the app; there is no way to use the app without it. |
+| Usage analytics | Per user and **required**: every action in the app — every screen, tap, form, dialog and operation with its result and duration — linked to the account's uid. Agreeing to it is a condition of using the app; there is no way to use the app without it. |
 | Consent | Asked once, at account creation, before the app opens: the user agrees to usage analytics and the group data copy, or does not use the app. "Don't agree" signs them out and leaves no account. The agreement, its time and the privacy policy version are stored with the account. It cannot be turned off later; deleting the account is the way out. |
 | Group data copy | Every account's records (groups, members, expenses, settlements, activity) are copied to the warehouse. |
 | Account deletion | Deleting an account deletes the user's row in the warehouse's user dimension (`dim_user`: name, email, consent), including its history. Fact rows (usage events, copied group records) are kept, keyed only by the uid, which no longer resolves to a person. |
@@ -46,9 +47,9 @@ clear before the account is created. All of it must cost nothing to run.
   led to it.
 - As a new user, I see what is collected before my account exists, and decide whether to
   use the app on those terms.
-- As the maintainer, I see which screens and actions people use, how often errors happen
-  per session, and how groups are actually used, so I can prioritise the roadmap on
-  evidence.
+- As the maintainer, I open one dashboard to see which screens and actions people use,
+  where they drop off, how often errors happen per session, and how groups are actually
+  used, so I can prioritise the roadmap on evidence.
 - As any user, I trust that error reports never contain my name, my friends' names or our
   amounts, and that deleting my account removes who I am from the warehouse.
 
@@ -59,7 +60,8 @@ clear before the account is created. All of it must cost nothing to run.
 - **AC1** Given error reports are on, when an uncaught error happens anywhere in the app,
   then a report is sent with: report ID, time, platform (Android / web / iOS), OS or
   browser name and version, app version, app language, signed-in yes/no, online
-  yes/no, the error type, message and stack trace, and the last 30 breadcrumbs.
+  yes/no, a random session ID (not linked to the account), the error type, message and
+  stack trace, and the last 30 breadcrumbs.
 - **AC2** Given error reports are on, when the app shows the user an error message
   (a failed sign-in, a failed sync, a failed save), then a report is sent for that
   failure as in AC1.
@@ -88,10 +90,16 @@ clear before the account is created. All of it must cost nothing to run.
   device does not ask again. When the user does not agree, then the sign-in is undone
   (no account and no data are kept) and the sign-in screen says, in one line, that
   SimSplit needs usage tracking to be used.
-- **AC8** Given the user is signed in (and so has agreed), when they open a screen or take
-  an action, then an event is sent with: uid, time, screen route pattern or action name,
-  platform, app version, app language and online yes/no. Events never contain names,
-  descriptions, amounts or invite tokens.
+- **AC8** Given the user is signed in (and so has agreed), every action they take is sent
+  as an event: each screen opened; each tap on a button, menu item, tab, switch, chip or
+  list item; each form submitted or abandoned; each dialog or sheet opened and closed;
+  each pull-to-refresh, swipe and share; and each operation it triggers (save, delete,
+  join, sync, sign-in, …) with its result (success, or the failure type) and duration.
+  Every event carries: uid, session ID, time, event name, screen route pattern, platform,
+  app version, app language and online yes/no. Events never contain names, descriptions,
+  amounts, document IDs or invite tokens.
+- **AC8a** No interactive element can be added to the app without an event name: a test
+  fails the build if a tappable widget or an operation has none.
 - **AC9** Before the user has agreed (the sign-in and consent screens), no usage event is
   recorded or sent; only error reports, governed by their own switch.
 - **AC10** When any user creates or changes a group, member, expense, settlement or
@@ -108,13 +116,13 @@ clear before the account is created. All of it must cost nothing to run.
 
 - **AC13** Given the device is offline, when an error report or usage event is recorded,
   then it waits on the device and is sent once the device is online, even after an app
-  restart. At most 50 error reports and 500 usage events wait; the oldest are dropped
+  restart. At most 50 error reports and 2,000 usage events wait; the oldest are dropped
   first.
 - **AC14** Usage events are sent in batches: at most one request per minute while the
   app is open, plus one when it goes to the background.
 - **AC15** The same error (same type and stack) is sent at most once per app session, with
   a count of how many times it happened.
-- **AC16** One install sends at most 50 error reports and 2,000 usage events per day; the
+- **AC16** One install sends at most 50 error reports and 5,000 usage events per day; the
   rest are dropped.
 - **AC17** Sending never blocks, slows or interrupts the user, and a failure to send is
   never shown to the user.
@@ -169,6 +177,18 @@ clear before the account is created. All of it must cost nothing to run.
   account, kept indefinitely; App interactions), the copy of group data and the user's
   name and email for analytics, and what deleting the account removes and keeps.
 
+### Dashboard
+
+- **AC31** A dashboard built with Evidence from the dbt models shows, refreshed daily after
+  the pipeline runs: daily, weekly and monthly active users; sessions and session length;
+  the most used screens and actions; the funnel first sign-in → agreed → first group →
+  first expense → first invite accepted; errors per 100 sessions by platform and app
+  version, and the top error types; operation failure rate and median duration by
+  operation; groups, expenses and settlements created per week.
+- **AC32** Only the maintainer can open the dashboard (sign-in required). The public
+  data-platform repository holds its page and query definitions but no data or query
+  results, and building and hosting it costs nothing.
+
 ## Edge cases checklist
 
 - Offline / cold start / sync: reports and events recorded offline are queued (AC13); an
@@ -192,16 +212,17 @@ clear before the account is created. All of it must cost nothing to run.
   the steps before it, and an alert email, verified by reproducing them once on web and
   Android after R-4 ships.
 - Given a tester's report ID, the maintainer finds their reports in under 5 minutes.
-- A month after release, the warehouse answers "errors per 100 sessions by platform" and
-  "share of active users who log an expense each week" across all accounts.
+- A month after release, the dashboard answers "errors per 100 sessions by platform",
+  "where do new users drop off before their first expense" and "share of active users who
+  log an expense each week" without writing a query.
 - Supports the crash-free users bar (≥ 99.5 %) and "one shared truth" by making sync and
   sign-in failures visible, and "free to run at small scale" (AC24).
 
 ## Out of scope
 
 - Any third-party SDK.
-- Dashboards, reports or paging beyond log-based email alerts; analysis is done by hand
-  in BigQuery.
+- Paging, or alerts other than log-based emails.
+- Dashboards other than the one in AC31, and sharing it with anyone but the maintainer.
 - A screen to view or share the local log by hand.
 - Fixing the three known bugs — each is tracked as its own bug report.
 - Migrating existing accounts' data instead of deleting it (AC12).

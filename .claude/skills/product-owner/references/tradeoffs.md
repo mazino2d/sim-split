@@ -64,8 +64,8 @@ the case at hand. Don't lecture the whole file.
   hard limits (App Check, caps, one instance, free write path, kill switch). Existing
   accounts are deleted so every account has agreed. Cost: one consent screen (Calm),
   people who refuse can't use the app, consent that is not freely given (GDPR, Decree 13,
-  possible Play review push-back), a heavier Data safety declaration, reports built by
-  hand, and existing users losing their cloud data once.
+  possible Play review push-back), a heavier Data safety declaration, a private Evidence
+  dashboard to build and maintain, and existing users losing their cloud data once.
 
 ### Smart defaults vs predictability
 
