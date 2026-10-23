@@ -68,15 +68,15 @@ and a network for first use; after that, offline use is a strong default (below)
   settlements work with no network and sync later.
 - No ads and no third-party analytics SDK.
 - Data is never sold, shared with third parties or used for advertising. Group data is
-  stored to sync groups between their members; for users who allowed analytics it is also
-  copied to the maintainer's own warehouse for product analysis.
+  stored to sync groups between their members and is copied to the maintainer's own
+  warehouse for product analysis.
 - Error reports are anonymous: errors and the screens and actions that led to them, with
   platform and app version — never the account, email, group or member names, or amounts.
   They are on by default and can be turned off in Settings.
-- Usage analytics are per user and opt-in: every screen opened and action taken, linked
-  to the account's uid. The choice is a required step of account creation (allow or don't
-  allow), stored with the account and changeable in Settings; nothing is sent or copied
-  for users who don't allow it.
+- Usage tracking is per user and required: every screen opened and action taken, linked
+  to the account's uid. Agreeing to it, and to the copy of group data, is a condition of
+  using the app, asked once at account creation; people who don't agree don't get an
+  account. It cannot be turned off; deleting the account is the way out.
 - Error reports and usage events go through the app's own endpoint, which writes them to
   Cloud Logging (alerts) and to the warehouse. All analytics data lives in the
   maintainer's own BigQuery warehouse, with no third party, modelled with dbt, read only
@@ -93,15 +93,14 @@ opt-out error reports ([R-4](specs/R-4-error-reports-and-usage-analytics.md)). T
 navigation after creating a group) that could not be reproduced from their descriptions.
 Usage analytics and third-party SDKs stay out.
 
-*Changed 2026-10-23:* per-user usage analytics are now allowed (opt-in, linked to the
-account) and, for users who allow it, group data is copied to the maintainer's warehouse
-for analysis, replacing "data is stored only to sync groups". Without them,
+*Changed 2026-10-23:* per-user usage tracking is now required to use the app (linked to
+the account, agreed to at account creation) and group data is copied to the maintainer's
+warehouse for analysis, replacing "data is stored only to sync groups". Without them,
 prioritisation rests on dogfooding and a few testers, and error rates have no
-denominator. Third-party analytics SDKs stay out: the data goes only to the maintainer's
-own warehouse, with no third party. Opt-in is required because the events and the group
-copy identify the user, and it is asked when the account is created; accounts created
-before this change are deleted so that every account has answered. Analytics data is
-kept indefinitely instead of 30 days or 14 months.
+denominator; making it required keeps the data complete instead of skewed towards users
+who opt in. Third-party analytics SDKs stay out: the data goes only to the maintainer's
+own warehouse, with no third party. Accounts created before this change are deleted so
+that every account has agreed. Analytics data is kept indefinitely.
 
 These are not red lines, but anything that weakens them must go through triage with the
 trade-off written down in the roadmap entry.
