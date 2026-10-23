@@ -54,7 +54,8 @@ App (Flutter)
     Firebase repositories: user profile (users/{uid}, created on first sign-in)
   lib/presentation
     Sign-in screen: one line linking the privacy policy
-    Settings: error report switch and report ID (AC25–AC27)
+    Settings: wrench action in the app bar → /settings/diagnostics: error report switch,
+              report ID, app version and build, platform, queued reports (AC25–AC27)
 
 Cloud Run telemetry (simsplit-as-se1-prd)
   POST /v1/errors   App Check required; body ≤ 64 KB; schema check; scrub;
@@ -97,7 +98,7 @@ Payloads, in short:
 | --- | --- | --- | --- | --- |
 | P0 | everything-as-code | Infrastructure. simsplit stack: Artifact Registry repo (cleanup: keep 2), `telemetry` service account, Cloud Run service (limits above; image managed by CI, `ignore_changes`), public invoker, deployer role for `gha-firebase-deployer`, log-based metric and alert with an email channel. dataplatform stack: dataset `simsplit_raw` (time travel 48 h) with the two tables, `bigquery.dataEditor` on it for the `telemetry` SA, `datastore.viewer` on simsplit for `gha-data-platform`, storage alert | AC19, AC21, AC23 | 1.5 |
 | P1 | sim-split | Endpoint in `services/telemetry/`: token verification, schema validation, size limit, scrub, per-install caps, stdout log, `JSONWriter` append; unit tests with fakes for Firebase and BigQuery; deploy workflow (build in GitHub Actions, push, `gcloud run deploy`) on `main` | AC18–AC22 | 2 |
-| P2 | sim-split | Error reports in the app: domain, Drift v5 queue, recorder (session ID), scrubber with the AC4 test, sender, error hooks, breadcrumbs (navigator observer, `UsageEvent`), Settings switch and report ID, EN/VI | AC1–AC5, AC13, AC15–AC17, AC25–AC29 | 3 |
+| P2 | sim-split | Error reports in the app: domain, Drift v5 queue, recorder (session ID), scrubber with the AC4 test, sender, error hooks, breadcrumbs (navigator observer, `UsageEvent`), the Diagnostics screen behind the wrench icon in Settings, EN/VI | AC1–AC5, AC13, AC15–AC17, AC25–AC29 | 3 |
 | P3 | sim-split | Agreement and usage events: the policy line on the sign-in screen, `users/{uid}` created on first sign-in, rules (agreement required for groups) with rules tests, usage batches with ID token, forced sign-out for deleted accounts | AC6, AC7, AC9, AC14 | 1.5 |
 | P3b | sim-split | Tracking every action: event argument on every design-system interactive widget, `TrackedUseCase` in DI, every existing screen migrated, the lint and the AC8a test | AC8, AC8a | 2 |
 | P4 | data-platform (+ indexes here) | `simsplit` project: dlt Firestore source (users replace, the rest incremental), collection-group indexes on `updatedAt` / `syncedAt` in `firestore.indexes.json`, dbt staging, `dim_user`, `fct_usage_events`, `fct_error_reports`, group models, DAG YAMLs | AC10, AC11, AC18 | 3 |

@@ -28,14 +28,15 @@ clear before the account is created. All of it must cost nothing to run.
 | Alerts | From Cloud Logging only: log-based alerts email the maintainer. No paging service. |
 | Dashboard | Built with [Evidence](https://evidence.dev) on top of the dbt models in data-platform, refreshed daily after the pipeline, and visible only to the maintainer. |
 | Zero cost | Enforced by hard limits, not by watching the bill: App Check on the endpoint, size and rate caps, an endpoint that scales to zero with at most one instance, the free BigQuery write path, and the existing budget and kill switch (AC20–AC24). |
-| Error reports | Anonymous and on by default, with an off switch in Settings (opt-out). Acceptable only because they are anonymous: errors plus breadcrumbs, platform and app version, never the account, email, uid, group or member names, expense descriptions or amounts. Errors before sign-in are reported too. |
+| Error reports | Anonymous and on by default, with an off switch on the Diagnostics screen (opt-out). Acceptable only because they are anonymous: errors plus breadcrumbs, platform and app version, never the account, email, uid, group or member names, expense descriptions or amounts. Errors before sign-in are reported too. |
 | Usage analytics | Per user and **required**: every action in the app — every screen, tap, form, dialog and operation with its result and duration — linked to the account's uid. Agreeing to it is a condition of using the app; there is no way to use the app without it. |
 | Consent | Part of the product policy, like terms of service: the sign-in screen says in one line that continuing means agreeing to the privacy policy, which links to it; the policy describes the usage tracking and the group data copy. Signing in is agreeing — there is no separate consent screen. The agreement time and the policy version are stored when the account is created. It cannot be turned off later; deleting the account is the way out. |
 | Group data copy | Every account's records (groups, members, expenses, settlements, activity) are copied to the warehouse. |
 | Account deletion | Deleting an account deletes the user's row in the warehouse's user dimension (`dim_user`: name, email, consent), including its history. Fact rows (usage events, copied group records) are kept, keyed only by the uid, which no longer resolves to a person. |
 | Existing accounts | Every account created before R-4 ships never agreed to the new policy, so all of them and their cloud data are deleted when R-4 ships. Everyone signs in again, which records their agreement. |
-| Report ID | Each install has a random report ID, shown in Settings, that a tester can quote to the maintainer. It is not linked to the account. |
-| Notice | The one line on the sign-in screen and the privacy policy behind it — no banner, dialog or consent screen (Calm). Error reports are also explained next to their switch in Settings. |
+| Report ID | Each install has a random report ID, shown on the Diagnostics screen, that a tester can quote to the maintainer. It is not linked to the account. |
+| Diagnostics screen | Debug details stay out of the main Settings list: a wrench icon in the Settings app bar opens a Diagnostics screen with the error report switch, the report ID and other debug details. Keeps Settings clean for everyone; testers who need it know where to tap. |
+| Notice | The one line on the sign-in screen and the privacy policy behind it — no banner, dialog or consent screen (Calm). Error reports are also explained next to their switch on the Diagnostics screen. |
 | Turning off | Error reports only: stops recording and sending, and deletes what is still waiting on the device. Data already sent is kept. |
 
 ## User stories
@@ -150,14 +151,18 @@ clear before the account is created. All of it must cost nothing to run.
 - **AC24** At ~100 active users, a month of billing shows $0 for Cloud Run, Cloud Logging,
   Cloud Monitoring and BigQuery.
 
-### Settings
+### Diagnostics screen
 
-- **AC25** Settings has a switch "Send anonymous error reports" (on by default) with a
-  one-line explanation and a link to the privacy policy.
+- **AC25** The Settings app bar has a wrench icon (screen reader label "Diagnostics")
+  that opens a Diagnostics screen; the main Settings list shows nothing about error
+  reports. The Diagnostics screen has a switch "Send anonymous error reports" (on by
+  default) with a one-line explanation and a link to the privacy policy, and shows the
+  app version and build, the platform, and how many error reports are waiting to be
+  sent.
 - **AC26** When the user turns the error report switch off, nothing more is recorded or
   sent, and reports still waiting on the device are deleted. Turning it back on starts
   recording again with a new report ID.
-- **AC27** Settings shows the report ID (short, easy to read aloud, e.g. `7KQ-4MZ`) while
+- **AC27** The Diagnostics screen shows the report ID (short, easy to read aloud, e.g. `7KQ-4MZ`) while
   error reports are on; tapping it copies it and confirms with "Copied".
 - **AC28** The error report choice and the report ID survive app restarts, sign-out and
   sign-in.

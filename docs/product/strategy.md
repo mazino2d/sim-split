@@ -72,7 +72,7 @@ and a network for first use; after that, offline use is a strong default (below)
   warehouse for product analysis.
 - Error reports are anonymous: errors and the screens and actions that led to them, with
   platform and app version — never the account, email, group or member names, or amounts.
-  They are on by default and can be turned off in Settings.
+  They are on by default and can be turned off in Settings → Diagnostics.
 - Usage tracking is per user and required: every screen opened and action taken, linked
   to the account's uid. It and the copy of group data are part of the privacy policy,
   which users agree to by signing in (one line on the sign-in screen links it); there is
