@@ -133,7 +133,7 @@ lib/
 
 | Workflow | Trigger | Result |
 | --- | --- | --- |
-| `pr_validate` | Every PR → `main` | Parallel format/analyze/test, store-metadata check, Firestore rules tests and actionlint, each skipped unless its files change; `PR Validation` is the required check |
+| `pr_validate` | Every PR → `main` | Parallel format/analyze/test, store-metadata check, Firestore rules tests, telemetry endpoint tests and actionlint, each skipped unless its files change; `PR Validation` is the required check |
 | `build_android` | Push to `main` touching app code, manual (`workflow_dispatch`), or called by `release` / `release_candidate` | Signed AAB → Google Play; on push straight to internal testers, manual runs pick the track (default `internal`) |
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
 | `release_candidate` | Push a `vYYYY.M.D-rc.N` tag | Uploads the AAB as `YYYY.M.D-rc.N` with release notes to the closed testing track (`alpha`), creates a GitHub pre-release |
@@ -141,6 +141,7 @@ lib/
 | `play_rollout` | Manual, from `main` | Widens the production rollout to 50 % or 100 %, or halts / resumes it |
 | `play_metadata` | Push to `main` touching `android/fastlane/metadata/**`, or manual (dry run by default) | Syncs the Play store listing, images, contact details and Data safety form — see [android/fastlane/README.md](android/fastlane/README.md) |
 | `firebase_deploy` | Push to `main` touching the app, `web/` or `firebase/**`, or manual | Builds the web app and deploys it to [simsplit.web.app](https://simsplit.web.app), with the Firestore rules and indexes |
+| `telemetry_deploy` | Push to `main` touching `services/telemetry/**`, or manual | Builds the error report and usage endpoint (R-4) and deploys it to Cloud Run |
 | `pages` | Push to `main` touching `docs/**`, or manual; PRs build only | Publishes `docs/` (landing page, privacy policy) to [mazino2d.github.io/sim-split](https://mazino2d.github.io/sim-split/) |
 | `codeql` | Workflow changes, weekly | CodeQL scan of the workflows |
 

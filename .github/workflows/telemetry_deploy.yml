@@ -1,0 +1,54 @@
+name: Telemetry Deploy
+
+# Builds the R-4 telemetry endpoint (services/telemetry) and deploys it to the
+# Cloud Run service `telemetry` in simsplit-as-se1-prd. The service, its limits
+# and the deployer account are managed in mazino2d/everything-as-code
+# (terraform/gcp/simsplit-as-se1-prd/telemetry.tf); this workflow only ships
+# new images.
+on:
+  push:
+    branches: [main]
+    paths:
+      - services/telemetry/**
+      - "!services/telemetry/test/**"
+      - .github/workflows/telemetry_deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: telemetry-deploy
+  cancel-in-progress: false
+
+env:
+  REGION: asia-southeast1
+  IMAGE: asia-southeast1-docker.pkg.dev/simsplit-as-se1-prd/telemetry/telemetry
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # Keyless auth via Workload Identity Federation; only main and v* tags of
+      # this repo can impersonate the account.
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/113980760756/locations/global/workloadIdentityPools/github/providers/sim-split
+          service_account: gha-telemetry-deployer@simsplit-as-se1-prd.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Build and push the image
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -t "$IMAGE:$GITHUB_SHA" services/telemetry
+          docker push "$IMAGE:$GITHUB_SHA"
+
+      # Only the image changes; scaling, limits and env stay as Terraform set them.
+      - name: Deploy
+        run: gcloud run deploy telemetry --image "$IMAGE:$GITHUB_SHA" --region "$REGION" --quiet
