@@ -34,8 +34,8 @@ excellent, not into monetisation. Growth and revenue are explicitly **not** obje
 
 ## North Star — quality, not adoption
 
-The North Star is a set of quality bars measurable by dogfooding, tests, Play Console and,
-for users who opt in, usage analytics (see strong defaults):
+The North Star is a set of quality bars measurable by dogfooding, tests, Play Console and
+the app's own analytics warehouse (see strong defaults):
 
 | Metric | Target | How it is measured |
 | --- | --- | --- |
@@ -66,18 +66,20 @@ and a network for first use; after that, offline use is a strong default (below)
 - Sign-in is a single tap (Google or Apple) — no passwords, no profile setup.
 - Offline after sign-in: creating groups, logging expenses, viewing balances and recording
   settlements work with no network and sync later.
-- No ads. The only third-party analytics SDK is Google Analytics for Firebase.
-- Group data is stored only to sync groups between their members — never sold or used
-  for advertising. Deleting the account deletes the user's cloud data, including their
-  analytics data.
+- No ads and no third-party analytics SDK.
+- Data is never sold, shared with third parties or used for advertising. Group data is
+  stored to sync groups between their members and is copied to the app's own BigQuery
+  warehouse for product analysis. Deleting the account deletes the user's cloud data,
+  including their rows in the warehouse.
 - Error reports are anonymous: errors and the screens and actions that led to them, with
   platform and app version — never the account, email, group or member names, or amounts.
   They are on by default, can be turned off in Settings, and are deleted after 30 days.
-- Usage analytics are opt-in and linked to the account: screens, actions, sessions and
-  funnels, sent with Google Analytics for Firebase under the account's uid — never email,
-  group or member names, expense descriptions or amounts. Users choose once after their
-  first sign-in and can change it in Settings; nothing is sent before they opt in. Data is
-  kept 14 months.
+- Usage analytics are per user and opt-in: every screen opened and action taken, linked
+  to the account's uid, sent through the app's own pipeline to BigQuery. Users choose once
+  after their first sign-in and can change it in Settings; nothing is sent before they opt
+  in. Events are kept 14 months.
+- All analytics data — usage events, error reports and the copy of group data — lives in
+  one BigQuery warehouse, modelled with dbt, and is read only by the maintainer.
 
 These replaced "No account or sign-up" and "Data stays on the device" on 2026-10-03
 (see R-3).
@@ -88,10 +90,12 @@ opt-out error reports ([R-4](specs/R-4-anonymous-error-reports.md)). Testers on 
 navigation after creating a group) that could not be reproduced from their descriptions.
 Usage analytics and third-party SDKs stay out.
 
-*Changed 2026-10-23:* usage analytics are now allowed — opt-in, linked to the account,
-with Google Analytics for Firebase — replacing "no third-party analytics SDK". Without
-them, prioritisation rests on dogfooding and a few testers, and error rates have no
-denominator. Opt-in is required because the data identifies the user.
+*Changed 2026-10-23:* per-user usage analytics are now allowed (opt-in, linked to the
+account) and group data is copied to the app's own BigQuery warehouse for analysis,
+replacing "data is stored only to sync groups". Without them, prioritisation rests on
+dogfooding and a few testers, and error rates have no denominator. Third-party analytics
+SDKs stay out: the pipeline is the app's own, so the data never leaves its Google Cloud
+project. Opt-in is required because the events identify the user.
 
 These are not red lines, but anything that weakens them must go through triage with the
 trade-off written down in the roadmap entry.
