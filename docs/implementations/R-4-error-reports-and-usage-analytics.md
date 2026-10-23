@@ -1,0 +1,116 @@
+# R-4 Error reports and usage analytics — implementation plan
+
+Status: planned   ·   Spec: [R-4 Error reports and usage analytics](../product/specs/R-4-error-reports-and-usage-analytics.md)   ·   Written 2026-10-23
+
+How R-4 gets built: the architecture, the phases (one or two PRs each) and the decisions
+behind them. The spec defines *what* must be true. This plan defines *how* and in what
+order. Work spans three repos: this one (app, endpoint, rules), `everything-as-code`
+(infrastructure) and `data-platform` (ingestion and dbt models).
+
+## Decisions
+
+| Topic | Decision | Why |
+| --- | --- | --- |
+| Endpoint | One Cloud Run service, `telemetry`, in `simsplit-as-se1-prd` (`asia-southeast1`), written in TypeScript, code in `services/telemetry/` here | Same project as App Check and Auth, so it verifies their tokens with `firebase-admin` and the existing budget and kill switch cover it. TypeScript has the two libraries it needs in their most complete form: `firebase-admin` (App Check and ID token verification) and the BigQuery Storage Write API `JSONWriter`. The code lives next to the app because its schema changes with the app's events. |
+| Fan-out | The endpoint logs each accepted report as one structured JSON line on stdout (Cloud Run ships it to Cloud Logging) and appends the same record to BigQuery | stdout costs nothing extra and needs no Logging API calls. The BigQuery write is the copy kept indefinitely; Logging is for alerts and the last 30 days. |
+| BigQuery write path | Storage Write API, default stream, through `JSONWriter` | Free up to 2 TiB a month. Legacy streaming inserts (`insertAll`) are billed and are never used (AC22). |
+| Warehouse location | Dataset `simsplit_raw` in `dataplatform-as-se1-prd`, created by Terraform; the endpoint's service account gets `bigquery.dataEditor` on that dataset only | The maintainer's one warehouse (data-platform). The dataset name follows data-platform's `<source>_raw` convention, so dbt reads it like any other source. |
+| Tables | `error_reports` and `usage_events`, partitioned by day on `received_at`, clustered by `report_id` and `uid`, no partition expiration | Kept indefinitely (AC18); partitions and clustering keep the maintainer's queries inside the free query tier. |
+| Group data copy | A dlt source in data-platform reads Firestore (`groups` and the collection groups `members`, `expenses`, `settlements`, `activity`) incrementally on `updatedAt` (`syncedAt` for activity) into `simsplit_raw`, once a day | Reads only what changed, so Firestore reads stay far below the free 50,000 a day. Runs on data-platform's existing DAG workflows. |
+| User data and consent | A Firestore document `users/{uid}` holds `displayName`, `email`, `createdAt` and `consent {agreedAt, policyVersion}`; created by the app when the user agrees, deleted with the account | Gives the router a server-side record of the agreement (AC7) and is the source of `dim_user`. Rules make the consent fields immutable. |
+| Deleting a user from the warehouse | dlt loads `users` with `write_disposition=replace` every run, and `dim_user` is a plain table built from it (no snapshot) | A deleted account's document disappears from Firestore, so the next daily load drops it from raw and from `dim_user` with no extra purge job (AC11). The dataset's time travel is set to the 48-hour minimum (see risks). |
+| Consent gate | The router's redirect sends a signed-in user without a stored agreement to `/consent`; "Don't agree" deletes the just-created Firebase Auth user and signs out | No account is kept for someone who refuses (AC7). The agreement is cached locally once confirmed so later offline launches are not blocked. |
+| Rules enforce consent | Every group read and write requires `exists(/databases/$(database)/documents/users/$(request.auth.uid))` | An installed 2026.10.22 build has no consent step; after the account wipe it could sign in again and sync without agreeing. The rule makes such a build unable to read or write groups. |
+| Client queue | A Drift table `telemetry_queue` (schema v5): kind, JSON payload, created time; capped per kind, oldest dropped | Survives restarts and works offline (AC13) with the storage the app already has. |
+| Sending | Usage events in batches (at most one request a minute, plus one on going to the background); error reports right away. App Check token from `getToken()` (cached), never `getLimitedUseToken()`; ID token only on usage batches | On web each fresh App Check token costs a reCAPTCHA assessment; the cached 24-hour token keeps assessments at R-3's level. |
+| Scrubbing | In the app before queueing, and again in the endpoint: emails, Firestore paths and document IDs, UUIDs, invite tokens, digit runs and the current user's names and group names are replaced by placeholders; breadcrumbs only ever hold route patterns and action names from a fixed enum | Free text never enters a report, so AC4 holds even if an error message quotes data. The endpoint pass is a second line of defence. |
+| Action names | A Dart enum `UsageAction` (`createGroup`, `saveExpense`, `signIn`, …), tracked from notifiers at the start of each user action | One fixed vocabulary for breadcrumbs (AC3) and usage events (AC8); no names or IDs can slip in. |
+| Screen names | A `NavigatorObserver` on the router records `GoRouterState.fullPath` (the pattern, e.g. `/groups/:id`) | Patterns never contain real IDs (AC3). |
+| Cost guards | Cloud Run: min 0, max 1 instance, 256 MiB, request-based billing, 10 s timeout, 64 KB body limit. Endpoint: in-memory per-install daily counters (exact with a single instance). Logging: default bucket only. Artifact Registry: keep the last 2 images | Each guard is a hard limit, so a bug or abuse hits a wall instead of the bill (AC20–AC23). |
+| Alerts | A log-based alert on error reports (email, rate-limited to one notification per hour), and a Cloud Monitoring alert on `simsplit_raw` storage at 8 GiB, both in Terraform | AC19 and AC23. Alerting policy pricing must be checked before P0 merges (spec open question). |
+| Existing accounts | A one-off script in `scripts/` (Admin SDK, run by the maintainer) deletes every Auth user and all Firestore data at release time. The app treats `user-not-found` / `user-disabled` on token refresh as a forced sign-out that discards the outbox and local data | AC12. The normal sign-out refuses while changes are unsynced; a deleted account can never sync them. |
+
+## Architecture
+
+```
+App (Flutter)
+  lib/domain
+    + entities: ErrorReport, UsageEvent, Breadcrumb, Consent
+    + repositories: TelemetryRepository, ConsentRepository
+    + use cases: RecordError, RecordUsageEvent, SetErrorReportsEnabled,
+                 WatchErrorReportSettings, GetConsent, AgreeToTracking, DeclineTracking
+  lib/data
+    Drift (schema v5): telemetry_queue
+    telemetry/ recorder:  breadcrumbs ring buffer (30), dedupe per session, daily caps,
+                          scrubber, writes to telemetry_queue
+               sender:    drains the queue in batches with App Check (and ID token for
+                          usage), exponential backoff, silent failures
+               hooks:     FlutterError.onError, PlatformDispatcher.onError, the shared
+                          error-message helper (AC2), router observer, UsageAction calls
+    Firebase repositories: consent (users/{uid}), deletion of the Auth user on decline
+  lib/presentation
+    + /consent screen; router redirect: signed in && no consent → /consent
+    Settings: error report switch and report ID (AC25–AC27)
+
+Cloud Run telemetry (simsplit-as-se1-prd)
+  POST /v1/errors   App Check required; body ≤ 64 KB; schema check; scrub;
+                    per-install caps → stdout JSON (severity ERROR) + BigQuery
+  POST /v1/events   App Check + Firebase ID token; every event's uid must equal the
+                    token's uid → BigQuery (no log line)
+
+BigQuery dataplatform-as-se1-prd
+  simsplit_raw     error_reports, usage_events (from Cloud Run)
+                   users (dlt, replace), groups, members, expenses, settlements,
+                   activity (dlt, merge on document path)
+  simsplit_*       dbt models in data-platform: staging, dim_user, fct_usage_events,
+                   fct_error_reports, group facts and SCD snapshots of groups and members
+
+Firestore
+  users/{uid}      displayName, email, createdAt, consent {agreedAt, policyVersion}
+                   read/create by the owner only; consent immutable; deleted with the
+                   account
+```
+
+Payloads, in short:
+- Error report: `report_id`, `client_time`, `platform`, `os`, `app_version`, `language`,
+  `signed_in`, `online`, `error_type`, `message`, `stack`, `count`, `breadcrumbs[]`.
+  The endpoint adds `received_at`.
+- Usage event: `uid`, `client_time`, `kind` (`screen` or `action`), `name`, `platform`,
+  `app_version`, `language`, `online`, plus `received_at`.
+
+## Phases
+
+| # | Repo | Scope | Spec ACs | Days |
+| --- | --- | --- | --- | --- |
+| P0 | everything-as-code | Infrastructure. simsplit stack: Artifact Registry repo (cleanup: keep 2), `telemetry` service account, Cloud Run service (limits above; image managed by CI, `ignore_changes`), public invoker, deployer role for `gha-firebase-deployer`, log-based metric and alert with an email channel. dataplatform stack: dataset `simsplit_raw` (time travel 48 h) with the two tables, `bigquery.dataEditor` on it for the `telemetry` SA, `datastore.viewer` on simsplit for `gha-data-platform`, storage alert | AC19, AC21, AC23 | 1.5 |
+| P1 | sim-split | Endpoint in `services/telemetry/`: token verification, schema validation, size limit, scrub, per-install caps, stdout log, `JSONWriter` append; unit tests with fakes for Firebase and BigQuery; deploy workflow (build in GitHub Actions, push, `gcloud run deploy`) on `main` | AC18–AC22 | 2 |
+| P2 | sim-split | Error reports in the app: domain, Drift v5 queue, recorder, scrubber with the AC4 test, sender, error hooks, breadcrumbs (router observer, `UsageAction`), Settings switch and report ID, EN/VI | AC1–AC5, AC13, AC15–AC17, AC25–AC29 | 3 |
+| P3 | sim-split | Consent and usage events: `users/{uid}` and rules (consent required for groups) with rules tests, `/consent` screen and redirect, decline deletes the Auth user, usage batches with ID token, forced sign-out for deleted accounts, e2e step for the consent screen | AC6–AC9, AC14 | 2.5 |
+| P4 | data-platform (+ indexes here) | `simsplit` project: dlt Firestore source (users replace, the rest incremental), collection-group indexes on `updatedAt` / `syncedAt` in `firestore.indexes.json`, dbt staging, `dim_user`, `fct_usage_events`, `fct_error_reports`, group models, DAG YAMLs | AC10, AC11, AC18 | 3 |
+| P5 | sim-split | Release: privacy policy, `data_safety.csv`, store listing, site and release notes (EN/VI) announced before rollout; the account wipe script, run when the rollout starts; verify the three known bugs produce reports and alerts; billing check after a month | AC12, AC24, AC30, success check | 2 |
+
+The total is about 14 focused days, above the roadmap's estimate of 8; the product owner
+should re-score R-4 (14 days gives 0.11, still above R-3). P0 comes first because P1
+deploys to it. P2 and P4 can run in parallel once P1 is live. P3 must ship in the same
+release as P5: the consent rule and the account wipe go out together.
+
+## Manual steps (no API or Terraform support)
+
+1. Confirm the email notification channel (Cloud Monitoring sends a verification email).
+2. Update the Play Console Data safety form from `data_safety.csv` and submit the store
+   listing with the release (P5).
+3. Run the account wipe script with the maintainer's credentials when the rollout starts
+   (P5), after the release notes and site have announced it.
+
+## Risks
+
+| Risk | Mitigation |
+| --- | --- |
+| Cloud Monitoring starts charging for alerting policies | Check pricing before P0 merges; keep to the two policies, or drop the storage alert and rely on the budget. |
+| BigQuery time travel keeps a deleted user's rows readable for up to 48 hours after the daily load removes them, beyond AC11's 24 hours | Time travel set to its 48-hour minimum on `simsplit_raw` and the simsplit model datasets. Raise with the product owner to read AC11 as "within 24 hours from tables, 48 more in time travel", or accept the gap. |
+| Installed 2026.10.22 builds keep running after the account wipe | Rules require `users/{uid}` for every group access, so they cannot sync; they show sync errors until updated. Play auto-updates most installs within days. |
+| Users lose their groups and unsynced local data in the wipe | Announced in release notes and on the site before the rollout (AC12); accepted by the spec. |
+| Abuse floods the endpoint and the bill | App Check on every request, 64 KB limit, one instance, per-install caps, budget and kill switch on both projects. |
+| A scrubber miss leaks personal data into an error report | Scrubbing twice (app and endpoint), breadcrumbs from a fixed vocabulary, and the AC4 test feeding real-looking values through an error. |
+| Storage Write API default stream: rows are briefly in the streaming buffer and cannot be changed by DML | Nothing in R-4 updates or deletes these rows; `dim_user` deletion works on dlt-loaded tables. |
+| Mixed release order: the app sends before the endpoint exists | P1 deploys before P2 merges; the sender treats any failure as "retry later" and drops nothing beyond the queue caps. |
