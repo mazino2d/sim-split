@@ -4,7 +4,7 @@
 > triaging, writing specs or reordering the roadmap. Change it deliberately — every change
 > here shifts what gets built.
 
-Last reviewed: 2026-10-08
+Last reviewed: 2026-10-23
 
 ## Vision
 
@@ -34,8 +34,8 @@ excellent, not into monetisation. Growth and revenue are explicitly **not** obje
 
 ## North Star — quality, not adoption
 
-The app ships no usage analytics (only anonymous error reports, see strong defaults), so
-the North Star is a set of quality bars measurable by dogfooding, tests and Play Console:
+The North Star is a set of quality bars measurable by dogfooding, tests, Play Console and,
+for users who opt in, usage analytics (see strong defaults):
 
 | Metric | Target | How it is measured |
 | --- | --- | --- |
@@ -66,12 +66,18 @@ and a network for first use; after that, offline use is a strong default (below)
 - Sign-in is a single tap (Google or Apple) — no passwords, no profile setup.
 - Offline after sign-in: creating groups, logging expenses, viewing balances and recording
   settlements work with no network and sync later.
-- No ads and no third-party analytics SDK.
-- Data is stored only to sync groups between their members — never sold, profiled or
-  used for anything else besides the error reports below; deleting the account deletes the user's cloud data.
+- No ads. The only third-party analytics SDK is Google Analytics for Firebase.
+- Group data is stored only to sync groups between their members — never sold or used
+  for advertising. Deleting the account deletes the user's cloud data, including their
+  analytics data.
 - Error reports are anonymous: errors and the screens and actions that led to them, with
   platform and app version — never the account, email, group or member names, or amounts.
   They are on by default, can be turned off in Settings, and are deleted after 30 days.
+- Usage analytics are opt-in and linked to the account: screens, actions, sessions and
+  funnels, sent with Google Analytics for Firebase under the account's uid — never email,
+  group or member names, expense descriptions or amounts. Users choose once after their
+  first sign-in and can change it in Settings; nothing is sent before they opt in. Data is
+  kept 14 months.
 
 These replaced "No account or sign-up" and "Data stays on the device" on 2026-10-03
 (see R-3).
@@ -81,6 +87,11 @@ opt-out error reports ([R-4](specs/R-4-anonymous-error-reports.md)). Testers on 
 (sign-in reported as failed while it succeeded, sign-in blocked in in-app browsers, no
 navigation after creating a group) that could not be reproduced from their descriptions.
 Usage analytics and third-party SDKs stay out.
+
+*Changed 2026-10-23:* usage analytics are now allowed — opt-in, linked to the account,
+with Google Analytics for Firebase — replacing "no third-party analytics SDK". Without
+them, prioritisation rests on dogfooding and a few testers, and error rates have no
+denominator. Opt-in is required because the data identifies the user.
 
 These are not red lines, but anything that weakens them must go through triage with the
 trade-off written down in the roadmap entry.

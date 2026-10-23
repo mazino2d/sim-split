@@ -118,7 +118,8 @@ tester is or what their groups contain.
 
 ## Out of scope
 
-- Usage analytics: screen views, funnels or counts sent when nothing went wrong.
+- Usage analytics: screen views, funnels or counts sent when nothing went wrong. These
+  are opt-in and account-linked (see [strategy](../strategy.md)) and get their own spec.
 - Any third-party SDK, including Crashlytics.
 - A screen to view or share the local log by hand.
 - Alerts or dashboards for the maintainer beyond the Firebase console.

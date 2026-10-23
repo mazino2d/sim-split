@@ -52,8 +52,12 @@ the case at hand. Don't lecture the whole file.
   Calm). For a craft objective, timed dogfooding + tester interviews are usually enough.
 - **Decided 2026-10-08:** anonymous error reports (errors + breadcrumbs, no account, names
   or amounts) to the app's own Firestore, on by default with an off switch, 30-day
-  retention (R-4). Usage analytics and third-party SDKs stay out. Revisit if reports ever
-  need to identify a user — that requires opt-in.
+  retention (R-4). Revisit if reports ever need to identify a user — that requires opt-in.
+- **Decided 2026-10-23:** full product analytics (screens, actions, sessions, funnels)
+  linked to the account, with Google Analytics for Firebase, **opt-in** (asked once after
+  first sign-in, switch in Settings), 14-month retention, deleted with the account. Never
+  names, descriptions or amounts. Cost: a third-party SDK, a heavier Data safety
+  declaration and one consent prompt (Calm).
 
 ### Smart defaults vs predictability
 
