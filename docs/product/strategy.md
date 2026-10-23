@@ -4,7 +4,7 @@
 > triaging, writing specs or reordering the roadmap. Change it deliberately — every change
 > here shifts what gets built.
 
-Last reviewed: 2026-10-03
+Last reviewed: 2026-10-23
 
 ## Vision
 
@@ -34,8 +34,8 @@ excellent, not into monetisation. Growth and revenue are explicitly **not** obje
 
 ## North Star — quality, not adoption
 
-The app ships no telemetry, so the North Star is a set of quality bars measurable by
-dogfooding, tests and Play Console:
+The North Star is a set of quality bars measurable by dogfooding, tests, Play Console and
+the maintainer's analytics warehouse (see strong defaults):
 
 | Metric | Target | How it is measured |
 | --- | --- | --- |
@@ -67,11 +67,40 @@ and a network for first use; after that, offline use is a strong default (below)
 - Offline after sign-in: creating groups, logging expenses, viewing balances and recording
   settlements work with no network and sync later.
 - No ads and no third-party analytics SDK.
-- Data is stored only to sync groups between their members — never sold, profiled or
-  used for anything else; deleting the account deletes the user's cloud data.
+- Data is never sold, shared with third parties or used for advertising. Group data is
+  stored to sync groups between their members and is copied to the maintainer's own
+  warehouse for product analysis.
+- Error reports are anonymous: errors and the screens and actions that led to them, with
+  platform and app version — never the account, email, group or member names, or amounts.
+  They are on by default and can be turned off in Settings → Diagnostics.
+- Usage tracking is per user and required: every screen opened and action taken, linked
+  to the account's uid. It and the copy of group data are part of the privacy policy,
+  which users agree to by signing in (one line on the sign-in screen links it); there is
+  no consent screen. It cannot be turned off; deleting the account is the way out.
+- Error reports and usage events go through the app's own endpoint, which writes them to
+  Cloud Logging (alerts) and to the warehouse. All analytics data lives in the
+  maintainer's own BigQuery warehouse, with no third party, modelled with dbt, read only
+  by the maintainer and kept indefinitely. Deleting the account deletes the user's cloud
+  data and their personal details (name, email) in the warehouse; anonymised facts keyed
+  by the uid stay.
 
 These replaced "No account or sign-up" and "Data stays on the device" on 2026-10-03
 (see R-3).
+
+*Changed 2026-10-08:* "the app ships no telemetry" was narrowed to allow anonymous,
+opt-out error reports ([R-4](specs/R-4-error-reports-and-usage-analytics.md)). Testers on web and Android hit small bugs
+(sign-in reported as failed while it succeeded, sign-in blocked in in-app browsers, no
+navigation after creating a group) that could not be reproduced from their descriptions.
+Usage analytics and third-party SDKs stay out.
+
+*Changed 2026-10-23:* per-user usage tracking is now required to use the app (linked to
+the account, agreed to by signing in) and group data is copied to the maintainer's
+warehouse for analysis, replacing "data is stored only to sync groups". Without them,
+prioritisation rests on dogfooding and a few testers, and error rates have no
+denominator; making it required keeps the data complete instead of skewed towards users
+who opt in. Third-party analytics SDKs stay out: the data goes only to the maintainer's
+own warehouse, with no third party. Accounts created before this change are deleted so
+that every account has agreed. Analytics data is kept indefinitely.
 
 These are not red lines, but anything that weakens them must go through triage with the
 trade-off written down in the roadmap entry.
