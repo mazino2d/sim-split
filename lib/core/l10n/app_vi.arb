@@ -327,5 +327,15 @@
   "fieldShare": "Phần của {name}",
   "fieldClaimed": "Đã có tài khoản nhận",
   "valueYes": "Có",
-  "valueNo": "Không"
+  "valueNo": "Không",
+  "diagnostics": "Chẩn đoán",
+  "errorReportsSwitch": "Gửi báo cáo lỗi ẩn danh",
+  "errorReportsExplanation": "Lỗi và các bước dẫn tới lỗi — không bao giờ có tên, nhóm hay số tiền của bạn.",
+  "privacyPolicy": "Chính sách quyền riêng tư",
+  "reportIdLabel": "Mã báo cáo",
+  "reportIdHint": "Chạm để sao chép, rồi gửi cho người phát triển",
+  "copied": "Đã sao chép",
+  "appVersionLabel": "Phiên bản ứng dụng",
+  "platformLabel": "Nền tảng",
+  "errorReportsWaiting": "Báo cáo đang chờ gửi"
 }

@@ -8,12 +8,14 @@ import 'package:simsplit/data/daos/group_dao.dart';
 import 'package:simsplit/data/daos/member_dao.dart';
 import 'package:simsplit/data/daos/settlement_dao.dart';
 import 'package:simsplit/data/daos/sync_dao.dart';
+import 'package:simsplit/data/daos/telemetry_dao.dart';
 import 'package:simsplit/data/models/expense_split_table.dart';
 import 'package:simsplit/data/models/expense_table.dart';
 import 'package:simsplit/data/models/group_table.dart';
 import 'package:simsplit/data/models/member_table.dart';
 import 'package:simsplit/data/models/settlement_table.dart';
 import 'package:simsplit/data/models/sync_tables.dart';
+import 'package:simsplit/data/models/telemetry_table.dart';
 
 part 'app_database.g.dart';
 
@@ -27,6 +29,7 @@ part 'app_database.g.dart';
     Activities,
     OutboxEntries,
     SyncStates,
+    TelemetryQueue,
   ],
   daos: [
     GroupDao,
@@ -35,6 +38,7 @@ part 'app_database.g.dart';
     ExpenseSplitDao,
     SettlementDao,
     SyncDao,
+    TelemetryDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -45,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -81,6 +85,10 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(groups, groups.ownerUid);
             await m.addColumn(groups, groups.memberUids);
             await m.addColumn(groups, groups.inviteToken);
+          }
+          if (from < 5) {
+            // R-4: error reports and usage events waiting to be sent.
+            await m.createTable(telemetryQueue);
           }
         },
         beforeOpen: (details) async {

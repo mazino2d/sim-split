@@ -44,9 +44,11 @@ jobs:
       - name: Build web
         env:
           RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.RECAPTCHA_ENTERPRISE_SITE_KEY }}
+          TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
         run: >-
           flutter build web --release
           --dart-define=RECAPTCHA_ENTERPRISE_SITE_KEY="$RECAPTCHA_ENTERPRISE_SITE_KEY"
+          --dart-define=TELEMETRY_URL="$TELEMETRY_URL"
 
       # Keyless auth via Workload Identity Federation, managed in
       # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-prd/github_actions.tf).

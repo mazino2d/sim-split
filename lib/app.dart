@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/domain/use_cases/telemetry/record_error.dart';
 import 'package:simsplit/presentation/providers/locale_provider.dart';
 import 'package:simsplit/presentation/providers/sync_providers.dart';
 import 'package:simsplit/presentation/providers/theme_mode_provider.dart';
 import 'package:simsplit/presentation/router/app_router.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
+import 'package:simsplit/presentation/utils/failure_message.dart';
 
 class SimSplitApp extends ConsumerWidget {
   const SimSplitApp({super.key});
@@ -18,6 +21,9 @@ class SimSplitApp extends ConsumerWidget {
     final locale = localeAsync.value ?? deviceDefaultLocale();
     final themeMode = ref.watch(themeModeProvider).value ?? ThemeMode.system;
     ref.watch(syncRunnerProvider);
+    final recordError = ref.watch(recordErrorProvider);
+    onFailureShown = (error) =>
+        recordError(RecordErrorParams(error, null, shownToUser: true));
 
     return MaterialApp.router(
       title: 'SimSplit',

@@ -65,7 +65,7 @@ export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
     };
 
     if (req.method === 'OPTIONS') return { status: 204, headers: cors, body: '' };
-    if (req.method === 'GET' && req.path === '/healthz') return reply(200, { ok: true });
+    if (req.method === 'GET' && req.path === '/health') return reply(200, { ok: true });
     if (req.method !== 'POST' || (req.path !== '/v1/errors' && req.path !== '/v1/events')) {
       return reply(404, { error: 'not found' });
     }

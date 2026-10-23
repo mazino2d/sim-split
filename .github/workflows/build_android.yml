@@ -129,6 +129,9 @@ jobs:
         #   anything else (main, manual)    → YYYY.M.D-dev.<sha7>, build date UTC
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
+          # R-4 telemetry endpoint, a repo variable set by everything-as-code;
+          # while it is unset, error reports are queued but never sent.
+          TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
         run: |
           BUILD_NUMBER=$(( ($(date -u +%s) - 1767225600) / 60 ))
           if [ -n "$RELEASE_TAG" ]; then
@@ -137,7 +140,8 @@ jobs:
             BUILD_NAME="$(date -u +%Y.%-m.%-d)-dev.${GITHUB_SHA::7}"
           fi
           echo "versionName: $BUILD_NAME, versionCode: $BUILD_NUMBER" | tee -a "$GITHUB_STEP_SUMMARY"
-          flutter build appbundle --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
+          flutter build appbundle --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" \
+            --dart-define=TELEMETRY_URL="$TELEMETRY_URL"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v7
