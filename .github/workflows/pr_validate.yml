@@ -28,6 +28,7 @@ jobs:
       metadata: ${{ steps.filter.outputs.metadata }}
       workflows: ${{ steps.filter.outputs.workflows }}
       firebase: ${{ steps.filter.outputs.firebase }}
+      telemetry: ${{ steps.filter.outputs.telemetry }}
     steps:
       - uses: dorny/paths-filter@v4
         id: filter
@@ -55,6 +56,9 @@ jobs:
             firebase:
               - "firebase.json"
               - "firebase/**"
+              - ".github/workflows/pr_validate.yml"
+            telemetry:
+              - "services/telemetry/**"
               - ".github/workflows/pr_validate.yml"
 
   format:
@@ -130,6 +134,25 @@ jobs:
           npx --yes firebase-tools@14 emulators:exec --only firestore
           --project demo-simsplit "npm --prefix firebase/test test"
 
+  # The R-4 telemetry endpoint: type check and unit tests (fakes for Firebase
+  # and BigQuery, no network).
+  telemetry:
+    name: Telemetry endpoint
+    needs: changes
+    if: needs.changes.outputs.telemetry == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: services/telemetry/package-lock.json
+      - run: npm ci --prefix services/telemetry
+      - run: npm --prefix services/telemetry run typecheck
+      - run: npm --prefix services/telemetry test
+
   # Workflow files are otherwise only exercised after merge (or on a tag), so
   # lint them here: syntax, expressions, action inputs, and shellcheck on run:.
   workflows:
@@ -142,7 +165,7 @@ jobs:
   # job above succeeded or was skipped; fails if any failed or was cancelled.
   result:
     name: PR Validation
-    needs: [changes, format, analyze, test, store-metadata, firestore-rules, workflows]
+    needs: [changes, format, analyze, test, store-metadata, firestore-rules, telemetry, workflows]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -122,7 +122,7 @@ release as P5: the agreement rule, full tracking and the account wipe go out tog
 
 | Risk | Mitigation |
 | --- | --- |
-| Cloud Monitoring starts charging for alerting policies | Check pricing before P0 merges; keep to the two policies, or drop the storage alert and rely on the budget. |
+| Cloud Monitoring starts charging for alerting policies | Checked 2026-10-24: charges start no sooner than 2027-09-01, at $0.35 a month per policy (log-match conditions return no points). Before then, replace the two policies with a free path (for example the endpoint emailing through Pub/Sub) or accept $0.70 a month. |
 | BigQuery time travel keeps a deleted user's rows readable for up to 48 hours after the daily load removes them | Accepted in AC11 and stated in the privacy policy. Time travel set to its 48-hour minimum on `simsplit_raw` (Terraform) and on every simsplit model dataset (dbt dataset config). |
 | Installed 2026.10.22 builds keep running after the account wipe | Rules require `users/{uid}` for every group access, so they cannot sync; they show sync errors until updated. Play auto-updates most installs within days. |
 | Users lose their groups and unsynced local data in the wipe | Announced in release notes and on the site before the rollout (AC12); accepted by the spec. |
