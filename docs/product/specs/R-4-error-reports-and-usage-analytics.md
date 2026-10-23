@@ -26,7 +26,7 @@ clear before the account is created. All of it must cost nothing to run.
 | Pipeline | The app sends error reports and usage events to one endpoint of its own (a Cloud Run service in the app's Google Cloud project). The endpoint writes each one to two places: Cloud Logging, for alerts, and the maintainer's BigQuery warehouse ([data-platform](https://github.com/mazino2d/data-platform), modelled with dbt), for analysis. No third-party SDK (Crashlytics, Google Analytics for Firebase, PostHog and Mixpanel were ruled out). |
 | Retention | Kept indefinitely in BigQuery; there is no plan to delete them. Cloud Logging keeps its default 30 days, since it only serves alerts. The one exception is account deletion (below). |
 | Alerts | From Cloud Logging only: log-based alerts email the maintainer. No dashboard or paging service. |
-| Zero cost | Enforced by hard limits, not by watching the bill: App Check on the endpoint, size and rate caps, an endpoint that scales to zero with at most one instance, the free BigQuery write path, and the existing budget and kill switch (AC21–AC25). |
+| Zero cost | Enforced by hard limits, not by watching the bill: App Check on the endpoint, size and rate caps, an endpoint that scales to zero with at most one instance, the free BigQuery write path, and the existing budget and kill switch (AC20–AC24). |
 | Error reports | Anonymous and on by default, with an off switch in Settings (opt-out). Acceptable only because they are anonymous: errors plus breadcrumbs, platform and app version, never the account, email, uid, group or member names, expense descriptions or amounts. Errors before sign-in are reported too. |
 | Usage analytics | Per user and **required**: every screen opened and action taken, linked to the account's uid. Agreeing to it is a condition of using the app; there is no way to use the app without it. |
 | Consent | Asked once, at account creation, before the app opens: the user agrees to usage analytics and the group data copy, or does not use the app. "Don't agree" signs them out and leaves no account. The agreement, its time and the privacy policy version are stored with the account. It cannot be turned off later; deleting the account is the way out. |
@@ -96,36 +96,34 @@ clear before the account is created. All of it must cost nothing to run.
   recorded or sent; only error reports, governed by their own switch.
 - **AC10** When any user creates or changes a group, member, expense, settlement or
   activity entry, then that record appears in the warehouse within 24 hours.
-- **AC11** Settings shows "Usage tracking: required to use SimSplit" with a link to the
-  privacy policy, no switch, and points to "Delete account" as the way to stop it.
-- **AC12** Given an account is deleted, then within 24 hours its row in `dim_user`,
+- **AC11** Given an account is deleted, then within 24 hours its row in `dim_user`,
   including its history, is gone from the warehouse, and no name or email of that user
   remains in it. Its usage events and copied records stay, keyed only by the uid.
-- **AC13** When the release that ships R-4 rolls out, every account created before it is
+- **AC12** When the release that ships R-4 rolls out, every account created before it is
   deleted with its cloud data (including the groups only they belonged to). On the first
   launch of the new version, the app shows sign-in and then the consent step. The release
   notes and the site say so in EN and VI before the release.
 
 ### Delivery and limits
 
-- **AC14** Given the device is offline, when an error report or usage event is recorded,
+- **AC13** Given the device is offline, when an error report or usage event is recorded,
   then it waits on the device and is sent once the device is online, even after an app
   restart. At most 50 error reports and 500 usage events wait; the oldest are dropped
   first.
-- **AC15** Usage events are sent in batches: at most one request per minute while the
+- **AC14** Usage events are sent in batches: at most one request per minute while the
   app is open, plus one when it goes to the background.
-- **AC16** The same error (same type and stack) is sent at most once per app session, with
+- **AC15** The same error (same type and stack) is sent at most once per app session, with
   a count of how many times it happened.
-- **AC17** One install sends at most 50 error reports and 2,000 usage events per day; the
+- **AC16** One install sends at most 50 error reports and 2,000 usage events per day; the
   rest are dropped.
-- **AC18** Sending never blocks, slows or interrupts the user, and a failure to send is
+- **AC17** Sending never blocks, slows or interrupts the user, and a failure to send is
   never shown to the user.
 
 ### Storage, access and alerts
 
-- **AC19** Reports and events are kept in BigQuery indefinitely. Only the maintainer can
+- **AC18** Reports and events are kept in BigQuery indefinitely. Only the maintainer can
   read them; no client can read, change or delete anything once sent.
-- **AC20** Every error report is also a Cloud Logging entry with severity ERROR, carrying
+- **AC19** Every error report is also a Cloud Logging entry with severity ERROR, carrying
   the report ID, platform and app version. A log-based alert emails the maintainer when
   error reports arrive, rate-limited so that a burst sends one email, not hundreds. Given
   a report ID, the maintainer finds its reports in Logs Explorer (last 30 days) and in
@@ -133,38 +131,38 @@ clear before the account is created. All of it must cost nothing to run.
 
 ### Zero cost
 
-- **AC21** The endpoint rejects, without writing anything, any request without a valid
+- **AC20** The endpoint rejects, without writing anything, any request without a valid
   App Check token, any usage event batch without a valid Firebase ID token whose uid
   matches the events, any body over 64 KB, and any payload that does not match the
   report or event schema.
-- **AC22** The endpoint scales to zero when idle and never runs more than one instance.
-- **AC23** Writes to BigQuery use only free paths (the Storage Write API within its
+- **AC21** The endpoint scales to zero when idle and never runs more than one instance.
+- **AC22** Writes to BigQuery use only free paths (the Storage Write API within its
   monthly free tier, or batch loads), never billed streaming inserts. Cloud Logging uses
   only the default bucket and its default 30-day retention.
-- **AC24** The endpoint's project is covered by the existing budget and kill switch, and an
+- **AC23** The endpoint's project is covered by the existing budget and kill switch, and an
   alert emails the maintainer when the warehouse's storage passes 80 % of the BigQuery
   free tier.
-- **AC25** At ~100 active users, a month of billing shows $0 for Cloud Run, Cloud Logging,
+- **AC24** At ~100 active users, a month of billing shows $0 for Cloud Run, Cloud Logging,
   Cloud Monitoring and BigQuery.
 
 ### Settings
 
-- **AC26** Settings has a switch "Send anonymous error reports" (on by default) with a
+- **AC25** Settings has a switch "Send anonymous error reports" (on by default) with a
   one-line explanation and a link to the privacy policy.
-- **AC27** When the user turns the error report switch off, nothing more is recorded or
+- **AC26** When the user turns the error report switch off, nothing more is recorded or
   sent, and reports still waiting on the device are deleted. Turning it back on starts
   recording again with a new report ID.
-- **AC28** Settings shows the report ID (short, easy to read aloud, e.g. `7KQ-4MZ`) while
+- **AC27** Settings shows the report ID (short, easy to read aloud, e.g. `7KQ-4MZ`) while
   error reports are on; tapping it copies it and confirms with "Copied".
-- **AC29** The error report choice and the report ID survive app restarts, sign-out and
+- **AC28** The error report choice and the report ID survive app restarts, sign-out and
   sign-in.
   Deleting the account does not delete error reports already sent (they are not linked to
   it), and the privacy policy says so.
 
 ### Copy and docs
 
-- **AC30** All new text exists in EN and VI.
-- **AC31** The privacy policy, the Play Data safety form, the store listing and the site
+- **AC29** All new text exists in EN and VI.
+- **AC30** The privacy policy, the Play Data safety form, the store listing and the site
   no longer claim "no analytics" or "no crash reporting". They describe error reports
   (anonymous, on by default, kept indefinitely, can be turned off; Diagnostics and the
   report ID as a device ID), usage analytics (required to use the app, linked to the
@@ -173,14 +171,14 @@ clear before the account is created. All of it must cost nothing to run.
 
 ## Edge cases checklist
 
-- Offline / cold start / sync: reports and events recorded offline are queued (AC14); an
+- Offline / cold start / sync: reports and events recorded offline are queued (AC13); an
   error during app start, before Settings are loaded, is still reported if error reports
   are on, and dropped if they were turned off. Records edited offline are copied once
   they sync.
 - ~~Group shape~~: not applicable — every account has agreed, so whole groups are copied.
 - Localisation: switch labels, explanations and the consent screen fit at default font
   size in VI.
-- Empty / error states: sending is silent (AC18). If storing the agreement fails (offline
+- Empty / error states: sending is silent (AC17). If storing the agreement fails (offline
   at first sign-in), the consent screen stays until it is stored.
 - Accessibility: switches and consent buttons have screen reader labels; the report ID is
   read out character by character and is selectable.
@@ -197,7 +195,7 @@ clear before the account is created. All of it must cost nothing to run.
 - A month after release, the warehouse answers "errors per 100 sessions by platform" and
   "share of active users who log an expense each week" across all accounts.
 - Supports the crash-free users bar (≥ 99.5 %) and "one shared truth" by making sync and
-  sign-in failures visible, and "free to run at small scale" (AC25).
+  sign-in failures visible, and "free to run at small scale" (AC24).
 
 ## Out of scope
 
@@ -206,7 +204,7 @@ clear before the account is created. All of it must cost nothing to run.
   in BigQuery.
 - A screen to view or share the local log by hand.
 - Fixing the three known bugs — each is tracked as its own bug report.
-- Migrating existing accounts' data instead of deleting it (AC13).
+- Migrating existing accounts' data instead of deleting it (AC12).
 
 ## Open questions
 
@@ -221,6 +219,6 @@ clear before the account is created. All of it must cost nothing to run.
   Accepted for now: the privacy policy states it as a condition of the service, not as
   optional consent. Revisit if Play review or a user objects.
 - Cloud Monitoring has announced charges for alerting policies; confirm the alerts in
-  AC20 and AC24 stay at $0 before shipping, or cut them to what the free tier allows.
+  AC19 and AC23 stay at $0 before shipping, or cut them to what the free tier allows.
 - Keeping everything indefinitely relies on the BigQuery free storage tier; the storage
-  alert (AC24) is the trigger to revisit retention.
+  alert (AC23) is the trigger to revisit retention.
