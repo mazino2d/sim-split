@@ -35,7 +35,7 @@ excellent, not into monetisation. Growth and revenue are explicitly **not** obje
 ## North Star — quality, not adoption
 
 The North Star is a set of quality bars measurable by dogfooding, tests, Play Console and
-the app's own analytics warehouse (see strong defaults):
+the maintainer's analytics warehouse (see strong defaults):
 
 | Metric | Target | How it is measured |
 | --- | --- | --- |
@@ -68,34 +68,40 @@ and a network for first use; after that, offline use is a strong default (below)
   settlements work with no network and sync later.
 - No ads and no third-party analytics SDK.
 - Data is never sold, shared with third parties or used for advertising. Group data is
-  stored to sync groups between their members and is copied to the app's own BigQuery
-  warehouse for product analysis. Deleting the account deletes the user's cloud data,
-  including their rows in the warehouse.
+  stored to sync groups between their members; for users who allowed analytics it is also
+  copied to the maintainer's own warehouse for product analysis.
 - Error reports are anonymous: errors and the screens and actions that led to them, with
   platform and app version — never the account, email, group or member names, or amounts.
-  They are on by default, can be turned off in Settings, and are deleted after 30 days.
+  They are on by default and can be turned off in Settings.
 - Usage analytics are per user and opt-in: every screen opened and action taken, linked
-  to the account's uid, sent through the app's own pipeline to BigQuery. Users choose once
-  after their first sign-in and can change it in Settings; nothing is sent before they opt
-  in. Events are kept 14 months.
-- All analytics data — usage events, error reports and the copy of group data — lives in
-  one BigQuery warehouse, modelled with dbt, and is read only by the maintainer.
+  to the account's uid. The choice is a required step of account creation (allow or don't
+  allow), stored with the account and changeable in Settings; nothing is sent or copied
+  for users who don't allow it.
+- Error reports and usage events go through the app's own endpoint, which writes them to
+  Cloud Logging (alerts) and to the warehouse. All analytics data lives in the
+  maintainer's own BigQuery warehouse, with no third party, modelled with dbt, read only
+  by the maintainer and kept indefinitely. Deleting the account deletes the user's cloud
+  data and their personal details (name, email) in the warehouse; anonymised facts keyed
+  by the uid stay.
 
 These replaced "No account or sign-up" and "Data stays on the device" on 2026-10-03
 (see R-3).
 
 *Changed 2026-10-08:* "the app ships no telemetry" was narrowed to allow anonymous,
-opt-out error reports ([R-4](specs/R-4-anonymous-error-reports.md)). Testers on web and Android hit small bugs
+opt-out error reports ([R-4](specs/R-4-error-reports-and-usage-analytics.md)). Testers on web and Android hit small bugs
 (sign-in reported as failed while it succeeded, sign-in blocked in in-app browsers, no
 navigation after creating a group) that could not be reproduced from their descriptions.
 Usage analytics and third-party SDKs stay out.
 
 *Changed 2026-10-23:* per-user usage analytics are now allowed (opt-in, linked to the
-account) and group data is copied to the app's own BigQuery warehouse for analysis,
-replacing "data is stored only to sync groups". Without them, prioritisation rests on
-dogfooding and a few testers, and error rates have no denominator. Third-party analytics
-SDKs stay out: the pipeline is the app's own, so the data never leaves its Google Cloud
-project. Opt-in is required because the events identify the user.
+account) and, for users who allow it, group data is copied to the maintainer's warehouse
+for analysis, replacing "data is stored only to sync groups". Without them,
+prioritisation rests on dogfooding and a few testers, and error rates have no
+denominator. Third-party analytics SDKs stay out: the data goes only to the maintainer's
+own warehouse, with no third party. Opt-in is required because the events and the group
+copy identify the user, and it is asked when the account is created; accounts created
+before this change are deleted so that every account has answered. Analytics data is
+kept indefinitely instead of 30 days or 14 months.
 
 These are not red lines, but anything that weakens them must go through triage with the
 trade-off written down in the roadmap entry.
