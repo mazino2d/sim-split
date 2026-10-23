@@ -122,7 +122,7 @@ release as P5: the consent rule, full tracking and the account wipe go out toget
 | Risk | Mitigation |
 | --- | --- |
 | Cloud Monitoring starts charging for alerting policies | Check pricing before P0 merges; keep to the two policies, or drop the storage alert and rely on the budget. |
-| BigQuery time travel keeps a deleted user's rows readable for up to 48 hours after the daily load removes them, beyond AC11's 24 hours | Time travel set to its 48-hour minimum on `simsplit_raw` and the simsplit model datasets. Raise with the product owner to read AC11 as "within 24 hours from tables, 48 more in time travel", or accept the gap. |
+| BigQuery time travel keeps a deleted user's rows readable for up to 48 hours after the daily load removes them | Accepted in AC11 and stated in the privacy policy. Time travel set to its 48-hour minimum on `simsplit_raw` (Terraform) and on every simsplit model dataset (dbt dataset config). |
 | Installed 2026.10.22 builds keep running after the account wipe | Rules require `users/{uid}` for every group access, so they cannot sync; they show sync errors until updated. Play auto-updates most installs within days. |
 | Users lose their groups and unsynced local data in the wipe | Announced in release notes and on the site before the rollout (AC12); accepted by the spec. |
 | Tracking every tap fills the free 10 GiB of BigQuery storage, since nothing is deleted | ~100 users × ~300 events a day × ~300 bytes ≈ 3 GiB a year, shared with jaffle_shop. The 5,000-a-day cap bounds a runaway client, and the storage alert at 8 GiB is the trigger to aggregate or archive old events. |

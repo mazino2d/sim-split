@@ -105,8 +105,11 @@ clear before the account is created. All of it must cost nothing to run.
 - **AC10** When any user creates or changes a group, member, expense, settlement or
   activity entry, then that record appears in the warehouse within 24 hours.
 - **AC11** Given an account is deleted, then within 24 hours its row in `dim_user`,
-  including its history, is gone from the warehouse, and no name or email of that user
-  remains in it. Its usage events and copied records stay, keyed only by the uid.
+  including its history, is gone from every warehouse table, and no table holds a name or
+  email of that user. BigQuery may keep the earlier table versions for up to 2 more days
+  for recovery (time travel), then 7 days that only Google can restore (fail-safe); the
+  privacy policy says so. Its usage events and copied records stay, keyed only by the
+  uid.
 - **AC12** When the release that ships R-4 rolls out, every account created before it is
   deleted with its cloud data (including the groups only they belonged to). On the first
   launch of the new version, the app shows sign-in and then the consent step. The release
@@ -175,7 +178,8 @@ clear before the account is created. All of it must cost nothing to run.
   (anonymous, on by default, kept indefinitely, can be turned off; Diagnostics and the
   report ID as a device ID), usage analytics (required to use the app, linked to the
   account, kept indefinitely; App interactions), the copy of group data and the user's
-  name and email for analytics, and what deleting the account removes and keeps.
+  name and email for analytics, and what deleting the account removes and keeps
+  (including the 2-day time travel and 7-day fail-safe copies).
 
 ### Dashboard
 
