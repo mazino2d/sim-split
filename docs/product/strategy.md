@@ -74,9 +74,9 @@ and a network for first use; after that, offline use is a strong default (below)
   platform and app version — never the account, email, group or member names, or amounts.
   They are on by default and can be turned off in Settings.
 - Usage tracking is per user and required: every screen opened and action taken, linked
-  to the account's uid. Agreeing to it, and to the copy of group data, is a condition of
-  using the app, asked once at account creation; people who don't agree don't get an
-  account. It cannot be turned off; deleting the account is the way out.
+  to the account's uid. It and the copy of group data are part of the privacy policy,
+  which users agree to by signing in (one line on the sign-in screen links it); there is
+  no consent screen. It cannot be turned off; deleting the account is the way out.
 - Error reports and usage events go through the app's own endpoint, which writes them to
   Cloud Logging (alerts) and to the warehouse. All analytics data lives in the
   maintainer's own BigQuery warehouse, with no third party, modelled with dbt, read only
@@ -94,7 +94,7 @@ navigation after creating a group) that could not be reproduced from their descr
 Usage analytics and third-party SDKs stay out.
 
 *Changed 2026-10-23:* per-user usage tracking is now required to use the app (linked to
-the account, agreed to at account creation) and group data is copied to the maintainer's
+the account, agreed to by signing in) and group data is copied to the maintainer's
 warehouse for analysis, replacing "data is stored only to sync groups". Without them,
 prioritisation rests on dogfooding and a few testers, and error rates have no
 denominator; making it required keeps the data complete instead of skewed towards users

@@ -30,12 +30,12 @@ clear before the account is created. All of it must cost nothing to run.
 | Zero cost | Enforced by hard limits, not by watching the bill: App Check on the endpoint, size and rate caps, an endpoint that scales to zero with at most one instance, the free BigQuery write path, and the existing budget and kill switch (AC20–AC24). |
 | Error reports | Anonymous and on by default, with an off switch in Settings (opt-out). Acceptable only because they are anonymous: errors plus breadcrumbs, platform and app version, never the account, email, uid, group or member names, expense descriptions or amounts. Errors before sign-in are reported too. |
 | Usage analytics | Per user and **required**: every action in the app — every screen, tap, form, dialog and operation with its result and duration — linked to the account's uid. Agreeing to it is a condition of using the app; there is no way to use the app without it. |
-| Consent | Asked once, at account creation, before the app opens: the user agrees to usage analytics and the group data copy, or does not use the app. "Don't agree" signs them out and leaves no account. The agreement, its time and the privacy policy version are stored with the account. It cannot be turned off later; deleting the account is the way out. |
+| Consent | Part of the product policy, like terms of service: the sign-in screen says in one line that continuing means agreeing to the privacy policy, which links to it; the policy describes the usage tracking and the group data copy. Signing in is agreeing — there is no separate consent screen. The agreement time and the policy version are stored when the account is created. It cannot be turned off later; deleting the account is the way out. |
 | Group data copy | Every account's records (groups, members, expenses, settlements, activity) are copied to the warehouse. |
 | Account deletion | Deleting an account deletes the user's row in the warehouse's user dimension (`dim_user`: name, email, consent), including its history. Fact rows (usage events, copied group records) are kept, keyed only by the uid, which no longer resolves to a person. |
-| Existing accounts | Every account created before R-4 ships has never answered the consent step, so all of them and their cloud data are deleted when R-4 ships. Everyone signs in again and answers it. |
+| Existing accounts | Every account created before R-4 ships never agreed to the new policy, so all of them and their cloud data are deleted when R-4 ships. Everyone signs in again, which records their agreement. |
 | Report ID | Each install has a random report ID, shown in Settings, that a tester can quote to the maintainer. It is not linked to the account. |
-| Notice | Error reports: Settings and the privacy policy only — no banner or dialog (Calm). Usage analytics: the consent step. |
+| Notice | The one line on the sign-in screen and the privacy policy behind it — no banner, dialog or consent screen (Calm). Error reports are also explained next to their switch in Settings. |
 | Turning off | Error reports only: stops recording and sending, and deletes what is still waiting on the device. Data already sent is kept. |
 
 ## User stories
@@ -45,8 +45,8 @@ clear before the account is created. All of it must cost nothing to run.
 - As the maintainer, I get an email when errors arrive, and I open the reports for a
   report ID, platform or app version and see the error with the screens and actions that
   led to it.
-- As a new user, I see what is collected before my account exists, and decide whether to
-  use the app on those terms.
+- As a new user, I can open the privacy policy from the sign-in screen to see what is
+  collected before I sign in.
 - As the maintainer, I open one dashboard to see which screens and actions people use,
   where they drop off, how often errors happen per session, and how groups are actually
   used, so I can prioritise the roadmap on evidence.
@@ -78,18 +78,12 @@ clear before the account is created. All of it must cost nothing to run.
 
 ### Consent and usage analytics
 
-- **AC6** Given a person signs in for the first time (no account yet), when sign-in
-  succeeds, then the app shows one consent screen before anything else: that using
-  SimSplit requires usage tracking, what is collected (screens and actions linked to the
-  account, a copy of their groups), that it is kept indefinitely and read only by the
-  maintainer, a link to the privacy policy, and two buttons, "Agree and continue" and
-  "Don't agree". There is no way past it without agreeing; closing the app and reopening
-  it shows it again.
-- **AC7** When the user agrees, then the agreement, its time and the privacy policy
-  version are stored with the account, and the app opens as usual. Signing in on another
-  device does not ask again. When the user does not agree, then the sign-in is undone
-  (no account and no data are kept) and the sign-in screen says, in one line, that
-  SimSplit needs usage tracking to be used.
+- **AC6** The sign-in screen shows one line under the sign-in buttons, "By continuing,
+  you agree to the Privacy Policy", with "Privacy Policy" linking to it. The details of
+  what is tracked are in the policy only, not on the screen.
+- **AC7** When a person signs in for the first time, then the account is created with the
+  agreement time and the privacy policy version, and the app opens as usual. Nothing
+  else is asked, on this or any other device.
 - **AC8** Given the user is signed in (and so has agreed), every action they take is sent
   as an event: each screen opened; each tap on a button, menu item, tab, switch, chip or
   list item; each form submitted or abandoned; each dialog or sheet opened and closed;
@@ -100,8 +94,8 @@ clear before the account is created. All of it must cost nothing to run.
   amounts, document IDs or invite tokens.
 - **AC8a** No interactive element can be added to the app without an event name: a test
   fails the build if a tappable widget or an operation has none.
-- **AC9** Before the user has agreed (the sign-in and consent screens), no usage event is
-  recorded or sent; only error reports, governed by their own switch.
+- **AC9** Before sign-in, no usage event is recorded or sent; only error reports,
+  governed by their own switch.
 - **AC10** When any user creates or changes a group, member, expense, settlement or
   activity entry, then that record appears in the warehouse within 24 hours.
 - **AC11** Given an account is deleted, then within 24 hours its row in `dim_user`,
@@ -112,7 +106,7 @@ clear before the account is created. All of it must cost nothing to run.
   uid.
 - **AC12** When the release that ships R-4 rolls out, every account created before it is
   deleted with its cloud data (including the groups only they belonged to). On the first
-  launch of the new version, the app shows sign-in and then the consent step. The release
+  launch of the new version, the app shows sign-in. The release
   notes and the site say so in EN and VI before the release.
 
 ### Delivery and limits
@@ -200,11 +194,11 @@ clear before the account is created. All of it must cost nothing to run.
   are on, and dropped if they were turned off. Records edited offline are copied once
   they sync.
 - ~~Group shape~~: not applicable — every account has agreed, so whole groups are copied.
-- Localisation: switch labels, explanations and the consent screen fit at default font
+- Localisation: switch labels, explanations and the sign-in line fit at default font
   size in VI.
-- Empty / error states: sending is silent (AC17). If storing the agreement fails (offline
-  at first sign-in), the consent screen stays until it is stored.
-- Accessibility: switches and consent buttons have screen reader labels; the report ID is
+- Empty / error states: sending is silent (AC17). If storing the agreement fails at
+  first sign-in, the sign-in fails like any other failed sign-in and can be retried.
+- Accessibility: switches and the policy link have screen reader labels; the report ID is
   read out character by character and is selectable.
 - ~~Money~~: not applicable — reports and events carry no amounts (AC4, AC8); copied
   group records are copied as they are.
@@ -236,9 +230,6 @@ clear before the account is created. All of it must cost nothing to run.
 - A user who never gets past sign-in cannot reach Settings, so cannot turn error reports
   off before their first sign-in errors are sent. Accepted for now and stated in the
   privacy policy; revisit if a tester objects.
-- With notice in Settings and the privacy policy only, most users will not know error
-  reports exist. Revisit (one line on the sign-in screen) if the opt-out is ever
-  questioned.
 - Requiring usage tracking to use the app means consent is not freely given in the
   GDPR or Vietnam Decree 13 sense, and Google Play review may ask for it to be optional.
   Accepted for now: the privacy policy states it as a condition of the service, not as

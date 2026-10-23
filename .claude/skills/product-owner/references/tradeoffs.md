@@ -54,7 +54,8 @@ the case at hand. Don't lecture the whole file.
   or amounts), on by default with an off switch (R-4). Revisit if reports ever need to
   identify a user — that requires opt-in.
 - **Decided 2026-10-23:** per-user product analytics (every screen and action, linked to
-  the uid), **required to use the app**: agreed to at account creation, no switch;
+  the uid), **required to use the app**: agreed to by signing in (the privacy policy, linked from
+  the sign-in screen), no consent screen, no switch;
   deleting the account is the way out. Every account's group data is copied to the
   warehouse too. Error reports and events go
   through the app's own endpoint (Cloud Run) to Cloud Logging, for alerts, and the
@@ -62,7 +63,7 @@ the case at hand. Don't lecture the whole file.
   deletion removes the user dimension and keeps anonymised facts. No third-party SDK
   (Google Analytics for Firebase, PostHog and Mixpanel were considered). Zero cost by
   hard limits (App Check, caps, one instance, free write path, kill switch). Existing
-  accounts are deleted so every account has agreed. Cost: one consent screen (Calm),
+  accounts are deleted so every account has agreed. Cost: one line on the sign-in screen,
   people who refuse can't use the app, consent that is not freely given (GDPR, Decree 13,
   possible Play review push-back), a heavier Data safety declaration, a private Evidence
   dashboard to build and maintain, and existing users losing their cloud data once.
