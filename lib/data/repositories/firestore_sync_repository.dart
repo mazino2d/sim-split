@@ -22,6 +22,7 @@ class FirestoreSyncRepository implements SyncRepository {
     required FirestoreSyncPuller puller,
     required FirebaseFirestore firestore,
     required CurrentUid currentUid,
+    Future<void> Function()? clearLocalData,
     this.timeout = const Duration(seconds: 20),
     DateTime Function()? clock,
     String Function()? newId,
@@ -31,6 +32,7 @@ class FirestoreSyncRepository implements SyncRepository {
         _puller = puller,
         _firestore = firestore,
         _currentUid = currentUid,
+        _clearLocalData = clearLocalData,
         _clock = clock ?? DateTime.now,
         _newId = newId ?? const Uuid().v4;
 
@@ -43,6 +45,7 @@ class FirestoreSyncRepository implements SyncRepository {
   final FirestoreSyncPuller _puller;
   final FirebaseFirestore _firestore;
   final CurrentUid _currentUid;
+  final Future<void> Function()? _clearLocalData;
   final DateTime Function() _clock;
   final String Function() _newId;
 
@@ -52,6 +55,11 @@ class FirestoreSyncRepository implements SyncRepository {
   @override
   Future<Either<Failure, Unit>> start(AuthUser user) async {
     try {
+      // Data synced for another account whose session ended without a
+      // sign-out (its account was deleted, R-4 AC12) is dropped, not
+      // uploaded to this one.
+      final owner = await _syncDao.readState(LocalDataUploader.uploadedForKey);
+      if (owner != null && owner != user.uid) await _clearLocalData?.call();
       await _uploader.upload(user.uid);
       _pusher.start();
       _puller.start(user.uid);

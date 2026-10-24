@@ -474,5 +474,7 @@
   "copied": "Copied",
   "appVersionLabel": "App version",
   "platformLabel": "Platform",
-  "errorReportsWaiting": "Reports waiting to be sent"
+  "errorReportsWaiting": "Reports waiting to be sent",
+  "signInAgreementPrefix": "By continuing, you agree to the ",
+  "privacyPolicyLink": "Privacy Policy"
 }

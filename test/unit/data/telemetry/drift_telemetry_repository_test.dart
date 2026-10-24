@@ -23,7 +23,7 @@ void main() {
   });
   tearDown(() => db.close());
 
-  DriftTelemetryRepository repository({DateTime? now}) =>
+  DriftTelemetryRepository repository({DateTime? now, String? uid = 'uid1'}) =>
       DriftTelemetryRepository(
         dao: db.telemetryDao,
         // No endpoint: reports stay queued so the tests can read them.
@@ -32,13 +32,14 @@ void main() {
           client: MockClient((_) async => http.Response('', 202)),
           endpoint: null,
           appCheckToken: () async => null,
+          idToken: () async => null,
         ),
         context: TelemetryContext(
           platform: 'android',
           os: 'android 14',
           appVersion: () async => '2026.10.22+1',
           language: () async => 'vi',
-          signedIn: () => true,
+          currentUid: () => uid,
           knownNames: () async => ['Đà Lạt trip', 'Bảo'],
         ),
         now: now == null ? null : () => now,
@@ -59,9 +60,8 @@ void main() {
       () async {
     final repo = repository();
     repo
-      ..recordBreadcrumb(BreadcrumbKind.screen, '/groups/:groupId')
-      ..recordBreadcrumb(
-          BreadcrumbKind.op, TelemetryEvent.opAddExpense.wireName)
+      ..track(BreadcrumbKind.screen, '/groups/:groupId')
+      ..track(BreadcrumbKind.op, TelemetryEvent.opAddExpense.wireName)
       ..recordError(StateError('Bad state'), StackTrace.current,
           shownToUser: false);
     final [report] = await queued();
@@ -164,5 +164,78 @@ void main() {
     final again = (await repository().watchErrorReportSettings().first)
         .getOrElse((_) => throw StateError('settings'));
     expect(again.reportId, first.reportId);
+  });
+
+  Future<List<Map<String, dynamic>>> events() async {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    final rows = await db.telemetryDao.oldest('event', 100);
+    return [
+      for (final r in rows) jsonDecode(r.payload) as Map<String, dynamic>
+    ];
+  }
+
+  test(
+      'screens and operations become usage events of the signed-in account '
+      '(AC8)', () async {
+    repository()
+      ..track(BreadcrumbKind.screen, '/groups/:groupId')
+      ..track(BreadcrumbKind.op, TelemetryEvent.opAddExpense.wireName,
+          result: 'success', duration: const Duration(milliseconds: 120));
+    final [screen, op] = await events();
+    expect((screen['uid'], screen['kind'], screen['name']),
+        ('uid1', 'screen', '/groups/:groupId'));
+    expect(
+        (op['kind'], op['name'], op['screen'], op['result'], op['duration_ms']),
+        ('op', 'op_add_expense', '/groups/:groupId', 'success', 120));
+    expect(op['session_id'], screen['session_id']);
+  });
+
+  test('nothing is tracked as usage before sign-in (AC9)', () async {
+    repository(uid: null).track(BreadcrumbKind.screen, '/sign-in');
+    expect(await events(), isEmpty);
+  });
+
+  test('usage events do not depend on the error report switch', () async {
+    final repo = repository();
+    await repo.setErrorReportsEnabled(false);
+    repo.track(BreadcrumbKind.screen, '/');
+    expect(await events(), hasLength(1));
+  });
+
+  test('a new session starts after 30 minutes in the background', () async {
+    var now = DateTime.utc(2026, 10, 24, 3);
+    final repo = DriftTelemetryRepository(
+      dao: db.telemetryDao,
+      sender: TelemetrySender(
+        dao: db.telemetryDao,
+        client: MockClient((_) async => http.Response('', 202)),
+        endpoint: null,
+        appCheckToken: () async => null,
+        idToken: () async => null,
+      ),
+      context: TelemetryContext(
+        platform: 'web',
+        os: null,
+        appVersion: () async => '1',
+        language: () async => 'en',
+        currentUid: () => 'uid1',
+        knownNames: () async => [],
+      ),
+      now: () => now,
+    );
+    repo.track(BreadcrumbKind.screen, '/');
+    repo.setForeground(false);
+    now = now.add(const Duration(minutes: 10));
+    repo
+      ..setForeground(true)
+      ..track(BreadcrumbKind.screen, '/settings')
+      ..setForeground(false);
+    now = now.add(const Duration(minutes: 31));
+    repo
+      ..setForeground(true)
+      ..track(BreadcrumbKind.screen, '/');
+    final sessions = [for (final e in await events()) e['session_id']];
+    expect(sessions[0], sessions[1]);
+    expect(sessions[2], isNot(sessions[1]));
   });
 }

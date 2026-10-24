@@ -13,6 +13,7 @@ import 'package:simsplit/domain/repositories/local_data_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/domain/repositories/sync_repository.dart';
+import 'package:simsplit/domain/repositories/user_profile_repository.dart';
 
 class MockExpenseRepository extends Mock implements ExpenseRepository {}
 
@@ -27,6 +28,8 @@ class MockAuthRepository extends Mock implements AuthRepository {}
 class MockLocalDataRepository extends Mock implements LocalDataRepository {}
 
 class MockSyncRepository extends Mock implements SyncRepository {}
+
+class MockUserProfileRepository extends Mock implements UserProfileRepository {}
 
 final testDate = DateTime(2024);
 

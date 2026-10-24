@@ -12,11 +12,35 @@ import 'package:simsplit/presentation/router/app_router.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 
-class SimSplitApp extends ConsumerWidget {
+class SimSplitApp extends ConsumerStatefulWidget {
   const SimSplitApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SimSplitApp> createState() => _SimSplitAppState();
+}
+
+class _SimSplitAppState extends ConsumerState<SimSplitApp> {
+  // Usage events are flushed when the app goes to the background, and a new
+  // session starts after 30 minutes away (R-4 AC14).
+  late final _lifecycle = AppLifecycleListener(
+    onHide: () => ref.read(setAppForegroundProvider)(false),
+    onShow: () => ref.read(setAppForegroundProvider)(true),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle;
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final localeAsync = ref.watch(localeProvider);
     final locale = localeAsync.value ?? deviceDefaultLocale();
     final themeMode = ref.watch(themeModeProvider).value ?? ThemeMode.system;
