@@ -4,7 +4,7 @@ name: Firebase Deploy
 # environment. Hosting serves the web app, where invite links open (R-3 P6),
 # so app changes redeploy it too.
 #   - dev: push to main touching the files below, or a manual run from a branch
-#     → simsplit-as-se1-dev, web app at simsplit-dev.web.app.
+#     → simsplit-as-se1-dev, web app at simsplit-as-se1-dev.web.app.
 #   - prd: release.yml calls it for a vYYYY.M.D tag after checking the tag
 #     against pubspec.yaml, or a manual run from such a tag
 #     → simsplit-as-se1-prd, web app at simsplit.web.app.

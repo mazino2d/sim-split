@@ -11,7 +11,7 @@
     },
     "simsplit-as-se1-dev": {
       "hosting": {
-        "app": ["simsplit-dev"]
+        "app": ["simsplit-as-se1-dev"]
       }
     }
   }

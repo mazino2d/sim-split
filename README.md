@@ -72,7 +72,7 @@ flutter run --flavor prd --dart-define-from-file=.env.local
 | Android `--flavor` | `dev` | `prd` |
 | Firebase project | `simsplit-as-se1-dev` | `simsplit-as-se1-prd` |
 | Android package (Play app) | `com.mazino2d.simsplit.dev` ("SimSplit Dev") | `com.mazino2d.simsplit` ("SimSplit") |
-| Web app | [simsplit-dev.web.app](https://simsplit-dev.web.app) | [simsplit.web.app](https://simsplit.web.app) |
+| Web app | [simsplit-as-se1-dev.web.app](https://simsplit-as-se1-dev.web.app) | [simsplit.web.app](https://simsplit.web.app) |
 | Ships on | every push to `main` | tags only: `vYYYY.M.D-rc.N` → Play closed testing, `vYYYY.M.D` → Play production, web, Firestore rules and indexes |
 
 Android builds need `--flavor` (a build without it fails). Web and iOS have no
@@ -157,7 +157,7 @@ lib/
 | `release` | Push a `vYYYY.M.D` tag | Validates the tag, uploads the AAB with release notes to the `production` track as a 20 % staged rollout (sent for review), deploys the web app and Firestore rules and indexes to prd (`firebase_deploy`), creates a GitHub Release |
 | `play_rollout` | Manual, from `main` | Widens the production rollout to 50 % or 100 %, or halts / resumes it |
 | `play_metadata` | Push to `main` touching `android/fastlane/metadata/**`, or manual (dry run by default) | Syncs the Play store listing, images, contact details and Data safety form — see [android/fastlane/README.md](android/fastlane/README.md) |
-| `firebase_deploy` | Push to `main` touching the app, `web/` or `firebase/**`, manual, or called by `release` | Builds the web app and deploys it with the Firestore rules and indexes: to dev ([simsplit-dev.web.app](https://simsplit-dev.web.app)) from `main` and manual runs on a branch, to prd ([simsplit.web.app](https://simsplit.web.app)) from a `vYYYY.M.D` tag |
+| `firebase_deploy` | Push to `main` touching the app, `web/` or `firebase/**`, manual, or called by `release` | Builds the web app and deploys it with the Firestore rules and indexes: to dev ([simsplit-as-se1-dev.web.app](https://simsplit-as-se1-dev.web.app)) from `main` and manual runs on a branch, to prd ([simsplit.web.app](https://simsplit.web.app)) from a `vYYYY.M.D` tag |
 | `telemetry_deploy` | Push to `main` touching `services/telemetry/**`, or manual | Builds the error report and usage endpoint (R-4) and deploys it to Cloud Run |
 | `pages` | Push to `main` touching `docs/**`, or manual; PRs build only | Publishes `docs/` (landing page, privacy policy) to [mazino2d.github.io/sim-split](https://mazino2d.github.io/sim-split/) |
 | `codeql` | Workflow changes, weekly | CodeQL scan of the workflows |

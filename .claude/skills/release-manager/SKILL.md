@@ -45,7 +45,7 @@ Every build gets a versionName that says what it is (`build_android.yml` passes
 | Production | tag `vYYYY.M.D` (`release.yml`) | `YYYY.M.D` | SimSplit | production, 20 % |
 
 The web app, Firestore rules and indexes follow the same split: `main` deploys them
-to dev (`simsplit-dev.web.app`), and only the production tag deploys them to prd
+to dev (`simsplit-as-se1-dev.web.app`), and only the production tag deploys them to prd
 (`simsplit.web.app`), from `release.yml`.
 
 An RC's date is the day it is cut and N counts that day's candidates from 1; it

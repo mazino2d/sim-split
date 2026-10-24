@@ -42,7 +42,7 @@ android {
             dimension = "env"
             applicationIdSuffix = ".dev"
             manifestPlaceholders["appLabel"] = "SimSplit Dev"
-            manifestPlaceholders["appLinkHost"] = "simsplit-dev.web.app"
+            manifestPlaceholders["appLinkHost"] = "simsplit-as-se1-dev.web.app"
         }
         // simsplit-as-se1-prd; only release tags ship here.
         create("prd") {

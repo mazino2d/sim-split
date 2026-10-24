@@ -28,7 +28,7 @@ void main() {
     expect(inviteLinkBaseFor(AppEnv.prd).toString(),
         'https://simsplit.web.app/join');
     expect(inviteLinkBaseFor(AppEnv.dev).toString(),
-        'https://simsplit-dev.web.app/join');
+        'https://simsplit-as-se1-dev.web.app/join');
   });
 
   test('prd keeps the production Google sign-in client', () {

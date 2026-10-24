@@ -1,7 +1,7 @@
 /// The backend a build talks to, set with `--dart-define=APP_ENV=dev|prd`.
 ///
 /// - `dev`: Firebase project `simsplit-as-se1-dev`, web app at
-///   `simsplit-dev.web.app`, Android package `com.mazino2d.simsplit.dev`
+///   `simsplit-as-se1-dev.web.app`, Android package `com.mazino2d.simsplit.dev`
 ///   (build with `--flavor dev`). Pushes to `main` ship here.
 /// - `prd` (default): Firebase project `simsplit-as-se1-prd`, web app at
 ///   `simsplit.web.app`, Android package `com.mazino2d.simsplit`
@@ -22,7 +22,7 @@ enum AppEnv {
 
   /// Origin of the web app on Firebase Hosting, where invite links open.
   Uri get webOrigin => switch (this) {
-        AppEnv.dev => Uri.parse('https://simsplit-dev.web.app'),
+        AppEnv.dev => Uri.parse('https://simsplit-as-se1-dev.web.app'),
         AppEnv.prd => Uri.parse('https://simsplit.web.app'),
       };
 }

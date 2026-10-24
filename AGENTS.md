@@ -44,7 +44,7 @@ flutter run -d chrome --dart-define-from-file=.env.local   # run the app (on And
 
 Two environments, picked with `--dart-define=APP_ENV=dev|prd` (default `prd`) and, on
 Android, the matching `--flavor dev|prd`: **dev** (`simsplit-as-se1-dev`,
-`com.mazino2d.simsplit.dev`, `simsplit-dev.web.app`) gets every push to `main`; **prd**
+`com.mazino2d.simsplit.dev`, `simsplit-as-se1-dev.web.app`) gets every push to `main`; **prd**
 (`simsplit-as-se1-prd`, `com.mazino2d.simsplit`, `simsplit.web.app`) gets only tags
 (`vYYYY.M.D-rc.N` → Play alpha, `vYYYY.M.D` → Play production, web, Firestore rules and
 indexes). Anything that differs per environment reads `appEnv`
