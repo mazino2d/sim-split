@@ -21,7 +21,7 @@ tags reach production. Work spans this repo and `everything-as-code` (infrastruc
 | Telemetry | prd only: dev builds get no `TELEMETRY_URL` | The endpoint lives in prd and only accepts prd App Check tokens; dev noise stays out of the warehouse. |
 | App Links on the dev site | `firebase/hosting/dev/` is copied over `build/web/` before a dev deploy; it holds the dev `assetlinks.json` | `web/` stays the prd source; the override is explicit and small. |
 | Prd web deploy | `release.yml` calls `firebase_deploy.yml` with `environment: prd` after `validate-version` | A mistyped tag can't deploy the web app while the Play upload is refused. |
-| Placeholders | Dev values that come from Terraform are `TODO-…` strings; `DevFirebaseOptions.currentPlatform` returns null while they are there | The dev flavor compiles and runs (local-only) before the project exists; the prd build is untouched. |
+| Dev Firebase config | `lib/firebase_options_dev.dart` is committed, generated from the Firebase Management API like `lib/firebase_options.dart` | Same approach as prd; no `google-services.json` or Gradle plugin. |
 
 ## Phases
 
@@ -42,11 +42,10 @@ tags reach production. Work spans this repo and `everything-as-code` (infrastruc
    `firebase/hosting/dev/.well-known/assetlinks.json`, and the SHA-1/SHA-256 into the
    dev Firebase Android app (Google sign-in, Play Integrity).
 
-## Placeholders to fill after P2
+## Left to fill after the Play app exists
 
 | File | Value | Source |
 | --- | --- | --- |
-| `lib/firebase_options_dev.dart` | `web` and `android`: `apiKey`, `appId`, `messagingSenderId` (project number) | dev stack's Firebase Web and Android app outputs, or `flutterfire configure --project simsplit-as-se1-dev` |
 | `firebase/hosting/dev/.well-known/assetlinks.json` | the Play App Signing SHA-256 (the upload key is in) | Play Console → SimSplit Dev → App integrity |
 
 ## Risks
