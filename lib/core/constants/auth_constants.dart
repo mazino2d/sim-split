@@ -1,9 +1,9 @@
 import 'package:simsplit/core/constants/app_env.dart';
 
 /// OAuth client that Firebase Auth trusts for Google sign-in: the Web client
-/// "SimSplit Firebase Auth" ("SimSplit Dev Firebase Auth" on dev) in the environment's Firebase project. Android
-/// sends it as `serverClientId` so the ID token is issued for Firebase. Not a
-/// secret.
+/// "SimSplit Firebase Auth" ("SimSplit Dev Firebase Auth" on dev) in the
+/// environment's Firebase project. Android sends it as `serverClientId` so the
+/// ID token is issued for Firebase. Not a secret.
 final googleServerClientId = googleServerClientIdFor(appEnv);
 
 String googleServerClientIdFor(AppEnv env) => switch (env) {
