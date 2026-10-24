@@ -84,14 +84,15 @@
     <header>
       <div class="app-name">SimSplit</div>
       <h1>Privacy Policy</h1>
-      <p class="meta">Last updated: October 22, 2026</p>
+      <p class="meta">Last updated: October 24, 2026</p>
     </header>
 
     <div class="highlight-box">
-      <strong>Short version:</strong> To share groups with friends, SimSplit asks you to sign in with Google and keeps your groups in Google's Firebase. Only the members of a group can see it. There are no ads, no analytics and no tracking, and you can delete your account at any time from the app.
+      <strong>Short version:</strong> To share groups with friends, SimSplit asks you to sign in with Google and keeps your groups in Google's Firebase. Only the members of a group can see them. Using SimSplit includes usage tracking: we record how you use the app, linked to your account, and copy your account details and groups into our own analytics warehouse to improve the app. The app also sends anonymous error reports, which you can turn off. We never sell your data, show ads or use third-party analytics, and you can delete your account at any time from the app.
     </div>
 
     <p>This policy covers the SimSplit web app at <a href="https://simsplit.web.app">simsplit.web.app</a> and SimSplit 2026.10.22 and later for Android and iOS. Earlier versions of the Android app (1.0) work entirely offline: they collect nothing and store everything only on your device.</p>
+    <p><strong>Agreeing to this policy.</strong> Signing in to SimSplit means you agree to this policy, including the usage tracking described below; the sign-in screen links here. Usage tracking is a condition of using the app and cannot be turned off; deleting your account is the way to stop it. When your account is created, we record the date and the version of this policy you agreed to. Accounts created before October 24, 2026 had not agreed to it, so they were deleted together with their data when this version was released; signing in again creates a new account.</p>
 
     <h2>1. Information We Collect</h2>
     <p><strong>Your account.</strong> When you sign in with Google, we receive your Google account's name, email address and a unique account ID through Firebase Authentication. We do not receive your Google password.</p>
@@ -103,30 +104,36 @@
       <li>Settlements between members</li>
       <li>The group's activity history: who added, edited or deleted what, when, and the values before and after</li>
     </ul>
-    <p>We do not collect your location, contacts, photos, device identifiers or usage analytics.</p>
+    <p><strong>How you use the app (usage tracking).</strong> While you are signed in, the app records each screen you open and each action you take (for example a tap on a button, saving a form or opening a dialog), and the result and duration of each operation, such as saving an expense. Each record carries your account ID, the time, a random session ID, the platform, the app version, the app language and whether you were online. These records contain names of screens and actions, never the text you type, member names, amounts or other content of your groups.</p>
+    <p><strong>Error reports.</strong> When something goes wrong, the app sends an anonymous error report: the error and its technical details (stack trace), the screens and actions that led to it, the platform, the operating system or browser and its version, the app version, the app language, a random session ID and a random report ID for this installation, shown in Settings → Diagnostics so you can quote it to us. Error reports never contain your account, email, group or member names, expense descriptions or amounts; personal details are removed on your device and again on our server. They are on by default and can be turned off in Settings → Diagnostics; turning them off deletes reports still waiting on your device.</p>
+    <p>We do not collect your location, contacts or photos.</p>
 
     <h2>2. How We Use Your Information</h2>
-    <p>Only to run the app: to sign you in, to keep your groups in sync between your devices and the other members of each group, and to show who made each change. We do not use your information for advertising or profiling, and we do not sell it.</p>
+    <p>To run the app: to sign you in, to keep your groups in sync between your devices and the other members of each group, and to show who made each change.</p>
+    <p>To improve the app: usage records, your account details (name, email, sign-up date and policy agreement) and a copy of your groups are kept in our own analytics warehouse (Google BigQuery), where we analyse how the app is used and which errors happen, to fix bugs and decide what to build next. Only the maintainer can read the warehouse. A private dashboard, protected by a login that only the maintainer can pass, shows totals only (such as the number of active users or errors per session), never individual accounts.</p>
+    <p>We do not use your information for advertising, and we do not sell it or share it with third parties.</p>
 
     <h2>3. Who Can See Your Information</h2>
     <ul>
       <li><strong>Members of a group</strong> can see everything in that group, including the activity history and the names of the members. Server-side security rules enforce this: someone who is not a member cannot read or change the group.</li>
       <li><strong>Anyone with a group's invite link</strong> can join that group. Its owner can reset the link at any time so that old links stop working.</li>
-      <li><strong>Google</strong> stores and processes the data on our behalf as the provider of Firebase Authentication, Cloud Firestore, Firebase Hosting and Firebase App Check, which uses Google Play Integrity on Android and reCAPTCHA Enterprise on the web to confirm that requests come from the genuine app (<a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase privacy and security</a>).</li>
+      <li><strong>Google</strong> stores and processes the data on our behalf as the provider of Firebase Authentication, Cloud Firestore, Firebase Hosting and Firebase App Check, which uses Google Play Integrity on Android and reCAPTCHA Enterprise on the web to confirm that requests come from the genuine app (<a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase privacy and security</a>), and of Cloud Run, Cloud Logging and BigQuery, which receive and keep usage records and error reports.</li>
+      <li><strong>Cloudflare</strong> hosts the maintainer's private dashboard, which holds totals only, no personal data.</li>
     </ul>
-    <p>SimSplit contains no advertising networks, analytics or tracking SDKs, and no crash reporting services.</p>
+    <p>SimSplit contains no advertising networks and no third-party analytics, tracking or crash reporting SDKs: usage records and error reports go only to our own server and warehouse.</p>
 
     <h2>4. Data Storage and Security</h2>
-    <p>Your groups are stored in Cloud Firestore in Google Cloud's Singapore region (asia-southeast1). Data is encrypted in transit and at rest by Google. A copy of your groups is also kept on your device (in the app's private storage, or in your browser for the web app), so the app keeps working offline; changes made offline sync once you are back online.</p>
+    <p>Your groups are stored in Cloud Firestore, and usage records, error reports and the analytics warehouse in Cloud Run, Cloud Logging and BigQuery, all in Google Cloud's Singapore region (asia-southeast1). Data is encrypted in transit and at rest by Google. A copy of your groups is also kept on your device (in the app's private storage, or in your browser for the web app), so the app keeps working offline; changes made offline sync once you are back online.</p>
     <p>On Android, SimSplit opts out of Android backup: the copy on your device is not included in Google cloud backups or device-to-device transfers.</p>
 
     <h2 id="delete">5. Keeping and Deleting Your Data</h2>
     <ul>
       <li><strong>Sign out</strong> removes your groups from the device. They stay in your account.</li>
       <li><strong>Leave group</strong> removes your access to a group. Your member name and the expenses recorded under it stay in the group for the other members.</li>
-      <li><strong>Delete account</strong> (Settings → Delete account, in the app or on the web) deletes your account and removes your data from this device. You leave every group: groups where you are the only member are deleted with everything in them, and in groups with other members your member name and its expenses stay, so their balances remain correct.</li>
+      <li><strong>Delete account</strong> (Settings → Delete account, in the app or on the web) deletes your account and removes your data from this device. You leave every group: groups where you are the only member are deleted with everything in them, and in groups with other members your member name and its expenses stay, so their balances remain correct. Within 24 hours, your name and email are also removed from every table of the analytics warehouse; BigQuery may keep the earlier versions of those tables for up to 2 more days for recovery (time travel), and then for 7 days that only Google can restore (fail-safe). Your usage records and the warehouse copy of your groups stay, linked only to an account ID that no longer leads to you. Error reports are never linked to your account, so they are not affected.</li>
+      <li><strong>Error reports</strong> can be turned off at any time in Settings → Diagnostics.</li>
     </ul>
-    <p>We keep your data until you delete it or your account.</p>
+    <p>We keep your data in the app until you delete it or your account. Usage records, error reports and the analytics warehouse are kept indefinitely, except for what deleting your account removes as described above.</p>
 
     <h2>6. Device Permissions</h2>
     <p>SimSplit uses the internet to sign in and sync. It does not access your camera, microphone, location, contacts or other device resources.</p>

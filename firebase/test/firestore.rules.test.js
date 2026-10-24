@@ -38,7 +38,23 @@ before(async () => {
 
 after(() => env.cleanup());
 
-beforeEach(() => env.clearFirestore());
+// Accounts that signed in after R-4 have a profile; the rules require it for
+// every group read and write. 'newcomer' signs in during the profile tests.
+const AGREED = ['alice', 'bob', 'carol', 'mallory'];
+
+beforeEach(async () => {
+  await env.clearFirestore();
+  await env.withSecurityRulesDisabled(async (admin) => {
+    for (const uid of AGREED) {
+      await setDoc(doc(admin.firestore(), `users/${uid}`), {
+        displayName: uid,
+        email: `${uid}@example.com`,
+        createdAt: 1,
+        consent: { agreedAt: 1, policyVersion: '2026-10-24' },
+      });
+    }
+  });
+});
 
 const db = (uid) => env.authenticatedContext(uid).firestore();
 
@@ -323,25 +339,38 @@ describe('user profiles and the privacy policy agreement (R-4 AC7)', () => {
   });
 
   test('an account creates, reads and deletes only its own profile', async () => {
-    const fs = db('alice');
-    await assertSucceeds(setDoc(doc(fs, 'users/alice'), profile()));
-    await assertSucceeds(getDoc(doc(fs, 'users/alice')));
-    await assertFails(getDoc(doc(db('bob'), 'users/alice')));
-    await assertFails(deleteDoc(doc(db('bob'), 'users/alice')));
-    await assertFails(setDoc(doc(db('bob'), 'users/alice2'), profile()));
-    await assertSucceeds(deleteDoc(doc(fs, 'users/alice')));
+    const fs = db('newcomer');
+    await assertSucceeds(setDoc(doc(fs, 'users/newcomer'), profile()));
+    await assertSucceeds(getDoc(doc(fs, 'users/newcomer')));
+    await assertFails(getDoc(doc(db('bob'), 'users/newcomer')));
+    await assertFails(deleteDoc(doc(db('bob'), 'users/newcomer')));
+    await assertFails(setDoc(doc(db('bob'), 'users/newcomer2'), profile()));
+    await assertSucceeds(deleteDoc(doc(fs, 'users/newcomer')));
   });
 
   test('the agreement carries the server time and cannot change later', async () => {
-    const fs = db('alice');
-    await assertFails(setDoc(doc(fs, 'users/alice'), profile({ consent: { agreedAt: 1, policyVersion: 'v' } })));
-    await assertFails(setDoc(doc(fs, 'users/alice'), profile({ extra: true })));
-    await setDoc(doc(fs, 'users/alice'), profile());
-    await assertFails(updateDoc(doc(fs, 'users/alice'), { 'consent.policyVersion': 'other' }));
+    const fs = db('newcomer');
+    await assertFails(setDoc(doc(fs, 'users/newcomer'), profile({ consent: { agreedAt: 1, policyVersion: 'v' } })));
+    await assertFails(setDoc(doc(fs, 'users/newcomer'), profile({ extra: true })));
+    await setDoc(doc(fs, 'users/newcomer'), profile());
+    await assertFails(updateDoc(doc(fs, 'users/newcomer'), { 'consent.policyVersion': 'other' }));
   });
 
   test('profiles cannot be listed', async () => {
-    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'users/alice'), { displayName: 'Alice' }));
     await assertFails(getDocs(collection(db('alice'), 'users')));
+  });
+
+  test('an account without a profile cannot read or write any group', async () => {
+    await seedGroup(['alice', 'newcomer']);
+    await assertFails(getDoc(doc(db('newcomer'), 'groups/g1')));
+    await assertFails(getDoc(doc(db('newcomer'), 'groups/g1/expenses/e1')));
+    await assertFails(setDoc(doc(db('newcomer'), 'groups/g2'), { ...group('newcomer'), ...stamp('newcomer') }));
+    await assertSucceeds(getDoc(doc(db('alice'), 'groups/g1')));
+  });
+
+  test('once it agrees, the same account can read its group', async () => {
+    await seedGroup(['alice', 'newcomer']);
+    await setDoc(doc(db('newcomer'), 'users/newcomer'), profile());
+    await assertSucceeds(getDoc(doc(db('newcomer'), 'groups/g1')));
   });
 });

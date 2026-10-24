@@ -17,4 +17,4 @@ WORKS OFFLINE:
 After you sign in, SimSplit keeps working without internet — perfect for trips or places with poor connectivity. Changes sync on their own once you are back online.
 
 PRIVATE BY DEFAULT:
-Only the members of a group can see it. No ads, no analytics, no tracking. You can delete your account and your data at any time from Settings.
+Only the members of a group can see it. No ads and no third-party analytics. Using SimSplit includes usage tracking, linked to your account, and anonymous error reports you can turn off; both go only to our own server, to fix bugs and improve the app. You can delete your account and your data at any time from Settings.
