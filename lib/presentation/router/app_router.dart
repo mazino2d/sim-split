@@ -51,6 +51,15 @@ String? authRedirect(AsyncValue<AuthUser?> auth, Uri uri) {
   return onGate ? (from ?? AppRoutes.home) : null;
 }
 
+/// The route pattern of the screen on top (`/settings/diagnostics`), for
+/// telemetry. `RouteMatchList.fullPath` leaves out routes opened with
+/// `context.push`, so the newest pushed route wins when there is one.
+String screenPattern(RouteMatchList configuration) {
+  final pushed =
+      configuration.matches.whereType<ImperativeRouteMatch>().lastOrNull;
+  return pushed?.matches.fullPath ?? configuration.fullPath;
+}
+
 @Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
   final authAvailable = ref.watch(authAvailableProvider);
@@ -70,7 +79,7 @@ GoRouter appRouter(Ref ref) {
   // (`/groups/:groupId`), never with real IDs (R-4 AC3).
   String? lastScreen;
   void recordScreen() {
-    final pattern = router.routerDelegate.currentConfiguration.fullPath;
+    final pattern = screenPattern(router.routerDelegate.currentConfiguration);
     if (pattern.isEmpty || pattern == lastScreen) return;
     lastScreen = pattern;
     ref.read(trackEventProvider)(BreadcrumbKind.screen, pattern);
