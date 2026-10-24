@@ -8,6 +8,8 @@ import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/presentation/notifiers/error_reports_notifier.dart';
 import 'package:simsplit/presentation/providers/telemetry_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 /// Debug details kept out of the main Settings list (R-4 AC25–AC27): the
 /// error report switch, the report ID testers quote, the app version and
@@ -36,11 +38,13 @@ class DiagnosticsScreen extends ConsumerWidget {
                   title: Text(l10n.errorReportsSwitch),
                   subtitle: Text(l10n.errorReportsExplanation),
                   value: settings.enabled,
-                  onChanged: busy
-                      ? null
-                      : (on) => ref
-                          .read(errorReportsProvider.notifier)
-                          .setEnabled(on),
+                  onChanged: context.trackedValue(
+                      TelemetryEvent.tapErrorReportsSwitch,
+                      busy
+                          ? null
+                          : (on) => ref
+                              .read(errorReportsProvider.notifier)
+                              .setEnabled(on)),
                 ),
                 Padding(
                   padding:
@@ -49,8 +53,10 @@ class DiagnosticsScreen extends ConsumerWidget {
                     alignment: Alignment.centerLeft,
                     child: TextButton(
                       style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                      onPressed: () => launchUrl(privacyPolicyUrl,
-                          mode: LaunchMode.externalApplication),
+                      onPressed: context.tracked(
+                          TelemetryEvent.tapPrivacyPolicy,
+                          () => launchUrl(privacyPolicyUrl,
+                              mode: LaunchMode.externalApplication)),
                       child: Text(l10n.privacyPolicy),
                     ),
                   ),
@@ -73,12 +79,13 @@ class DiagnosticsScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    onTap: () async {
+                    onTap: context.tracked(TelemetryEvent.tapCopyReportId,
+                        () async {
                       final messenger = ScaffoldMessenger.of(context);
                       await Clipboard.setData(ClipboardData(text: reportId));
                       messenger
                           .showSnackBar(SnackBar(content: Text(l10n.copied)));
-                    },
+                    }),
                   ),
                 ListTile(
                   contentPadding:

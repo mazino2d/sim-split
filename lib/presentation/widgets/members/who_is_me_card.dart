@@ -10,6 +10,8 @@ import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 /// Asks, once and inline, which member the signed-in account is, for a
 /// group with several members and no "me" (AC7). Picking a member links it
@@ -112,14 +114,16 @@ class _WhoIsMeCardState extends ConsumerState<WhoIsMeCard> {
                   ActionChip(
                     avatar: MemberAvatar(member: member, size: 24),
                     label: Text(member.name),
-                    onPressed: () => _pick(member),
+                    onPressed: context.tracked(
+                        TelemetryEvent.tapClaimMe, () => _pick(member)),
                   ),
               ],
             ),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: _markAsked,
+                onPressed:
+                    context.tracked(TelemetryEvent.tapNotNow, _markAsked),
                 child: Text(l10n.notNow),
               ),
             ),

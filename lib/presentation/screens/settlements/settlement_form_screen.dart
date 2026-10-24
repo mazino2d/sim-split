@@ -10,6 +10,8 @@ import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 class SettlementFormScreen extends ConsumerStatefulWidget {
   const SettlementFormScreen({
@@ -30,7 +32,13 @@ class SettlementFormScreen extends ConsumerStatefulWidget {
       _SettlementFormScreenState();
 }
 
-class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
+class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen>
+    with TrackedForm<SettlementFormScreen> {
+  @override
+  TelemetryEvent get formSubmitted => TelemetryEvent.formSettlementSubmitted;
+  @override
+  TelemetryEvent get formAbandoned => TelemetryEvent.formSettlementAbandoned;
+
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
@@ -101,6 +109,7 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
         messenger.showSnackBar(
           SnackBar(content: Text(l10n.settlementRecorded)),
         );
+        markSubmitted();
         context.pop();
       },
     );
@@ -120,7 +129,8 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
         appBar: AppBar(title: Text(l10n.recordSettlement)),
         body: AppErrorWidget(
           message: l10n.settlementDetailsMissing,
-          onRetry: () => context.pop(),
+          onRetry:
+              context.tracked(TelemetryEvent.tapRetry, () => context.pop()),
           retryLabel: l10n.goBack,
         ),
       );
@@ -177,7 +187,8 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
                 ),
                 const SizedBox(height: 24),
                 FilledButton(
-                  onPressed: saving ? null : () => _save(group),
+                  onPressed: context.tracked(TelemetryEvent.tapSaveSettlement,
+                      saving ? null : () => _save(group)),
                   child: Text(l10n.confirmPaid),
                 ),
               ],
@@ -187,7 +198,8 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen> {
         loading: () => const AppLoadingWidget(),
         error: (e, _) => AppErrorWidget(
           error: e,
-          onRetry: () => ref.invalidate(groupDetailProvider(widget.groupId)),
+          onRetry: context.tracked(TelemetryEvent.tapRetry,
+              () => ref.invalidate(groupDetailProvider(widget.groupId))),
         ),
       ),
     );

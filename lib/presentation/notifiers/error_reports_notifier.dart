@@ -3,6 +3,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 part 'error_reports_notifier.g.dart';
 
@@ -14,7 +16,10 @@ class ErrorReportsNotifier extends _$ErrorReportsNotifier {
 
   Future<Either<Failure, Unit>> setEnabled(bool enabled) async {
     state = const AsyncLoading();
-    final result = await ref.read(setErrorReportsEnabledProvider)(enabled);
+    final result = await trackOp(
+        ref.read(trackEventProvider),
+        TelemetryEvent.opSetErrorReports,
+        () => ref.read(setErrorReportsEnabledProvider)(enabled));
     if (ref.mounted) state = const AsyncData(null);
     return result;
   }

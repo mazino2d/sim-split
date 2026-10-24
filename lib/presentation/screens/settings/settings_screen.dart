@@ -16,6 +16,8 @@ import 'package:simsplit/presentation/router/app_routes.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -40,7 +42,8 @@ class SettingsScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.build_outlined),
             tooltip: l10n.diagnostics,
-            onPressed: () => context.push(AppRoutes.diagnostics),
+            onPressed: context.tracked(TelemetryEvent.tapOpenDiagnostics,
+                () => context.push(AppRoutes.diagnostics)),
           ),
         ],
       ),
@@ -55,9 +58,11 @@ class SettingsScreen extends ConsumerWidget {
                 ButtonSegment(value: 'en', label: Text(l10n.english)),
               ],
               selected: {currentLocale.languageCode},
-              onSelectionChanged: (selected) => ref
-                  .read(localeProvider.notifier)
-                  .setLocale(Locale(selected.first)),
+              onSelectionChanged: context.trackedValue(
+                  TelemetryEvent.tapLanguage,
+                  (selected) => ref
+                      .read(localeProvider.notifier)
+                      .setLocale(Locale(selected.first))),
             ),
           ),
           SectionLabel(l10n.appearance),
@@ -73,9 +78,11 @@ class SettingsScreen extends ConsumerWidget {
                     value: ThemeMode.dark, label: Text(l10n.themeDark)),
               ],
               selected: {themeMode},
-              onSelectionChanged: (selected) => ref
-                  .read(themeModeProvider.notifier)
-                  .setThemeMode(selected.first),
+              onSelectionChanged: context.trackedValue(
+                  TelemetryEvent.tapTheme,
+                  (selected) => ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(selected.first)),
             ),
           ),
           if (ref.watch(authAvailableProvider)) const _AccountSection(),
@@ -108,7 +115,8 @@ class _AccountSection extends ConsumerWidget {
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dCtx, false),
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogCancel,
+                () => Navigator.pop(dCtx, false)),
             child: Text(l10n.cancel),
           ),
           FilledButton(
@@ -117,7 +125,8 @@ class _AccountSection extends ConsumerWidget {
               foregroundColor: Theme.of(dCtx).colorScheme.onError,
               minimumSize: const Size(64, 44),
             ),
-            onPressed: () => Navigator.pop(dCtx, true),
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogConfirm,
+                () => Navigator.pop(dCtx, true)),
             child: Text(action),
           ),
         ],
@@ -161,16 +170,18 @@ class _AccountSection extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
           child: OutlinedButton(
-            onPressed: busy
-                ? null
-                : () => _confirmAndRun(
-                      context,
-                      ref,
-                      title: l10n.signOutConfirmTitle,
-                      message: l10n.signOutConfirmMessage,
-                      action: l10n.signOut,
-                      run: (n) => n.signOut(),
-                    ),
+            onPressed: context.tracked(
+                TelemetryEvent.tapSignOut,
+                busy
+                    ? null
+                    : () => _confirmAndRun(
+                          context,
+                          ref,
+                          title: l10n.signOutConfirmTitle,
+                          message: l10n.signOutConfirmMessage,
+                          action: l10n.signOut,
+                          run: (n) => n.signOut(),
+                        )),
             child: Text(l10n.signOut),
           ),
         ),
@@ -181,16 +192,18 @@ class _AccountSection extends ConsumerWidget {
             style: TextButton.styleFrom(
               foregroundColor: theme.colorScheme.error,
             ),
-            onPressed: busy
-                ? null
-                : () => _confirmAndRun(
-                      context,
-                      ref,
-                      title: l10n.deleteAccountConfirmTitle,
-                      message: l10n.deleteAccountConfirmMessage,
-                      action: l10n.delete,
-                      run: (n) => n.deleteAccount(),
-                    ),
+            onPressed: context.tracked(
+                TelemetryEvent.tapDeleteAccount,
+                busy
+                    ? null
+                    : () => _confirmAndRun(
+                          context,
+                          ref,
+                          title: l10n.deleteAccountConfirmTitle,
+                          message: l10n.deleteAccountConfirmMessage,
+                          action: l10n.delete,
+                          run: (n) => n.deleteAccount(),
+                        )),
             child: Text(l10n.deleteAccount),
           ),
         ),

@@ -13,6 +13,8 @@ import 'package:simsplit/presentation/widgets/common/empty_state.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/presentation/widgets/common/unsynced_mark.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 /// Reads a group's history and members into an [ActivityText], or null
 /// while they load.
@@ -55,8 +57,10 @@ class ActivityScreen extends ConsumerWidget {
                   itemBuilder: (context, i) => _ActivityTile(
                     entry: entries[i],
                     text: text,
-                    onTap: () => context
-                        .push('/groups/$groupId/activity/${entries[i].id}'),
+                    onTap: context.trackedCall(
+                        TelemetryEvent.tapOpenActivityEntry,
+                        () => context.push(
+                            '/groups/$groupId/activity/${entries[i].id}')),
                   ),
                 ),
     );
@@ -99,7 +103,9 @@ class _ActivityTile extends StatelessWidget {
           ],
         ],
       ),
-      onTap: entry.action == ActivityAction.join ? null : onTap,
+      onTap: entry.action == ActivityAction.join
+          ? null
+          : onTap, // telemetry: forwards the tracked onTap
     );
   }
 }

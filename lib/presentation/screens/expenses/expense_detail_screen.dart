@@ -13,6 +13,8 @@ import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 class ExpenseDetailScreen extends ConsumerWidget {
   const ExpenseDetailScreen({
@@ -79,9 +81,11 @@ class ExpenseDetailScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: l10n.editExpense,
-            onPressed: () => context.push(
-              '/groups/$groupId/expenses/$expenseId/edit',
-            ),
+            onPressed: context.tracked(
+                TelemetryEvent.tapEditExpense,
+                () => context.push(
+                      '/groups/$groupId/expenses/$expenseId/edit',
+                    )),
           ),
           const SizedBox(width: 8),
         ],

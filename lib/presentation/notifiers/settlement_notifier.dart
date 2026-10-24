@@ -6,6 +6,8 @@ import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/use_cases/settlements/delete_settlement.dart';
 import 'package:simsplit/domain/use_cases/settlements/settle_debt.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 part 'settlement_notifier.g.dart';
 
@@ -27,15 +29,18 @@ class SettlementNotifier extends _$SettlementNotifier {
   }) async {
     state = const AsyncLoading();
     final useCase = ref.read(settleDebtProvider);
-    final result = await useCase(SettleDebtParams(
-      groupId: groupId,
-      fromMemberId: fromMemberId,
-      toMemberId: toMemberId,
-      amountCents: amountCents,
-      currencyCode: currencyCode,
-      note: note,
-      settledAt: settledAt,
-    ));
+    final result = await trackOp(
+        ref.read(trackEventProvider),
+        TelemetryEvent.opSettleDebt,
+        () => useCase(SettleDebtParams(
+              groupId: groupId,
+              fromMemberId: fromMemberId,
+              toMemberId: toMemberId,
+              amountCents: amountCents,
+              currencyCode: currencyCode,
+              note: note,
+              settledAt: settledAt,
+            )));
     if (ref.mounted) {
       state = result.fold(
         (failure) => AsyncError(failure, StackTrace.current),
@@ -48,7 +53,10 @@ class SettlementNotifier extends _$SettlementNotifier {
   Future<Either<Failure, Unit>> deleteSettlement(String id) async {
     state = const AsyncLoading();
     final useCase = ref.read(deleteSettlementProvider);
-    final result = await useCase(DeleteSettlementParams(id: id));
+    final result = await trackOp(
+        ref.read(trackEventProvider),
+        TelemetryEvent.opDeleteSettlement,
+        () => useCase(DeleteSettlementParams(id: id)));
     if (ref.mounted) {
       state = result.fold(
         (failure) => AsyncError(failure, StackTrace.current),

@@ -14,6 +14,8 @@ import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/presentation/widgets/groups/group_card.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 class GroupListScreen extends ConsumerStatefulWidget {
   const GroupListScreen({super.key});
@@ -54,7 +56,8 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
                 tooltip: l10n.settings,
-                onPressed: () => context.push('/settings'),
+                onPressed: context.tracked(TelemetryEvent.tapOpenSettings,
+                    () => context.push('/settings')),
               ),
               const SizedBox(width: 8),
             ],
@@ -69,7 +72,8 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
                         title: l10n.noGroups,
                         message: l10n.noGroupsHint,
                         actionLabel: l10n.createGroup,
-                        onAction: () => context.push('/groups/form'),
+                        onAction: context.tracked(TelemetryEvent.tapNewGroup,
+                            () => context.push('/groups/form')),
                       ),
                     ),
                   ]
@@ -96,7 +100,8 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
               SliverFillRemaining(
                 child: AppErrorWidget(
                   error: e,
-                  onRetry: () => ref.invalidate(groupListProvider),
+                  onRetry: context.tracked(TelemetryEvent.tapRetry,
+                      () => ref.invalidate(groupListProvider)),
                 ),
               ),
             ],
@@ -106,7 +111,8 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
       floatingActionButton: activeGroups.isEmpty
           ? null
           : FloatingActionButton.extended(
-              onPressed: () => context.push('/groups/form'),
+              onPressed: context.tracked(TelemetryEvent.tapNewGroup,
+                  () => context.push('/groups/form')),
               icon: const Icon(Icons.add),
               label: Text(l10n.newGroup),
             ),

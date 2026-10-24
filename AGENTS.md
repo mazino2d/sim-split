@@ -25,6 +25,9 @@ files (`lib/core/l10n/`).
 5. **Never commit secrets:** `android/key.properties`, `*.jks`, `AuthKey_*.p8`.
 6. **`group.members` is always empty** — read members with `memberListProvider(groupId)`.
 7. **Every Firestore rules change needs a test** in `firebase/test/`.
+8. **Every interactive callback is tracked** (R-4): wrap it in `context.tracked(…)` with a
+   `TelemetryEvent`, and run use cases through `trackOp` / a notifier's `_run(event, …)`.
+   `test/unit/presentation/tracking_coverage_test.dart` fails on an untracked callback.
 
 ## Commands
 

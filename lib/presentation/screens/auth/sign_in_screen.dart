@@ -10,6 +10,8 @@ import 'package:simsplit/domain/failures/auth_failure.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/presentation/notifiers/auth_notifier.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 /// The only screen before the group list (R-3 AC1): the app name, one line
 /// on why, and the Google button (Sign in with Apple joins in R-3 P8). The router leaves it on its own once
@@ -24,9 +26,11 @@ class SignInScreen extends ConsumerStatefulWidget {
 
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   Failure? _failure;
-  final _policyTap = TapGestureRecognizer()
-    ..onTap =
-        () => launchUrl(privacyPolicyUrl, mode: LaunchMode.externalApplication);
+  late final _policyTap = TapGestureRecognizer()
+    ..onTap = () {
+      context.track(TelemetryEvent.tapPrivacyPolicy);
+      launchUrl(privacyPolicyUrl, mode: LaunchMode.externalApplication);
+    };
 
   @override
   void dispose() {
@@ -94,7 +98,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               _GoogleButton(
                 label: l10n.continueWithGoogle,
                 busy: busy,
-                onPressed: busy ? null : _signInWithGoogle,
+                onPressed: context.tracked(TelemetryEvent.tapSignInGoogle,
+                    busy ? null : _signInWithGoogle),
               ),
               const SizedBox(height: 16),
               Text.rich(

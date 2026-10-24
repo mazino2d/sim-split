@@ -69,6 +69,8 @@ on this repo.
 5. **Every user-facing string** goes in both `lib/core/l10n/app_en.arb` and
    `app_vi.arb`, then run `flutter gen-l10n`.
 6. **Every Firestore rules change needs a test** in `firebase/test/`.
+7. **Every interactive callback is tracked**: wrap it in `context.tracked(…)` with a
+   `TelemetryEvent` (`lib/presentation/utils/tracking.dart`); a test fails otherwise.
 7. **Never commit secrets** such as `android/key.properties`, `*.jks` or `AuthKey_*.p8`.
 
 Code, comments, docs and commit messages are written in English.

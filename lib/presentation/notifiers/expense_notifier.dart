@@ -9,6 +9,8 @@ import 'package:simsplit/domain/use_cases/expenses/add_expense.dart';
 import 'package:simsplit/domain/use_cases/expenses/calculate_splits.dart';
 import 'package:simsplit/domain/use_cases/expenses/delete_expense.dart';
 import 'package:simsplit/domain/use_cases/expenses/edit_expense.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 part 'expense_notifier.g.dart';
 
@@ -20,11 +22,13 @@ class ExpenseNotifier extends _$ExpenseNotifier {
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
+  /// Runs a use case as a tracked operation (R-4 AC8).
   Future<Either<Failure, T>> _run<T>(
+    TelemetryEvent event,
     Future<Either<Failure, T>> Function() action,
   ) async {
     state = const AsyncLoading();
-    final result = await action();
+    final result = await trackOp(ref.read(trackEventProvider), event, action);
     if (ref.mounted) {
       state = result.fold(
         (failure) => AsyncError(failure, StackTrace.current),
@@ -47,18 +51,20 @@ class ExpenseNotifier extends _$ExpenseNotifier {
     DateTime? expenseDate,
   }) {
     final useCase = ref.read(addExpenseProvider);
-    return _run(() => useCase(AddExpenseParams(
-          groupId: groupId,
-          title: title,
-          amountCents: amountCents,
-          currencyCode: currencyCode,
-          paidByMemberId: paidByMemberId,
-          splitType: splitType,
-          splitInputs: splitInputs,
-          category: category,
-          note: note,
-          expenseDate: expenseDate,
-        )));
+    return _run(
+        TelemetryEvent.opAddExpense,
+        () => useCase(AddExpenseParams(
+              groupId: groupId,
+              title: title,
+              amountCents: amountCents,
+              currencyCode: currencyCode,
+              paidByMemberId: paidByMemberId,
+              splitType: splitType,
+              splitInputs: splitInputs,
+              category: category,
+              note: note,
+              expenseDate: expenseDate,
+            )));
   }
 
   Future<Either<Failure, Expense>> editExpense({
@@ -74,22 +80,25 @@ class ExpenseNotifier extends _$ExpenseNotifier {
     DateTime? expenseDate,
   }) {
     final useCase = ref.read(editExpenseProvider);
-    return _run(() => useCase(EditExpenseParams(
-          id: id,
-          title: title,
-          amountCents: amountCents,
-          currencyCode: currencyCode,
-          paidByMemberId: paidByMemberId,
-          splitType: splitType,
-          splitInputs: splitInputs,
-          category: category,
-          note: note,
-          expenseDate: expenseDate,
-        )));
+    return _run(
+        TelemetryEvent.opEditExpense,
+        () => useCase(EditExpenseParams(
+              id: id,
+              title: title,
+              amountCents: amountCents,
+              currencyCode: currencyCode,
+              paidByMemberId: paidByMemberId,
+              splitType: splitType,
+              splitInputs: splitInputs,
+              category: category,
+              note: note,
+              expenseDate: expenseDate,
+            )));
   }
 
   Future<Either<Failure, Unit>> deleteExpense(String id) {
     final useCase = ref.read(deleteExpenseProvider);
-    return _run(() => useCase(DeleteExpenseParams(id: id)));
+    return _run(TelemetryEvent.opDeleteExpense,
+        () => useCase(DeleteExpenseParams(id: id)));
   }
 }

@@ -31,6 +31,8 @@ import 'package:simsplit/presentation/widgets/groups/group_app_bar_actions.dart'
 import 'package:simsplit/presentation/widgets/members/who_is_me_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 class GroupDetailScreen extends ConsumerWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -48,7 +50,8 @@ class GroupDetailScreen extends ConsumerWidget {
         appBar: AppBar(),
         body: AppErrorWidget(
           error: e,
-          onRetry: () => ref.invalidate(groupDetailProvider(groupId)),
+          onRetry: context.tracked(TelemetryEvent.tapRetry,
+              () => ref.invalidate(groupDetailProvider(groupId))),
         ),
       ),
     );
@@ -92,7 +95,8 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
           content: Text(l10n.noMembersAddExpenseHint),
           action: SnackBarAction(
             label: l10n.addMember,
-            onPressed: () => context.push('/groups/${widget.group.id}/edit'),
+            onPressed: context.trackedCall(TelemetryEvent.tapEditGroup,
+                () => context.push('/groups/${widget.group.id}/edit')),
           ),
         ),
       );
@@ -141,7 +145,10 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
         body: TabBarView(
           controller: _tabController,
           children: [
-            _ExpensesTab(group: group, onAddExpense: _addExpense),
+            _ExpensesTab(
+                group: group,
+                onAddExpense: context.trackedCall(
+                    TelemetryEvent.tapAddExpense, _addExpense)),
             _SettleTab(group: group),
           ],
         ),
@@ -151,7 +158,8 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
         child: FloatingActionButton.extended(
-          onPressed: showFab ? _addExpense : null,
+          onPressed: context.tracked(
+              TelemetryEvent.tapAddExpense, showFab ? _addExpense : null),
           icon: const Icon(Icons.add),
           label: Text(l10n.addExpense),
         ),
@@ -315,7 +323,8 @@ class _ExpensesTab extends ConsumerWidget {
                   icon: Icons.group_add_outlined,
                   title: l10n.addMembersFirst,
                   actionLabel: l10n.addMember,
-                  onAction: () => context.push('/groups/${group.id}/edit'),
+                  onAction: context.tracked(TelemetryEvent.tapEditGroup,
+                      () => context.push('/groups/${group.id}/edit')),
                 )
               : EmptyState(
                   icon: Icons.receipt_long_outlined,
@@ -409,6 +418,9 @@ class _SwipeableExpenseTile extends ConsumerWidget {
       direction: DismissDirection.horizontal,
       dismissThresholds: const {DismissDirection.startToEnd: 0.25},
       confirmDismiss: (direction) async {
+        context.track(direction == DismissDirection.startToEnd
+            ? TelemetryEvent.gestureSwipeEditExpense
+            : TelemetryEvent.gestureSwipeDeleteExpense);
         if (direction == DismissDirection.startToEnd) {
           unawaited(HapticFeedback.selectionClick());
           // Let the row spring back while the form opens.
@@ -443,7 +455,8 @@ class _SwipeableExpenseTile extends ConsumerWidget {
         unsynced: ref.watch(unsyncedRecordIdsProvider(group.id)
                 .select((ids) => ids.value?.contains(expense.id))) ??
             false,
-        onTap: () => context.push('/groups/${group.id}/expenses/${expense.id}'),
+        onTap: context.tracked(TelemetryEvent.tapOpenExpense,
+            () => context.push('/groups/${group.id}/expenses/${expense.id}')),
       ),
     );
   }
@@ -500,7 +513,8 @@ Future<bool> _confirmDestructive(
       content: Text(message),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(dCtx, false),
+          onPressed: dCtx.tracked(
+              TelemetryEvent.tapDialogCancel, () => Navigator.pop(dCtx, false)),
           child: Text(l10n.cancel),
         ),
         FilledButton(
@@ -509,7 +523,8 @@ Future<bool> _confirmDestructive(
             foregroundColor: Theme.of(dCtx).colorScheme.onError,
             minimumSize: const Size(64, 44),
           ),
-          onPressed: () => Navigator.pop(dCtx, true),
+          onPressed: dCtx.tracked(
+              TelemetryEvent.tapDialogConfirm, () => Navigator.pop(dCtx, true)),
           child: Text(l10n.delete),
         ),
       ],
@@ -552,7 +567,9 @@ class _SettleTab extends ConsumerWidget {
                           DebtCard(
                             debt: debt,
                             currencyCode: group.currencyCode,
-                            onSettle: () => _openSettle(context, debt),
+                            onSettle: context.tracked(
+                                TelemetryEvent.tapSettleDebt,
+                                () => _openSettle(context, debt)),
                           ),
                       ],
                     ),
@@ -605,8 +622,10 @@ class _SettleTab extends ConsumerWidget {
       loading: () => const AppLoadingWidget(),
       error: (e, _) => AppErrorWidget(
         error: e,
-        onRetry: () =>
-            ref.invalidate(debtSummaryProvider(group.id, group.currencyCode)),
+        onRetry: context.tracked(
+            TelemetryEvent.tapRetry,
+            () => ref
+                .invalidate(debtSummaryProvider(group.id, group.currencyCode))),
       ),
     );
   }
@@ -785,6 +804,7 @@ class _SwipeableSettlementTile extends ConsumerWidget {
       key: ValueKey('settlement-${settlement.id}'),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) async {
+        context.track(TelemetryEvent.gestureSwipeDeleteSettlement);
         final confirmed = await _confirmDestructive(
           context,
           title: l10n.deleteSettlementConfirmTitle,

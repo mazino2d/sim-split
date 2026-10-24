@@ -13,6 +13,8 @@ import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 /// Where an invite link lands (R-3 AC10, AC11). Opening it joins the group;
 /// once the group has synced to this device, the friend picks their name
@@ -113,9 +115,12 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
       return _Message(
         text: failureMessage(failure, l10n),
         actions: [
-          FilledButton(onPressed: _join, child: Text(l10n.retry)),
+          FilledButton(
+              onPressed: context.tracked(TelemetryEvent.tapRetry, _join),
+              child: Text(l10n.retry)),
           TextButton(
-            onPressed: () => context.go('/'),
+            onPressed: context.tracked(
+                TelemetryEvent.tapGoHome, () => context.go('/')),
             child: Text(l10n.goToMyGroups),
           ),
         ],
@@ -172,7 +177,8 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
             leading: MemberAvatar(member: member),
             title: Text(member.name),
             enabled: !_saving,
-            onTap: () => _claim(member),
+            onTap: context.tracked(
+                TelemetryEvent.tapClaimMember, () => _claim(member)),
           ),
         if (!_addingName)
           ListTile(
@@ -181,7 +187,8 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
             leading: const Icon(Icons.person_add_alt_outlined),
             title: Text(l10n.notOnTheList),
             enabled: !_saving,
-            onTap: () => setState(() => _addingName = true),
+            onTap: context.tracked(TelemetryEvent.tapAddMyName,
+                () => setState(() => _addingName = true)),
           )
         else
           Padding(
@@ -199,12 +206,14 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
                       labelText: l10n.yourName,
                       counterText: '',
                     ),
-                    onSubmitted: (_) => _addMe(),
+                    onSubmitted: context.trackedValue(
+                        TelemetryEvent.tapSaveMyName, (_) => _addMe()),
                   ),
                 ),
                 const SizedBox(width: 12),
                 FilledButton(
-                  onPressed: _saving ? null : _addMe,
+                  onPressed: context.tracked(
+                      TelemetryEvent.tapSaveMyName, _saving ? null : _addMe),
                   child: Text(l10n.joinAsNewMember),
                 ),
               ],

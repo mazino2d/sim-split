@@ -10,6 +10,8 @@ import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
 import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 class DebtOverviewScreen extends ConsumerWidget {
   const DebtOverviewScreen({super.key, required this.groupId});
@@ -95,14 +97,18 @@ class DebtOverviewScreen extends ConsumerWidget {
                       itemBuilder: (ctx, i) => DebtCard(
                         debt: summary.suggestions[i],
                         currencyCode: group.currencyCode,
-                        onSettle: () => context.push(
-                          '/groups/$groupId/settle',
-                          extra: {
-                            'fromMemberId': summary.suggestions[i].from.id,
-                            'toMemberId': summary.suggestions[i].to.id,
-                            'amountCents': summary.suggestions[i].amountCents,
-                          },
-                        ),
+                        onSettle: context.tracked(
+                            TelemetryEvent.tapSettleDebt,
+                            () => context.push(
+                                  '/groups/$groupId/settle',
+                                  extra: {
+                                    'fromMemberId':
+                                        summary.suggestions[i].from.id,
+                                    'toMemberId': summary.suggestions[i].to.id,
+                                    'amountCents':
+                                        summary.suggestions[i].amountCents,
+                                  },
+                                )),
                       ),
                     ),
                   ),
@@ -112,8 +118,10 @@ class DebtOverviewScreen extends ConsumerWidget {
             loading: () => const AppLoadingWidget(),
             error: (e, _) => AppErrorWidget(
               error: e,
-              onRetry: () => ref
-                  .invalidate(debtSummaryProvider(groupId, group.currencyCode)),
+              onRetry: context.tracked(
+                  TelemetryEvent.tapRetry,
+                  () => ref.invalidate(
+                      debtSummaryProvider(groupId, group.currencyCode))),
             ),
           ),
         );

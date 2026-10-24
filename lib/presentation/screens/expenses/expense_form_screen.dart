@@ -20,6 +20,8 @@ import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 /// Add or edit an expense.
 ///
@@ -47,7 +49,13 @@ class ExpenseFormScreen extends ConsumerStatefulWidget {
   ConsumerState<ExpenseFormScreen> createState() => _ExpenseFormScreenState();
 }
 
-class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
+class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen>
+    with TrackedForm<ExpenseFormScreen> {
+  @override
+  TelemetryEvent get formSubmitted => TelemetryEvent.formExpenseSubmitted;
+  @override
+  TelemetryEvent get formAbandoned => TelemetryEvent.formExpenseAbandoned;
+
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _titleFocusNode = FocusNode();
@@ -405,7 +413,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         content: Text(l10n.deleteConfirmMessage),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dCtx, false),
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogCancel,
+                () => Navigator.pop(dCtx, false)),
             child: Text(l10n.cancel),
           ),
           FilledButton(
@@ -414,7 +423,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               foregroundColor: Theme.of(dCtx).colorScheme.onError,
               minimumSize: const Size(64, 44),
             ),
-            onPressed: () => Navigator.pop(dCtx, true),
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogConfirm,
+                () => Navigator.pop(dCtx, true)),
             child: Text(l10n.delete),
           ),
         ],
@@ -503,6 +513,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       (_) {
         HapticFeedback.lightImpact();
         _isDirty = false;
+        markSubmitted();
         context.pop();
       },
     );
@@ -517,7 +528,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         title: Text(l10n.unsavedChanges),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: ctx.tracked(TelemetryEvent.tapDialogCancel,
+                () => Navigator.pop(ctx, false)),
             child: Text(l10n.keepEditing),
           ),
           FilledButton(
@@ -526,7 +538,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               foregroundColor: Theme.of(ctx).colorScheme.onError,
               minimumSize: const Size(64, 44),
             ),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: ctx.tracked(TelemetryEvent.tapDialogConfirm,
+                () => Navigator.pop(ctx, true)),
             child: Text(l10n.discardChanges),
           ),
         ],
@@ -575,11 +588,11 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         title,
         AppErrorWidget(
           error: loadError,
-          onRetry: () {
+          onRetry: context.tracked(TelemetryEvent.tapRetry, () {
             ref.invalidate(groupDetailProvider(widget.groupId));
             ref.invalidate(memberListProvider(widget.groupId));
             ref.invalidate(expenseListProvider(widget.groupId));
-          },
+          }),
         ),
       );
     }
@@ -604,7 +617,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             title,
             AppErrorWidget(
               message: l10n.expenseNotFound,
-              onRetry: () => context.pop(),
+              onRetry:
+                  context.tracked(TelemetryEvent.tapRetry, () => context.pop()),
               retryLabel: l10n.goBack,
             ),
           );
@@ -623,20 +637,24 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     return PopScope(
       canPop: !_isDirty,
       onPopInvokedWithResult: (didPop, _) async {
+        // telemetry: system back; the next screen is tracked
         if (didPop) return;
         final canLeave = await _onWillPop();
         if (canLeave && context.mounted) context.pop();
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: CloseButton(onPressed: () => Navigator.maybePop(context)),
+          leading: CloseButton(
+              onPressed: context.tracked(TelemetryEvent.tapCloseForm,
+                  () => Navigator.maybePop(context))),
           title: Text(title),
           actions: [
             if (isEdit)
               IconButton(
                 icon: const Icon(Icons.delete_outline),
                 tooltip: l10n.deleteExpense,
-                onPressed: saving ? null : _confirmDelete,
+                onPressed: context.tracked(TelemetryEvent.tapDeleteExpense,
+                    saving ? null : _confirmDelete),
               ),
             const SizedBox(width: 8),
           ],
@@ -674,10 +692,12 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                       members: members,
                       isSelected: (m) => m.id == _paidByMemberId,
                       meLabel: l10n.meLabel,
-                      onTap: (m) => setState(() {
-                        _paidByMemberId = m.id;
-                        _isDirty = true;
-                      }),
+                      onTap: context.trackedValueCall(
+                          TelemetryEvent.tapPickPayer,
+                          (m) => setState(() {
+                                _paidByMemberId = m.id;
+                                _isDirty = true;
+                              })),
                     ),
                     SectionLabel(
                       l10n.splitBetween,
@@ -685,7 +705,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                           ? null
                           : _MiniTextButton(
                               label: l10n.everyone,
-                              onPressed: () => _setAllParticipants(true),
+                              onPressed: context.trackedCall(
+                                  TelemetryEvent.tapSelectAllParticipants,
+                                  () => _setAllParticipants(true)),
                             ),
                     ),
                     _MemberPicker(
@@ -693,7 +715,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                       isSelected: (m) => _participantIds.contains(m.id),
                       meLabel: l10n.meLabel,
                       showCheck: true,
-                      onTap: (m) => _toggleParticipant(m.id),
+                      onTap: context.trackedValueCall(
+                          TelemetryEvent.tapToggleParticipant,
+                          (m) => _toggleParticipant(m.id)),
                     ),
                     const SizedBox(height: 8),
                     _buildSplitSection(l10n, group.currencyCode),
@@ -702,7 +726,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               ),
               _SaveBar(
                 label: l10n.save,
-                onPressed: saving ? null : _save,
+                onPressed: context.tracked(
+                    TelemetryEvent.tapSaveExpense, saving ? null : _save),
               ),
             ],
           ),
@@ -779,7 +804,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               ),
               Text('·', style: TextStyle(color: cs.onSurfaceVariant)),
               InkWell(
-                onTap: _pickDate,
+                onTap: context.tracked(TelemetryEvent.tapPickDate, _pickDate),
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
                   padding:
@@ -828,10 +853,12 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                   fontWeight: FontWeight.w500,
                 ),
                 selected: c == _category,
-                onSelected: (_) => setState(() {
-                  _category = c;
-                  _isDirty = true;
-                }),
+                onSelected: context.trackedValue(
+                    TelemetryEvent.tapPickCategory,
+                    (_) => setState(() {
+                          _category = c;
+                          _isDirty = true;
+                        })),
               ),
             ),
         ],
@@ -859,8 +886,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                 ),
                 Switch(
                   value: uneven,
-                  onChanged: (on) =>
-                      _setSplitType(on ? SplitType.shares : SplitType.equal),
+                  onChanged: context.trackedValue(
+                      TelemetryEvent.tapSplitUneven,
+                      (on) => _setSplitType(
+                          on ? SplitType.shares : SplitType.equal)),
                 ),
               ],
             ),
@@ -876,7 +905,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                       value: SplitType.exact, label: Text(l10n.amount)),
                 ],
                 selected: {_splitType},
-                onSelectionChanged: (s) => _setSplitType(s.first),
+                onSelectionChanged: context.trackedValue(
+                    TelemetryEvent.tapSplitType, (s) => _setSplitType(s.first)),
               ),
               const SizedBox(height: 16),
               for (final member in _active)
@@ -928,7 +958,8 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
                         currencyHasDecimals(currencyCode)),
               ),
               style: const TextStyle(fontFeatures: tabularFigures),
-              onChanged: (_) => setState(() => _isDirty = true),
+              onChanged: (_) => setState(
+                  () => _isDirty = true), // telemetry: typing is not tracked
               validator: (v) => _validateSplitField(v, l10n),
               decoration: InputDecoration(
                 hintText: switch (_splitType) {
@@ -1096,6 +1127,7 @@ class _MemberPicker extends StatelessWidget {
             selected: selected,
             child: InkWell(
               onTap: () {
+                // telemetry: calls the tracked onTap
                 HapticFeedback.selectionClick();
                 onTap(m);
               },
