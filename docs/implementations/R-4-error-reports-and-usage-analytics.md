@@ -120,7 +120,7 @@ release as P5: the agreement rule, full tracking and the account wipe go out tog
    next refreshes; the data they hold is dropped on the next sign-in, not uploaded.
 3. Set `TELEMETRY_URL` (everything-as-code, `terraform/github`): web and the next Android
    build start sending.
-4. Tag `vYYYY.M.D` (release-manager skill): Android production at 20 %, then widen.
+4. Tag `v2026.10.24` (release-manager skill): Android production at 20 %, then widen.
 
 ## Manual steps (no API or Terraform support)
 
