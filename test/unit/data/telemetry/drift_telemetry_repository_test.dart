@@ -238,4 +238,37 @@ void main() {
     expect(sessions[0], sessions[1]);
     expect(sessions[2], isNot(sessions[1]));
   });
+
+  test('the sign-out operation is kept for the account that signed out',
+      () async {
+    String? signedIn = 'uid1';
+    final repo = DriftTelemetryRepository(
+      dao: db.telemetryDao,
+      sender: TelemetrySender(
+        dao: db.telemetryDao,
+        client: MockClient((_) async => http.Response('', 202)),
+        endpoint: null,
+        appCheckToken: () async => null,
+        idToken: () async => null,
+      ),
+      context: TelemetryContext(
+        platform: 'web',
+        os: null,
+        appVersion: () async => '1',
+        language: () async => 'en',
+        currentUid: () => signedIn,
+        knownNames: () async => [],
+      ),
+    );
+    repo.track(BreadcrumbKind.tap, TelemetryEvent.tapSignOut.wireName);
+    signedIn = null;
+    repo
+      ..track(BreadcrumbKind.op, TelemetryEvent.opSignOut.wireName,
+          result: 'success')
+      ..track(BreadcrumbKind.screen, '/sign-in')
+      ..track(BreadcrumbKind.op, TelemetryEvent.opSignInWithGoogle.wireName,
+          result: 'auth_cancelled');
+    final names = [for (final e in await events()) (e['name'], e['uid'])];
+    expect(names, [('tap_sign_out', 'uid1'), ('op_sign_out', 'uid1')]);
+  });
 }

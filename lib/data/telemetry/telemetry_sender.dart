@@ -40,6 +40,11 @@ class TelemetrySender {
   final _retry = <String, Timer>{};
   Timer? _eventTimer;
 
+  // The last ID token seen, so events recorded as the session ends (the
+  // sign-out or account deletion itself) can still be sent; the endpoint
+  // accepts a token until it expires and checks every event's uid against it.
+  String? _lastIdToken;
+
   /// Whether the last request reached the endpoint; reported as `online`.
   bool lastReachedServer = true;
 
@@ -99,8 +104,12 @@ class TelemetrySender {
       {required bool withIdToken}) async {
     try {
       final appCheck = await _appCheckToken();
-      final id = withIdToken ? await _idToken() : null;
-      if (withIdToken && id == null) return null;
+      String? id;
+      if (withIdToken) {
+        id = await _idToken() ?? _lastIdToken;
+        if (id == null) return null;
+        _lastIdToken = id;
+      }
       final response = await _client
           .post(
             url,
