@@ -9,6 +9,8 @@ import 'package:simsplit/presentation/providers/settlement_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/utils/member_initial.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 class GroupCard extends ConsumerWidget {
   const GroupCard({super.key, required this.group});
@@ -37,7 +39,8 @@ class GroupCard extends ConsumerWidget {
       borderRadius: BorderRadius.circular(AppTheme.radiusM),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/groups/${group.id}'),
+        onTap: context.tracked(TelemetryEvent.tapOpenGroup,
+            () => context.push('/groups/${group.id}')),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(

@@ -21,6 +21,8 @@ import 'package:simsplit/presentation/utils/member_initial.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 const _currencies = ['VND', 'USD', 'EUR', 'SGD', 'THB'];
 
@@ -91,7 +93,13 @@ class GroupFormScreen extends ConsumerStatefulWidget {
   ConsumerState<GroupFormScreen> createState() => _GroupFormScreenState();
 }
 
-class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
+class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
+    with TrackedForm<GroupFormScreen> {
+  @override
+  TelemetryEvent get formSubmitted => TelemetryEvent.formGroupSubmitted;
+  @override
+  TelemetryEvent get formAbandoned => TelemetryEvent.formGroupAbandoned;
+
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   String _currency = 'VND';
@@ -226,7 +234,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
         title: Text(l10n.unsavedChanges),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: ctx.tracked(TelemetryEvent.tapDialogCancel,
+                () => Navigator.pop(ctx, false)),
             child: Text(l10n.keepEditing),
           ),
           FilledButton(
@@ -234,7 +243,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: ctx.tracked(TelemetryEvent.tapDialogConfirm,
+                () => Navigator.pop(ctx, true)),
             child: Text(l10n.discardChanges),
           ),
         ],
@@ -340,6 +350,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
         return;
       }
       _isDirty = false;
+      markSubmitted();
       ref.invalidate(groupDetailProvider(groupId));
       context.pop();
     } else {
@@ -388,6 +399,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
       if (!mounted) return;
       if (failure != null) _showFailure(messenger, failure);
       _isDirty = false;
+      markSubmitted();
       // Routes are nested under '/', so this yields [GroupList, GroupDetail]
       // and Back from the detail returns to the list.
       context.go('/groups/$groupId');
@@ -403,7 +415,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
         content: Text(l10n.deleteGroupConfirmMessage(_nameController.text)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: ctx.tracked(TelemetryEvent.tapDialogCancel,
+                () => Navigator.pop(ctx, false)),
             child: Text(l10n.cancel),
           ),
           FilledButton(
@@ -411,7 +424,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: ctx.tracked(TelemetryEvent.tapDialogConfirm,
+                () => Navigator.pop(ctx, true)),
             child: Text(l10n.delete),
           ),
         ],
@@ -461,10 +475,10 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                   _EmojiCell(
                     emoji: null,
                     selected: currentEmoji == null,
-                    onTap: () {
+                    onTap: ctx.trackedCall(TelemetryEvent.tapPickEmoji, () {
                       onSelected(null);
                       Navigator.pop(ctx);
-                    },
+                    }),
                     child: Icon(Icons.block,
                         size: 22, color: Theme.of(ctx).colorScheme.outline),
                   ),
@@ -472,10 +486,10 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                   _EmojiCell(
                     emoji: e,
                     selected: currentEmoji == e,
-                    onTap: () {
+                    onTap: ctx.trackedCall(TelemetryEvent.tapPickEmoji, () {
                       onSelected(e);
                       Navigator.pop(ctx);
-                    },
+                    }),
                   ),
               ],
             ),
@@ -516,20 +530,24 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
     return PopScope(
       canPop: !_isDirty,
       onPopInvokedWithResult: (didPop, _) async {
+        // telemetry: system back; the next screen is tracked
         if (didPop) return;
         final canLeave = await _onWillPop();
         if (canLeave && context.mounted) context.pop();
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: CloseButton(onPressed: () => Navigator.maybePop(context)),
+          leading: CloseButton(
+              onPressed: context.tracked(TelemetryEvent.tapCloseForm,
+                  () => Navigator.maybePop(context))),
           title: Text(isEdit ? l10n.editGroup : l10n.newGroup),
           actions: [
             if (isEdit)
               IconButton(
                 icon: const Icon(Icons.delete_outline),
                 tooltip: l10n.deleteGroup,
-                onPressed: saving ? null : _confirmDeleteGroup,
+                onPressed: context.tracked(TelemetryEvent.tapDeleteGroup,
+                    saving ? null : _confirmDeleteGroup),
               ),
             const SizedBox(width: 8),
           ],
@@ -589,10 +607,12 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                     _EmojiStrip(
                       options: _groupEmojiOptions,
                       selected: _emoji,
-                      onSelected: (e) => setState(() {
-                        _emoji = e == _emoji ? null : e;
-                        _isDirty = true;
-                      }),
+                      onSelected: context.trackedValueCall(
+                          TelemetryEvent.tapPickEmoji,
+                          (e) => setState(() {
+                                _emoji = e == _emoji ? null : e;
+                                _isDirty = true;
+                              })),
                     ),
 
                     // ── Currency ──────────────────────────────────────
@@ -616,12 +636,14 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                                   fontWeight: FontWeight.w600,
                                 ),
                                 selected: c == _currency,
-                                onSelected: currencyLocked
-                                    ? null
-                                    : (_) => setState(() {
-                                          _currency = c;
-                                          _isDirty = true;
-                                        }),
+                                onSelected: context.trackedValue(
+                                    TelemetryEvent.tapPickCurrency,
+                                    currencyLocked
+                                        ? null
+                                        : (_) => setState(() {
+                                              _currency = c;
+                                              _isDirty = true;
+                                            })),
                               ),
                             ),
                         ],
@@ -646,14 +668,17 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       child: _MeRow(
                         nameController: _meNameController,
                         emoji: _meEmoji,
-                        onEmojiTap: () => _showEmojiPicker(
-                          options: _memberEmojiOptions,
-                          currentEmoji: _meEmoji,
-                          onSelected: (e) => setState(() {
-                            _meEmoji = e;
-                            _isDirty = true;
-                          }),
-                        ),
+                        onEmojiTap: context.trackedCall(
+                            TelemetryEvent.tapOpenEmojiPicker,
+                            () => _showEmojiPicker(
+                                  options: _memberEmojiOptions,
+                                  currentEmoji: _meEmoji,
+                                  onSelected: (e) => setState(() {
+                                    // telemetry: picked in the tracked emoji picker
+                                    _meEmoji = e;
+                                    _isDirty = true;
+                                  }),
+                                )),
                         l10n: l10n,
                       ),
                     ),
@@ -669,10 +694,13 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                       child: isEdit
                           ? _EditModeMembersSection(
                               groupId: widget.editGroupId!,
-                              onPendingRename: _onPendingRename,
-                              onRenameSaved: (memberId) =>
-                                  _pendingRenames.remove(memberId),
-                              onShowEmojiPicker: (current, onSelected) =>
+                              onPendingRename:
+                                  _onPendingRename, // telemetry: typing is not tracked
+                              onRenameSaved:
+                                  (memberId) => // telemetry: called after the tracked save
+                                      _pendingRenames.remove(memberId),
+                              onShowEmojiPicker: (current,
+                                      onSelected) => // telemetry: opened by a tracked tap
                                   _showEmojiPicker(
                                 options: _memberEmojiOptions,
                                 currentEmoji: current,
@@ -684,24 +712,32 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
                               newNameController: _newNameController,
                               newFocusNode: _newFocusNode,
                               newEmoji: _newEmoji,
-                              onNewEmojiTap: () => _showEmojiPicker(
-                                options: _memberEmojiOptions,
-                                currentEmoji: _newEmoji,
-                                onSelected: (e) =>
-                                    setState(() => _newEmoji = e),
-                              ),
-                              onAdd: _addDraft,
-                              onDraftEmojiTap: (draft) => _showEmojiPicker(
-                                options: _memberEmojiOptions,
-                                currentEmoji: draft.emoji,
-                                onSelected: (e) =>
-                                    setState(() => draft.emoji = e),
-                              ),
-                              onDraftDelete: (draft) {
+                              onNewEmojiTap: context.trackedCall(
+                                  TelemetryEvent.tapOpenEmojiPicker,
+                                  () => _showEmojiPicker(
+                                        options: _memberEmojiOptions,
+                                        currentEmoji: _newEmoji,
+                                        onSelected:
+                                            (e) => // telemetry: picked in the tracked emoji picker
+                                                setState(() => _newEmoji = e),
+                                      )),
+                              onAdd:
+                                  _addDraft, // telemetry: tracked by the add button
+                              onDraftEmojiTap: context.trackedValueCall(
+                                  TelemetryEvent.tapOpenEmojiPicker,
+                                  (draft) => _showEmojiPicker(
+                                        options: _memberEmojiOptions,
+                                        currentEmoji: draft.emoji,
+                                        onSelected:
+                                            (e) => // telemetry: picked in the tracked emoji picker
+                                                setState(() => draft.emoji = e),
+                                      )),
+                              onDraftDelete: context.trackedValueCall(
+                                  TelemetryEvent.tapRemoveDraftMember, (draft) {
                                 setState(() => _memberDrafts.remove(draft));
                                 WidgetsBinding.instance.addPostFrameCallback(
                                     (_) => draft.dispose());
-                              },
+                              }),
                             ),
                     ),
                   ],
@@ -710,7 +746,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
               _BottomAction(
                 label: isEdit ? l10n.save : l10n.createGroup,
                 loading: saving,
-                onPressed: saving ? null : _save,
+                onPressed: context.tracked(
+                    TelemetryEvent.tapSaveGroup, saving ? null : _save),
               ),
             ],
           ),
@@ -755,6 +792,7 @@ class _EmojiStrip extends StatelessWidget {
             excludeSemantics: true,
             child: InkWell(
               onTap: () {
+                // telemetry: calls the tracked onSelected
                 HapticFeedback.selectionClick();
                 onSelected(e);
               },
@@ -1051,7 +1089,8 @@ class _AddMemberField extends StatelessWidget {
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(hintText: l10n.addPersonHint),
-                onSubmitted: (_) => onAdd(),
+                onSubmitted: context.trackedValue(
+                    TelemetryEvent.tapAddMember, (_) => onAdd()),
               ),
             ),
             const SizedBox(width: 8),
@@ -1059,7 +1098,8 @@ class _AddMemberField extends StatelessWidget {
               icon: Icons.add,
               tooltip: l10n.addMember,
               filled: true,
-              onPressed: hasText && !busy ? onAdd : null,
+              onPressed: context.tracked(
+                  TelemetryEvent.tapAddMember, hasText && !busy ? onAdd : null),
             ),
           ],
         );
@@ -1147,9 +1187,12 @@ class _EditModeMembersSectionState
               _ExistingMemberRow(
                 key: ValueKey('member-${member.id}'),
                 member: member,
-                onShowEmojiPicker: widget.onShowEmojiPicker,
-                onPendingRename: widget.onPendingRename,
-                onRenameSaved: widget.onRenameSaved,
+                onShowEmojiPicker: widget
+                    .onShowEmojiPicker, // telemetry: wiring; tracked where it is opened
+                onPendingRename:
+                    widget.onPendingRename, // telemetry: typing is not tracked
+                onRenameSaved: widget
+                    .onRenameSaved, // telemetry: called after the tracked save
               ),
             const SizedBox(height: 4),
             _AddMemberField(
@@ -1157,11 +1200,13 @@ class _EditModeMembersSectionState
               focusNode: _newFocusNode,
               emoji: _newEmoji,
               busy: _savingNew,
-              onEmojiTap: () => widget.onShowEmojiPicker(
-                _newEmoji,
-                (e) => setState(() => _newEmoji = e),
-              ),
-              onAdd: _saveNew,
+              onEmojiTap: context.trackedCall(
+                  TelemetryEvent.tapOpenEmojiPicker,
+                  () => widget.onShowEmojiPicker(
+                        _newEmoji,
+                        (e) => setState(() => _newEmoji = e),
+                      )),
+              onAdd: _saveNew, // telemetry: tracked by the add button
             ),
           ],
         );
@@ -1207,8 +1252,10 @@ class _CreateModeMembersSection extends StatelessWidget {
           _DraftMemberRow(
             key: ObjectKey(draft),
             draft: draft,
-            onEmojiTap: () => onDraftEmojiTap(draft),
-            onDelete: () => onDraftDelete(draft),
+            onEmojiTap: () => onDraftEmojiTap(
+                draft), // telemetry: calls the tracked onDraftEmojiTap
+            onDelete: () => onDraftDelete(
+                draft), // telemetry: calls the tracked onDraftDelete
             l10n: l10n,
           ),
         const SizedBox(height: 4),
@@ -1374,7 +1421,8 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
         content: Text(l10n.deleteMemberConfirmMessage(widget.member.name)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dCtx, false),
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogCancel,
+                () => Navigator.pop(dCtx, false)),
             child: Text(l10n.cancel),
           ),
           FilledButton(
@@ -1382,7 +1430,8 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
               backgroundColor: Theme.of(dCtx).colorScheme.error,
               foregroundColor: Theme.of(dCtx).colorScheme.onError,
             ),
-            onPressed: () => Navigator.pop(dCtx, true),
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogConfirm,
+                () => Navigator.pop(dCtx, true)),
             child: Text(l10n.delete),
           ),
         ],
@@ -1412,7 +1461,8 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
       child: Row(
         children: [
           _AvatarTapTarget(
-            onTap: _pickEmoji,
+            onTap: context.trackedCall(
+                TelemetryEvent.tapOpenEmojiPicker, _pickEmoji),
             child: MemberAvatar(member: member, size: 40),
           ),
           const SizedBox(width: 12),
@@ -1421,8 +1471,10 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
               controller: _nameController,
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(hintText: l10n.memberName),
-              onChanged: (v) => widget.onPendingRename(member, v),
-              onEditingComplete: _saveName,
+              onChanged: (v) => widget.onPendingRename(
+                  member, v), // telemetry: typing is not tracked
+              onEditingComplete:
+                  context.tracked(TelemetryEvent.tapSaveMemberName, _saveName),
             ),
           ),
           const SizedBox(width: 8),
@@ -1440,13 +1492,16 @@ class _ExistingMemberRowState extends ConsumerState<_ExistingMemberRow> {
                         icon: Icons.check,
                         tooltip: l10n.save,
                         filled: true,
-                        onPressed: _saving ? null : _saveName,
+                        onPressed: context.tracked(
+                            TelemetryEvent.tapSaveMemberName,
+                            _saving ? null : _saveName),
                       )
                     : _RowIconButton(
                         key: const ValueKey('remove'),
                         icon: Icons.close,
                         tooltip: l10n.removeMember,
-                        onPressed: _confirmDelete,
+                        onPressed: context.tracked(
+                            TelemetryEvent.tapRemoveMember, _confirmDelete),
                       ),
               );
             },

@@ -4,6 +4,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 part 'sync_providers.g.dart';
 
@@ -27,7 +29,10 @@ Future<void> syncRunner(Ref ref) async {
   if (user == null) return;
 
   final stopSync = ref.read(stopSyncProvider);
-  ref.onDispose(() => stopSync(const NoParams()));
-  final result = await ref.read(startSyncProvider)(user);
+  final track = ref.read(trackEventProvider);
+  ref.onDispose(() => trackOp(
+      track, TelemetryEvent.opStopSync, () => stopSync(const NoParams())));
+  final result = await trackOp(track, TelemetryEvent.opStartSync,
+      () => ref.read(startSyncProvider)(user));
   result.fold((failure) => debugPrint('[sync] start failed: $failure'), (_) {});
 }

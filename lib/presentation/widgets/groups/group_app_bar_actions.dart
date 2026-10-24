@@ -12,6 +12,8 @@ import 'package:simsplit/presentation/notifiers/invite_notifier.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 enum _MenuAction { activity, edit, resetLink, leave }
 
@@ -109,7 +111,8 @@ class GroupAppBarActions extends ConsumerWidget {
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dCtx, false),
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogCancel,
+                () => Navigator.pop(dCtx, false)),
             child: Text(l10n.cancel),
           ),
           FilledButton(
@@ -118,7 +121,8 @@ class GroupAppBarActions extends ConsumerWidget {
               foregroundColor: Theme.of(dCtx).colorScheme.onError,
               minimumSize: const Size(64, 44),
             ),
-            onPressed: () => Navigator.pop(dCtx, true),
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogConfirm,
+                () => Navigator.pop(dCtx, true)),
             child: Text(confirm),
           ),
         ],
@@ -169,12 +173,21 @@ class GroupAppBarActions extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.person_add_alt_outlined),
             tooltip: l10n.shareGroup,
-            onPressed: busy ? null : () => _share(context, ref, group),
+            onPressed: context.tracked(TelemetryEvent.tapShareGroup,
+                busy ? null : () => _share(context, ref, group)),
           ),
         PopupMenuButton<_MenuAction>(
           tooltip: l10n.groupMenu,
           enabled: !busy,
-          onSelected: (action) => _onMenu(context, ref, groupId, group, action),
+          onSelected: (action) {
+            context.track(switch (action) {
+              _MenuAction.activity => TelemetryEvent.tapMenuActivity,
+              _MenuAction.edit => TelemetryEvent.tapMenuEdit,
+              _MenuAction.resetLink => TelemetryEvent.tapMenuResetLink,
+              _MenuAction.leave => TelemetryEvent.tapMenuLeave,
+            });
+            _onMenu(context, ref, groupId, group, action);
+          },
           itemBuilder: (_) => [
             if (group != null)
               PopupMenuItem(

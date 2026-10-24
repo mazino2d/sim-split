@@ -120,6 +120,15 @@ class DriftTelemetryRepository implements TelemetryRepository {
   @override
   void track(BreadcrumbKind kind, String name,
       {String? result, Duration? duration}) {
+    try {
+      _track(kind, name, result, duration);
+    } on Object {
+      // Telemetry never gets in the user's way (AC17).
+    }
+  }
+
+  void _track(
+      BreadcrumbKind kind, String name, String? result, Duration? duration) {
     final time = _now();
     if (kind == BreadcrumbKind.screen) _currentScreen = name;
     if (_enabled) {

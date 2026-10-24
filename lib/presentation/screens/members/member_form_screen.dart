@@ -7,6 +7,8 @@ import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/presentation/notifiers/member_notifier.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 const _avatarColors = [
   0xFF1976D2,
@@ -35,7 +37,13 @@ class MemberFormScreen extends ConsumerStatefulWidget {
   ConsumerState<MemberFormScreen> createState() => _MemberFormScreenState();
 }
 
-class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
+class _MemberFormScreenState extends ConsumerState<MemberFormScreen>
+    with TrackedForm<MemberFormScreen> {
+  @override
+  TelemetryEvent get formSubmitted => TelemetryEvent.formMemberSubmitted;
+  @override
+  TelemetryEvent get formAbandoned => TelemetryEvent.formMemberAbandoned;
+
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late int _selectedColor;
@@ -91,7 +99,10 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
       (failure) => messenger.showSnackBar(
         SnackBar(content: Text(failureMessage(failure, l10n))),
       ),
-      (_) => context.pop(),
+      (_) {
+        markSubmitted();
+        context.pop();
+      },
     );
   }
 
@@ -107,7 +118,8 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
         content: Text(l10n.deleteMemberConfirmMessage(member.name)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dCtx, false),
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogCancel,
+                () => Navigator.pop(dCtx, false)),
             child: Text(l10n.cancel),
           ),
           FilledButton(
@@ -115,7 +127,8 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
               backgroundColor: Theme.of(dCtx).colorScheme.error,
               foregroundColor: Theme.of(dCtx).colorScheme.onError,
             ),
-            onPressed: () => Navigator.pop(dCtx, true),
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogConfirm,
+                () => Navigator.pop(dCtx, true)),
             child: Text(l10n.delete),
           ),
         ],
@@ -158,7 +171,8 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
             IconButton(
               icon: const Icon(Icons.delete_outline),
               tooltip: l10n.removeMember,
-              onPressed: saving ? null : _confirmDelete,
+              onPressed: context.tracked(TelemetryEvent.tapDeleteMember,
+                  saving ? null : _confirmDelete),
             ),
         ],
       ),
@@ -178,7 +192,8 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
                     label: l10n.avatarColorOption(index + 1),
                     child: InkWell(
                       customBorder: const CircleBorder(),
-                      onTap: () => setState(() => _selectedColor = color),
+                      onTap: context.tracked(TelemetryEvent.tapPickColor,
+                          () => setState(() => _selectedColor = color)),
                       child: Container(
                         width: 40,
                         height: 40,
@@ -212,7 +227,8 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
             SwitchListTile(
               title: Text(l10n.markAsMe),
               value: _isMe,
-              onChanged: (v) => setState(() => _isMe = v),
+              onChanged: context.trackedValue(TelemetryEvent.tapToggleIsMe,
+                  (v) => setState(() => _isMe = v)),
             ),
 
             // Warning: another member is already marked as "me"
@@ -248,7 +264,8 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen> {
             const SizedBox(height: 24),
 
             FilledButton(
-              onPressed: saving ? null : _save,
+              onPressed: context.tracked(
+                  TelemetryEvent.tapSaveMember, saving ? null : _save),
               child: Text(_isEdit ? l10n.save : l10n.addMember),
             ),
           ],

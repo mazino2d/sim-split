@@ -22,6 +22,7 @@ import 'package:simsplit/presentation/screens/settings/diagnostics_screen.dart';
 import 'package:simsplit/presentation/screens/settings/settings_screen.dart';
 import 'package:simsplit/presentation/screens/settlements/debt_overview_screen.dart';
 import 'package:simsplit/presentation/screens/settlements/settlement_form_screen.dart';
+import 'package:simsplit/presentation/utils/tracking.dart';
 
 part 'app_router.g.dart';
 
@@ -58,6 +59,7 @@ GoRouter appRouter(Ref ref) {
     ref.listen(currentUserProvider, (_, __) => authChanged.value++);
   }
   final router = _buildRouter(
+    observers: [TelemetryNavigatorObserver(() => ref.read(trackEventProvider))],
     refreshListenable: authChanged,
     redirect: authAvailable
         ? (context, state) =>
@@ -84,11 +86,13 @@ GoRouter appRouter(Ref ref) {
 }
 
 GoRouter _buildRouter({
+  required List<NavigatorObserver> observers,
   required Listenable refreshListenable,
   required GoRouterRedirect? redirect,
 }) =>
     GoRouter(
       initialLocation: '/',
+      observers: observers,
       refreshListenable: refreshListenable,
       redirect: redirect,
       // All screens are nested under '/' so the group list is always at the
@@ -250,7 +254,8 @@ class _NotFoundScreen extends StatelessWidget {
             Text(l10n.pageNotFound),
             const SizedBox(height: 12),
             OutlinedButton(
-              onPressed: () => context.go('/'),
+              onPressed: context.tracked(
+                  TelemetryEvent.tapGoHome, () => context.go('/')),
               child: Text(l10n.goBack),
             ),
           ],

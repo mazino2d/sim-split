@@ -43,6 +43,30 @@ fonts or radii.
 Tokens live in `lib/presentation/theme/app_theme.dart`; typeface is the
 bundled Be Vietnam Pro.
 
+## Usage tracking (R-4)
+
+Every interactive callback records a usage event, named from the fixed
+`TelemetryEvent` vocabulary (never from free text):
+
+```dart
+FilledButton(
+  onPressed: context.tracked(TelemetryEvent.tapSaveExpense, saving ? null : _save),
+  child: Text(l10n.save),
+)
+ChoiceChip(onSelected: context.trackedValue(TelemetryEvent.tapPickCategory, (_) => …))
+```
+
+- Use `trackedCall` / `trackedValueCall` where the parameter cannot be null.
+- A widget that only forwards a callback (`onTap: onTap`) is fine; its caller
+  wraps it.
+- Use cases run through a notifier's `_run(TelemetryEvent.opX, …)` or
+  `trackOp(…)`, which records the result and duration.
+- Form screens mix in `TrackedForm` and call `markSubmitted()` on a successful
+  save; closing without one records the form as abandoned.
+- Typing in a text field is not tracked: mark it `// telemetry: typing is not
+  tracked`. `test/unit/presentation/tracking_coverage_test.dart` fails on any
+  other untracked callback.
+
 ## UX rules
 
 Follow `docs/product/principles.md` — **Calm** beats **Fast capture**:
