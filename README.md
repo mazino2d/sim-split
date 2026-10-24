@@ -243,7 +243,10 @@ Rollout** (`50%`, `100%`, or `halt` / `resume`).
 ## Privacy
 
 SimSplit keeps your Google account's name and email in Firebase Authentication and your
-groups in Cloud Firestore; a group is visible only to its members. No ads, no analytics, no tracking. See
+groups in Cloud Firestore; a group is visible only to its members. Signing in agrees to usage tracking
+(linked to the account) and anonymous error reports (can be turned off in Settings → Diagnostics),
+sent only to the app's own endpoint and analysed in the maintainer's BigQuery warehouse. No ads and
+no third-party analytics. See
 [docs/privacy-policy.html](docs/privacy-policy.html).
 
 ---

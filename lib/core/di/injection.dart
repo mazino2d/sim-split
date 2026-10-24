@@ -354,8 +354,11 @@ DeleteAccount deleteAccount(Ref ref) => DeleteAccount(
     );
 
 @riverpod
-StartSync startSync(Ref ref) =>
-    StartSync(syncRepository: ref.watch(syncRepositoryProvider));
+StartSync startSync(Ref ref) => StartSync(
+      syncRepository: ref.watch(syncRepositoryProvider),
+      userProfileRepository: ref.watch(userProfileRepositoryProvider),
+      policyVersion: privacyPolicyVersion,
+    );
 
 @riverpod
 StopSync stopSync(Ref ref) =>

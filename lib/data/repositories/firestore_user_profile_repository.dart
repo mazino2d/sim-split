@@ -37,6 +37,13 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
       });
       return right(unit);
     } on FirebaseException catch (e) {
+      // Sign-in and sync start both record the agreement; when they race, the
+      // second create is refused because the document now exists.
+      try {
+        if ((await _doc(user.uid).get()).exists) return right(unit);
+      } on FirebaseException {
+        // Fall through to the original failure.
+      }
       return left(Failure.unexpected('${e.code} ${e.message}'));
     }
   }

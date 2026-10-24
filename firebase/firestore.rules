@@ -14,6 +14,14 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // R-4: every group read and write needs the account's profile, which the
+    // app stores when the account first signs in and so agrees to the privacy
+    // policy. Builds without it (2026.10.22) can no longer sync.
+    function agreed() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     function groupPath(g) {
       return /databases/$(database)/documents/groups/$(g);
     }
@@ -21,17 +29,17 @@ service cloud.firestore {
     // A member before the write (reading, leaving) or after it (a group is
     // created together with its first records in one batch).
     function memberBefore(g) {
-      return signedIn() && exists(groupPath(g))
+      return agreed() && exists(groupPath(g))
         && request.auth.uid in get(groupPath(g)).data.memberUids;
     }
 
     function memberAfter(g) {
-      return signedIn() && existsAfter(groupPath(g))
+      return agreed() && existsAfter(groupPath(g))
         && request.auth.uid in getAfter(groupPath(g)).data.memberUids;
     }
 
     function soleMember(g) {
-      return signedIn() && exists(groupPath(g))
+      return agreed() && exists(groupPath(g))
         && get(groupPath(g)).data.memberUids == [request.auth.uid];
     }
 
@@ -91,19 +99,19 @@ service cloud.firestore {
     }
 
     match /groups/{g} {
-      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+      allow read: if agreed() && request.auth.uid in resource.data.memberUids;
 
-      allow create: if signedIn() && stamped() && validGroup()
+      allow create: if agreed() && stamped() && validGroup()
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.memberUids == [request.auth.uid];
 
-      allow update: if signedIn() && request.auth.uid in resource.data.memberUids
+      allow update: if agreed() && request.auth.uid in resource.data.memberUids
         && stamped() && validGroup() && validInviteChange()
         && (!changedKeys().hasAny(['memberUids', 'ownerUid']) || leaving());
 
-      allow update: if signedIn() && joining();
+      allow update: if agreed() && joining();
 
-      allow delete: if signedIn() && resource.data.memberUids == [request.auth.uid];
+      allow delete: if agreed() && resource.data.memberUids == [request.auth.uid];
     }
 
     match /groups/{g}/{collection}/{id} {
@@ -140,13 +148,13 @@ service cloud.firestore {
     // An invite link's token names its group. It can be read only by token
     // (never listed), by anyone signed in who has the link.
     match /invites/{token} {
-      allow get: if signedIn();
-      allow create: if signedIn()
+      allow get: if agreed();
+      allow create: if agreed()
         && request.resource.data.keys().hasOnly(['groupId'])
         && memberAfter(request.resource.data.groupId)
         && getAfter(groupPath(request.resource.data.groupId)).data.inviteToken == token;
       // The owner removes a replaced link, or the link of a group they delete.
-      allow delete: if signedIn()
+      allow delete: if agreed()
         && get(groupPath(resource.data.groupId)).data.ownerUid == request.auth.uid;
     }
 

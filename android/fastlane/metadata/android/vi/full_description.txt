@@ -17,4 +17,4 @@ HOẠT ĐỘNG NGOẠI TUYẾN:
 Sau khi đăng nhập, SimSplit vẫn chạy khi không có internet — hoàn hảo cho các chuyến đi hoặc nơi có kết nối kém. Có mạng lại là thay đổi tự đồng bộ.
 
 RIÊNG TƯ:
-Chỉ thành viên trong nhóm mới xem được nhóm. Không quảng cáo, không phân tích, không theo dõi. Bạn có thể xoá tài khoản và dữ liệu bất cứ lúc nào trong Cài đặt.
+Chỉ thành viên trong nhóm mới xem được nhóm. Không quảng cáo, không dùng dịch vụ phân tích của bên thứ ba. Khi dùng SimSplit, app ghi lại cách bạn sử dụng (gắn với tài khoản) và gửi báo cáo lỗi ẩn danh (có thể tắt); cả hai chỉ gửi về máy chủ của chúng tôi, để sửa lỗi và cải thiện app. Bạn có thể xoá tài khoản và dữ liệu bất cứ lúc nào trong Cài đặt.
