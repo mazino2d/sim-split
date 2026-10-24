@@ -6,6 +6,7 @@ import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/entities/auth_user.dart';
 import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/router/app_routes.dart';
 import 'package:simsplit/presentation/screens/activity/activity_screen.dart';
@@ -17,6 +18,7 @@ import 'package:simsplit/presentation/screens/groups/group_form_screen.dart';
 import 'package:simsplit/presentation/screens/groups/group_list_screen.dart';
 import 'package:simsplit/presentation/screens/groups/join_group_screen.dart';
 import 'package:simsplit/presentation/screens/members/member_form_screen.dart';
+import 'package:simsplit/presentation/screens/settings/diagnostics_screen.dart';
 import 'package:simsplit/presentation/screens/settings/settings_screen.dart';
 import 'package:simsplit/presentation/screens/settlements/debt_overview_screen.dart';
 import 'package:simsplit/presentation/screens/settlements/settlement_form_screen.dart';
@@ -62,7 +64,19 @@ GoRouter appRouter(Ref ref) {
             authRedirect(ref.read(currentUserProvider), state.uri)
         : null,
   );
+  // Every screen opened becomes a breadcrumb, as its route pattern
+  // (`/groups/:groupId`), never with real IDs (R-4 AC3).
+  String? lastScreen;
+  void recordScreen() {
+    final pattern = router.routerDelegate.currentConfiguration.fullPath;
+    if (pattern.isEmpty || pattern == lastScreen) return;
+    lastScreen = pattern;
+    ref.read(recordBreadcrumbProvider)(BreadcrumbKind.screen, pattern);
+  }
+
+  router.routerDelegate.addListener(recordScreen);
   ref.onDispose(() {
+    router.routerDelegate.removeListener(recordScreen);
     router.dispose();
     authChanged.dispose();
   });
@@ -99,6 +113,12 @@ GoRouter _buildRouter({
             GoRoute(
               path: 'settings',
               builder: (context, state) => const SettingsScreen(),
+              routes: [
+                GoRoute(
+                  path: 'diagnostics',
+                  builder: (context, state) => const DiagnosticsScreen(),
+                ),
+              ],
             ),
             GoRoute(
               path: 'join/:token',

@@ -9,8 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'package:simsplit/app.dart';
+import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/constants/app_check.dart';
 import 'package:simsplit/core/constants/firebase_emulators.dart';
+import 'package:simsplit/domain/use_cases/telemetry/record_error.dart';
 import 'package:simsplit/firebase_options.dart';
 
 var _urlStrategySet = false;
@@ -32,11 +34,30 @@ void main() async {
 
   await _initFirebase();
 
+  final container = ProviderContainer();
+  _reportUncaughtErrors(container);
   runApp(
-    const ProviderScope(
-      child: SimSplitApp(),
+    UncontrolledProviderScope(
+      container: container,
+      child: const SimSplitApp(),
     ),
   );
+}
+
+/// Sends uncaught errors as error reports (R-4 AC1), keeping Flutter's own
+/// console output.
+void _reportUncaughtErrors(ProviderContainer container) {
+  void record(Object error, StackTrace? stack) => container.read(
+      recordErrorProvider)(RecordErrorParams(error, stack, shownToUser: false));
+  final previous = FlutterError.onError;
+  FlutterError.onError = (details) {
+    previous?.call(details);
+    record(details.exception, details.stack);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    record(error, stack);
+    return true;
+  };
 }
 
 /// Connects to Firebase on Android, iOS and web (no network needed). A

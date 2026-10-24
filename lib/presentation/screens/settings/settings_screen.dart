@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:fpdart/fpdart.dart' show Either, Unit;
 
@@ -11,6 +12,7 @@ import 'package:simsplit/presentation/notifiers/auth_notifier.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/providers/locale_provider.dart';
 import 'package:simsplit/presentation/providers/theme_mode_provider.dart';
+import 'package:simsplit/presentation/router/app_routes.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
@@ -31,7 +33,17 @@ class SettingsScreen extends ConsumerWidget {
         );
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settings)),
+      appBar: AppBar(
+        title: Text(l10n.settings),
+        actions: [
+          // Debug details for testers stay off the main list (R-4 AC25).
+          IconButton(
+            icon: const Icon(Icons.build_outlined),
+            tooltip: l10n.diagnostics,
+            onPressed: () => context.push(AppRoutes.diagnostics),
+          ),
+        ],
+      ),
       body: ListView(
         children: [
           SectionLabel(l10n.language),

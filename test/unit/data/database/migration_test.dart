@@ -43,10 +43,12 @@ void main() {
     expect(await database.syncDao.pendingCount(), 0);
     await database.syncDao.writeState('k', 'v');
     expect(await database.syncDao.readState('k'), 'v');
+    await database.telemetryDao.enqueue('error', '{}', max: 50);
+    expect(await database.telemetryDao.watchCount('error').first, 1);
     expect(
       (await database.customSelect('PRAGMA user_version').getSingle())
           .read<int>('user_version'),
-      4,
+      5,
     );
   });
 }

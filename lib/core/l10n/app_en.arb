@@ -464,5 +464,15 @@
   },
   "fieldClaimed": "Claimed by an account",
   "valueYes": "Yes",
-  "valueNo": "No"
+  "valueNo": "No",
+  "diagnostics": "Diagnostics",
+  "errorReportsSwitch": "Send anonymous error reports",
+  "errorReportsExplanation": "Errors and the steps before them — never your name, groups or amounts.",
+  "privacyPolicy": "Privacy policy",
+  "reportIdLabel": "Report ID",
+  "reportIdHint": "Tap to copy it, then send it to the maintainer",
+  "copied": "Copied",
+  "appVersionLabel": "App version",
+  "platformLabel": "Platform",
+  "errorReportsWaiting": "Reports waiting to be sent"
 }

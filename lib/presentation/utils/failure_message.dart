@@ -19,12 +19,18 @@ class FailureException implements Exception {
   String toString() => 'FailureException(${failure.runtimeType})';
 }
 
+/// Called with every error the app shows the user, so it is sent as an
+/// error report (R-4 AC2). Set once by `SimSplitApp`; the recorder sends
+/// each distinct error once per session, so rebuilds do not repeat it.
+void Function(Object error)? onFailureShown;
+
 /// Maps any error surfaced to the UI (a [Failure], a [FailureException] or
 /// an arbitrary object) to a user-facing localized message.
 ///
 /// Unknown failure variants fall back to a generic message, so new domain
 /// failures never leak raw `toString()` output to users.
 String failureMessage(Object? error, AppLocalizations l10n) {
+  if (error != null) onFailureShown?.call(error);
   final failure = switch (error) {
     FailureException(:final failure) => failure,
     Failure() => error,

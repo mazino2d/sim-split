@@ -13,4 +13,5 @@ abstract final class AppRoutes {
   static const settle = '/groups/:groupId/settle';
   static const join = '/join/:token';
   static const activity = '/groups/:groupId/activity';
+  static const diagnostics = '/settings/diagnostics';
 }

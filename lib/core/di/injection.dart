@@ -1,12 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugPrint, defaultTargetPlatform, kIsWeb;
+import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:simsplit/core/constants/auth_constants.dart';
 import 'package:simsplit/core/constants/invite_constants.dart';
+import 'package:simsplit/core/constants/telemetry.dart';
 
 import 'package:simsplit/data/database/app_database.dart';
 import 'package:simsplit/data/daos/expense_dao.dart';
@@ -15,6 +21,7 @@ import 'package:simsplit/data/daos/group_dao.dart';
 import 'package:simsplit/data/daos/member_dao.dart';
 import 'package:simsplit/data/daos/settlement_dao.dart';
 import 'package:simsplit/data/daos/sync_dao.dart';
+import 'package:simsplit/data/daos/telemetry_dao.dart';
 import 'package:simsplit/data/mappers/expense_mapper.dart';
 import 'package:simsplit/data/mappers/group_mapper.dart';
 import 'package:simsplit/data/mappers/member_mapper.dart';
@@ -27,12 +34,15 @@ import 'package:simsplit/data/repositories/firebase_web_auth_repository.dart';
 import 'package:simsplit/data/repositories/drift_group_repository.dart';
 import 'package:simsplit/data/repositories/drift_member_repository.dart';
 import 'package:simsplit/data/repositories/drift_settlement_repository.dart';
+import 'package:simsplit/data/repositories/drift_telemetry_repository.dart';
 import 'package:simsplit/data/repositories/firestore_invite_repository.dart';
 import 'package:simsplit/data/repositories/firestore_sync_repository.dart';
 import 'package:simsplit/data/sync/firestore_sync_puller.dart';
 import 'package:simsplit/data/sync/firestore_sync_pusher.dart';
 import 'package:simsplit/data/sync/local_data_uploader.dart';
 import 'package:simsplit/data/sync/sync_recorder.dart';
+import 'package:simsplit/data/telemetry/device_os.dart';
+import 'package:simsplit/data/telemetry/telemetry_sender.dart';
 import 'package:simsplit/domain/repositories/activity_repository.dart';
 import 'package:simsplit/domain/repositories/auth_repository.dart';
 import 'package:simsplit/domain/repositories/expense_repository.dart';
@@ -42,6 +52,7 @@ import 'package:simsplit/domain/repositories/invite_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/domain/repositories/sync_repository.dart';
+import 'package:simsplit/domain/repositories/telemetry_repository.dart';
 import 'package:simsplit/domain/use_cases/activity/watch_activity.dart';
 import 'package:simsplit/domain/use_cases/auth/delete_account.dart';
 import 'package:simsplit/domain/use_cases/auth/sign_in_with_google.dart';
@@ -72,6 +83,10 @@ import 'package:simsplit/domain/use_cases/settlements/settle_debt.dart';
 import 'package:simsplit/domain/use_cases/sync/start_sync.dart';
 import 'package:simsplit/domain/use_cases/sync/stop_sync.dart';
 import 'package:simsplit/domain/use_cases/sync/watch_unsynced_record_ids.dart';
+import 'package:simsplit/domain/use_cases/telemetry/record_breadcrumb.dart';
+import 'package:simsplit/domain/use_cases/telemetry/record_error.dart';
+import 'package:simsplit/domain/use_cases/telemetry/set_error_reports_enabled.dart';
+import 'package:simsplit/domain/use_cases/telemetry/watch_error_report_settings.dart';
 
 part 'injection.g.dart';
 
@@ -121,6 +136,10 @@ SettlementDao settlementDao(Ref ref) =>
 
 @Riverpod(keepAlive: true)
 SyncDao syncDao(Ref ref) => ref.watch(appDatabaseProvider).syncDao;
+
+@Riverpod(keepAlive: true)
+TelemetryDao telemetryDao(Ref ref) =>
+    ref.watch(appDatabaseProvider).telemetryDao;
 
 // ── Repositories (typed as Domain interfaces) ──────────────────────────────
 
@@ -346,3 +365,94 @@ WatchActivity watchActivity(Ref ref) =>
 @riverpod
 WatchUnsyncedRecordIds watchUnsyncedRecordIds(Ref ref) =>
     WatchUnsyncedRecordIds(syncRepository: ref.watch(syncRepositoryProvider));
+
+// ── Telemetry (R-4) ────────────────────────────────────────────────────────
+
+/// The platform name the telemetry endpoint accepts, or null where error
+/// reports are not sent (desktop, which has no Firebase or App Check).
+String? _telemetryPlatform() {
+  if (kIsWeb) return 'web';
+  return switch (defaultTargetPlatform) {
+    TargetPlatform.android => 'android',
+    TargetPlatform.iOS => 'ios',
+    _ => null,
+  };
+}
+
+@Riverpod(keepAlive: true)
+TelemetrySender telemetrySender(Ref ref) {
+  final available = ref.watch(authAvailableProvider);
+  final client = http.Client();
+  final sender = TelemetrySender(
+    dao: ref.watch(telemetryDaoProvider),
+    client: client,
+    endpoint:
+        available && telemetryUrl.isNotEmpty && _telemetryPlatform() != null
+            ? Uri.tryParse(telemetryUrl)
+            : null,
+    // The cached token: a fresh one per request would cost a reCAPTCHA
+    // assessment each time on web.
+    appCheckToken: () async {
+      try {
+        return await FirebaseAppCheck.instance.getToken();
+      } on Object {
+        return null;
+      }
+    },
+  );
+  ref.onDispose(() {
+    sender.dispose();
+    client.close();
+  });
+  return sender;
+}
+
+@Riverpod(keepAlive: true)
+TelemetryRepository telemetryRepository(Ref ref) {
+  final available = ref.watch(authAvailableProvider);
+  final db = ref.watch(appDatabaseProvider);
+  return DriftTelemetryRepository(
+    dao: ref.watch(telemetryDaoProvider),
+    sender: ref.watch(telemetrySenderProvider),
+    context: TelemetryContext(
+      platform: _telemetryPlatform() ?? 'android',
+      os: deviceOs(),
+      appVersion: () async {
+        final info = await PackageInfo.fromPlatform();
+        return '${info.version}+${info.buildNumber}';
+      },
+      language: () async => (await SharedPreferences.getInstance())
+          .getString('locale_language_code'),
+      signedIn: () => available && FirebaseAuth.instance.currentUser != null,
+      knownNames: () async {
+        final rows = await db
+            .customSelect(
+                'SELECT name FROM groups UNION SELECT name FROM members')
+            .get();
+        final user = available ? FirebaseAuth.instance.currentUser : null;
+        return [
+          for (final row in rows) row.read<String>('name'),
+          if (user?.displayName != null) user!.displayName!,
+        ];
+      },
+    ),
+  );
+}
+
+@riverpod
+RecordError recordError(Ref ref) =>
+    RecordError(telemetryRepository: ref.watch(telemetryRepositoryProvider));
+
+@riverpod
+RecordBreadcrumb recordBreadcrumb(Ref ref) => RecordBreadcrumb(
+    telemetryRepository: ref.watch(telemetryRepositoryProvider));
+
+@riverpod
+WatchErrorReportSettings watchErrorReportSettings(Ref ref) =>
+    WatchErrorReportSettings(
+        telemetryRepository: ref.watch(telemetryRepositoryProvider));
+
+@riverpod
+SetErrorReportsEnabled setErrorReportsEnabled(Ref ref) =>
+    SetErrorReportsEnabled(
+        telemetryRepository: ref.watch(telemetryRepositoryProvider));
