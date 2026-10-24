@@ -53,12 +53,12 @@ jobs:
       - name: Download AAB artifact
         uses: actions/download-artifact@v8
         with:
-          name: simsplit-release.aab
+          name: simsplit-prd-release.aab
 
       - name: Create GitHub pre-release
         uses: softprops/action-gh-release@v3
         with:
-          files: app-release.aab
+          files: app-prd-release.aab
           generate_release_notes: true
           prerelease: true
           name: 'SimSplit ${{ github.ref_name }}'

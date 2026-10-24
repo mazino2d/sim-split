@@ -39,8 +39,16 @@ flutter analyze --fatal-infos                              # ┐
 dart format --output=none --set-exit-if-changed .          # ├ what CI runs on every PR
 flutter test                                               # ┘
 cp .env.example .env.local                                 # once: local build settings (gitignored)
-flutter run -d chrome --dart-define-from-file=.env.local   # run the app (drop -d chrome for a device)
+flutter run -d chrome --dart-define-from-file=.env.local   # run the app (on Android add --flavor prd|dev)
 ```
+
+Two environments, picked with `--dart-define=APP_ENV=dev|prd` (default `prd`) and, on
+Android, the matching `--flavor dev|prd`: **dev** (`simsplit-as-se1-dev`,
+`com.mazino2d.simsplit.dev`, `simsplit-dev.web.app`) gets every push to `main`; **prd**
+(`simsplit-as-se1-prd`, `com.mazino2d.simsplit`, `simsplit.web.app`) gets only tags
+(`vYYYY.M.D-rc.N` → Play alpha, `vYYYY.M.D` → Play production, web, Firestore rules and
+indexes). Anything that differs per environment reads `appEnv`
+(`lib/core/constants/app_env.dart`); never hardcode a project, package or domain.
 
 Commits and PR titles use Conventional Commits (`feat(expenses): …`).
 

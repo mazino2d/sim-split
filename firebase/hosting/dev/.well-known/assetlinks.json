@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mazino2d.simsplit.dev",
+      "sha256_cert_fingerprints": [
+        "TODO-DEV-PLAY-APP-SIGNING-KEY-SHA256",
+        "TODO-DEV-UPLOAD-KEY-SHA256"
+      ]
+    }
+  }
+]

@@ -1,9 +1,13 @@
 name: Firebase Deploy
 
-# Deploys Firestore rules, indexes and Hosting (firebase.json) to the
-# simsplit-as-se1-prd project when they change on main. Hosting serves the
-# web app at simsplit.web.app, where invite links open (R-3 P6), so app
-# changes redeploy it too.
+# Deploys Firestore rules, indexes and Hosting (firebase.json) for one
+# environment. Hosting serves the web app, where invite links open (R-3 P6),
+# so app changes redeploy it too.
+#   - dev: push to main touching the files below, or a manual run from a branch
+#     → simsplit-as-se1-dev, web app at simsplit-dev.web.app.
+#   - prd: release.yml calls it for a vYYYY.M.D tag after checking the tag
+#     against pubspec.yaml, or a manual run from such a tag
+#     → simsplit-as-se1-prd, web app at simsplit.web.app.
 on:
   push:
     branches: [main]
@@ -21,43 +25,90 @@ on:
       - .github/actions/flutter-setup/**
       - .github/workflows/firebase_deploy.yml
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      environment:
+        description: "dev or prd"
+        type: string
+        required: true
 
 permissions:
   contents: read
   id-token: write
 
+# One deploy per environment at a time; under workflow_call github.ref_type is
+# the caller's (a tag), so a release never waits for a dev deploy.
 concurrency:
-  group: firebase-deploy
+  group: firebase-deploy-${{ inputs.environment || (github.ref_type == 'tag' && 'prd') || 'dev' }}
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_ENV: ${{ inputs.environment || (github.ref_type == 'tag' && 'prd') || 'dev' }}
     steps:
+      - name: Check environment
+        run: |
+          case "$APP_ENV" in
+            dev|prd) echo "Deploying $APP_ENV" | tee -a "$GITHUB_STEP_SUMMARY" ;;
+            *) echo "::error::Unknown environment '$APP_ENV'"; exit 1 ;;
+          esac
+
       - uses: actions/checkout@v7
 
       - uses: ./.github/actions/flutter-setup
 
-      # App Check on web (R-3 P9). The reCAPTCHA Enterprise site key is public
-      # and comes from everything-as-code; while the variable is unset, App
-      # Check stays off on web.
+      # App Check on web (R-3 P9). The reCAPTCHA Enterprise site keys are
+      # public and come from everything-as-code, one per project; while the
+      # environment's variable is unset, App Check stays off on web. Telemetry
+      # is prd only (the endpoint accepts App Check tokens from prd).
       - name: Build web
         env:
-          RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.RECAPTCHA_ENTERPRISE_SITE_KEY }}
-          TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
-        run: >-
-          flutter build web --release
-          --dart-define=RECAPTCHA_ENTERPRISE_SITE_KEY="$RECAPTCHA_ENTERPRISE_SITE_KEY"
-          --dart-define=TELEMETRY_URL="$TELEMETRY_URL"
+          PRD_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.RECAPTCHA_ENTERPRISE_SITE_KEY }}
+          DEV_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.DEV_RECAPTCHA_ENTERPRISE_SITE_KEY }}
+          PRD_TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
+        run: |
+          if [ "$APP_ENV" = prd ]; then
+            SITE_KEY="$PRD_RECAPTCHA_ENTERPRISE_SITE_KEY"
+            TELEMETRY_URL="$PRD_TELEMETRY_URL"
+          else
+            SITE_KEY="$DEV_RECAPTCHA_ENTERPRISE_SITE_KEY"
+            TELEMETRY_URL=""
+          fi
+          flutter build web --release \
+            --dart-define=APP_ENV="$APP_ENV" \
+            --dart-define=RECAPTCHA_ENTERPRISE_SITE_KEY="$SITE_KEY" \
+            --dart-define=TELEMETRY_URL="$TELEMETRY_URL"
+
+      # web/ holds the prd files; firebase/hosting/dev/ overrides some of them
+      # on the dev site (assetlinks.json for com.mazino2d.simsplit.dev).
+      - name: Apply dev Hosting overrides
+        if: env.APP_ENV == 'dev'
+        run: cp -R firebase/hosting/dev/. build/web/
 
       # Keyless auth via Workload Identity Federation, managed in
-      # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-prd/github_actions.tf).
-      # Only main and v* tags (vYYYY.M.D, vYYYY.M.D-rc.N) of this repo can impersonate the account.
-      - name: Authenticate to Google Cloud
+      # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-<env>/github_actions.tf).
+      # Only main and v* tags (vYYYY.M.D, vYYYY.M.D-rc.N) of this repo can impersonate the accounts.
+      - name: Authenticate to Google Cloud (prd)
+        if: env.APP_ENV == 'prd'
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: projects/113980760756/locations/global/workloadIdentityPools/github/providers/sim-split
           service_account: gha-firebase-deployer@simsplit-as-se1-prd.iam.gserviceaccount.com
 
+      - name: Authenticate to Google Cloud (dev)
+        if: env.APP_ENV == 'dev'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.DEV_GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.DEV_GCP_SERVICE_ACCOUNT }}
+
+      # .firebaserc maps the hosting target "app" to each project's site.
       - name: Deploy Firestore and Hosting
-        run: npx --yes firebase-tools@14 deploy --only firestore,hosting --non-interactive
+        env:
+          FIREBASE_PROJECT: ${{ env.APP_ENV == 'prd' && 'simsplit-as-se1-prd' || vars.DEV_FIREBASE_PROJECT }}
+        run: >-
+          npx --yes firebase-tools@14 deploy --only firestore,hosting
+          --project "$FIREBASE_PROJECT" --non-interactive

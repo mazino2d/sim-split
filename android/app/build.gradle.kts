@@ -32,6 +32,26 @@ android {
         versionName = flutter.versionName
     }
 
+    // One flavor per backend; build with `--flavor dev|prd` and the matching
+    // `--dart-define=APP_ENV=dev|prd` (lib/core/constants/app_env.dart).
+    // Both sign with the same upload key; each is its own Play app.
+    flavorDimensions += "env"
+    productFlavors {
+        // simsplit-as-se1-dev; every push to main ships here (internal track).
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".dev"
+            manifestPlaceholders["appLabel"] = "SimSplit Dev"
+            manifestPlaceholders["appLinkHost"] = "simsplit-dev.web.app"
+        }
+        // simsplit-as-se1-prd; only release tags ship here.
+        create("prd") {
+            dimension = "env"
+            manifestPlaceholders["appLabel"] = "SimSplit"
+            manifestPlaceholders["appLinkHost"] = "simsplit.web.app"
+        }
+    }
+
     signingConfigs {
         if (keyPropertiesFile.exists()) {
             create("release") {
