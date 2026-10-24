@@ -1,6 +1,6 @@
 # R-4 Error reports and usage analytics — implementation plan
 
-Status: in progress (P0–P4b done; P5 ready to release)   ·   Spec: [R-4 Error reports and usage analytics](../product/specs/R-4-error-reports-and-usage-analytics.md)   ·   Written 2026-10-23
+Status: done (released as 2026.10.24, 100 % on 2026-10-24)   ·   Spec: [R-4 Error reports and usage analytics](../product/specs/R-4-error-reports-and-usage-analytics.md)   ·   Written 2026-10-23
 
 How R-4 gets built: the architecture, the phases (one or two PRs each) and the decisions
 behind them. The spec defines *what* must be true. This plan defines *how* and in what
@@ -103,7 +103,7 @@ Payloads, in short:
 | P3b ✅ | sim-split | Done in #79. Tracking every action: `context.tracked(…)` on every interactive callback (taps, chips, switches, menus, swipes), `trackOp` in every notifier's `_run`, `TrackedForm` for submitted and abandoned forms, a navigator observer for dialogs and sheets, and the AC8a coverage test (callbacks and use cases) | AC8, AC8a | 2 |
 | P4 ✅ | data-platform (+ indexes here) | Done in #80 and data-platform#22 (snapshots of groups and members dropped: `activity` already holds their history; lists kept as JSON so every table exists from the first run).  `simsplit` project: dlt Firestore source (users replace, the rest incremental), collection-group indexes on `updatedAt` / `syncedAt` in `firestore.indexes.json`, dbt staging, `dim_user`, `fct_usage_events`, `fct_error_reports`, group models, DAG YAMLs | AC10, AC11, AC18 | 3 |
 | P4b ✅ | data-platform + everything-as-code | Done in everything-as-code#236 and #237 and data-platform#23–#25; live at `data-platform-dashboard.pages.dev` behind Access. The DuckDB WASM files Evidence bundles exceed Pages' 25 MiB limit, so the build points them at jsDelivr.  Dashboard: `simsplit_metrics` aggregate models, Evidence project and `simsplit` pages, DAG task to build and deploy; Cloudflare Pages project, Access application and policy, and the deploy token as a data-platform secret (everything-as-code cloudflare and github stacks) | AC31, AC32 | 2.5 |
-| P5 | sim-split + everything-as-code | Release: the rule requiring `users/{uid}` for every group read and write (with tests), privacy policy, `data_safety.csv`, store listing, site and release notes (EN/VI) announced before rollout; the account wipe script, run when the rollout starts; verify the three known bugs produce reports and alerts; billing check after a month | AC12, AC24, AC30, success check | 2 |
+| P5 ✅ | sim-split + everything-as-code | Done in #81–#84 and everything-as-code#238; accounts wiped and v2026.10.24 rolled out to 100 % on 2026-10-24. Release: the rule requiring `users/{uid}` for every group read and write (with tests), privacy policy, `data_safety.csv`, store listing, site and release notes (EN/VI) announced before rollout; the account wipe script, run when the rollout starts; verify the three known bugs produce reports and alerts; billing check after a month | AC12, AC24, AC30, success check | 2 |
 
 The total is about 16 focused days (the roadmap uses this estimate). P0 comes first
 because P1 deploys to it. P2 and P4 can run in parallel once P1 is live; P3b follows P2,
