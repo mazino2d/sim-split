@@ -47,8 +47,7 @@ tags reach production. Work spans this repo and `everything-as-code` (infrastruc
 | File | Value | Source |
 | --- | --- | --- |
 | `lib/firebase_options_dev.dart` | `web` and `android`: `apiKey`, `appId`, `messagingSenderId` (project number) | dev stack's Firebase Web and Android app outputs, or `flutterfire configure --project simsplit-as-se1-dev` |
-| `lib/core/constants/auth_constants.dart` | dev `googleServerClientId` | client ID of the Web OAuth client "SimSplit Firebase Auth" in `simsplit-as-se1-dev` |
-| `firebase/hosting/dev/.well-known/assetlinks.json` | two SHA-256 fingerprints | Play Console → SimSplit Dev → App integrity |
+| `firebase/hosting/dev/.well-known/assetlinks.json` | the Play App Signing SHA-256 (the upload key is in) | Play Console → SimSplit Dev → App integrity |
 
 ## Risks
 
