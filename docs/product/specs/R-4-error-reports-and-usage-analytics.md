@@ -1,6 +1,6 @@
 # R-4 Error reports and usage analytics
 
-Status: ready   ·   Serves: UC-6, UC-7, all UCs   ·   Roadmap: Now
+Status: shipped   ·   Serves: UC-6, UC-7, all UCs   ·   Roadmap: Shipped (2026.10.24)
 
 ## Problem
 
