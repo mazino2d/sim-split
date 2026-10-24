@@ -150,6 +150,19 @@ service cloud.firestore {
         && get(groupPath(resource.data.groupId)).data.ownerUid == request.auth.uid;
     }
 
+    // R-4: the account's profile and the privacy policy revision it agreed
+    // to by signing in. Only the account itself can read, create or delete
+    // it, and the agreement can never be changed afterwards.
+    match /users/{uid} {
+      allow get, delete: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['displayName', 'email', 'createdAt', 'consent'])
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.consent.keys().hasOnly(['agreedAt', 'policyVersion'])
+        && request.resource.data.consent.agreedAt == request.time
+        && request.resource.data.consent.policyVersion is string;
+    }
+
     match /groups/{g}/activity/{a} {
       allow read: if memberBefore(g);
       allow create: if (memberBefore(g) || memberAfter(g))

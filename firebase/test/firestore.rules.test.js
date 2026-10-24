@@ -312,3 +312,36 @@ describe('joining a group (AC10, AC13)', () => {
     await assertSucceeds(updateDoc(doc(db('bob'), 'groups/g1/members/m2'), { linkedUid: 'bob', ...stamp('bob') }));
   });
 });
+
+describe('user profiles and the privacy policy agreement (R-4 AC7)', () => {
+  const profile = (extra = {}) => ({
+    displayName: 'Alice',
+    email: 'alice@example.com',
+    createdAt: serverTimestamp(),
+    consent: { agreedAt: serverTimestamp(), policyVersion: '2026-10-24' },
+    ...extra,
+  });
+
+  test('an account creates, reads and deletes only its own profile', async () => {
+    const fs = db('alice');
+    await assertSucceeds(setDoc(doc(fs, 'users/alice'), profile()));
+    await assertSucceeds(getDoc(doc(fs, 'users/alice')));
+    await assertFails(getDoc(doc(db('bob'), 'users/alice')));
+    await assertFails(deleteDoc(doc(db('bob'), 'users/alice')));
+    await assertFails(setDoc(doc(db('bob'), 'users/alice2'), profile()));
+    await assertSucceeds(deleteDoc(doc(fs, 'users/alice')));
+  });
+
+  test('the agreement carries the server time and cannot change later', async () => {
+    const fs = db('alice');
+    await assertFails(setDoc(doc(fs, 'users/alice'), profile({ consent: { agreedAt: 1, policyVersion: 'v' } })));
+    await assertFails(setDoc(doc(fs, 'users/alice'), profile({ extra: true })));
+    await setDoc(doc(fs, 'users/alice'), profile());
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { 'consent.policyVersion': 'other' }));
+  });
+
+  test('profiles cannot be listed', async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'users/alice'), { displayName: 'Alice' }));
+    await assertFails(getDocs(collection(db('alice'), 'users')));
+  });
+});

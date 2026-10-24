@@ -19,7 +19,7 @@ class TelemetryContext {
     required this.os,
     required this.appVersion,
     required this.language,
-    required this.signedIn,
+    required this.currentUid,
     required this.knownNames,
   });
 
@@ -28,15 +28,19 @@ class TelemetryContext {
   final String? os;
   final Future<String> Function() appVersion;
   final Future<String?> Function() language;
-  final bool Function() signedIn;
+
+  /// The signed-in account, or null; usage events are only recorded while
+  /// signed in (AC9).
+  final String? Function() currentUid;
 
   /// Group and member names on this device and the account's name, scrubbed
   /// from messages and stacks (AC4).
   final Future<List<String>> Function() knownNames;
 }
 
-/// Error reports (R-4): an in-memory breadcrumb trail, a per-session dedupe,
-/// daily caps, scrubbing, and a Drift queue drained by [TelemetrySender].
+/// Error reports and usage events (R-4): an in-memory breadcrumb trail, a
+/// per-session dedupe, daily caps, scrubbing, and a Drift queue drained by
+/// [TelemetrySender].
 class DriftTelemetryRepository implements TelemetryRepository {
   DriftTelemetryRepository({
     required TelemetryDao dao,
@@ -64,16 +68,23 @@ class DriftTelemetryRepository implements TelemetryRepository {
 
   static const maxQueuedErrors = 50;
   static const maxErrorsPerDay = 50;
+  static const maxQueuedEvents = 2000;
+  static const maxEventsPerDay = 5000;
+  static const _sessionTimeout = Duration(minutes: 30);
   static const _maxBreadcrumbs = 30;
   static const _enabledKey = 'telemetry.error_reports_enabled';
   static const _reportIdKey = 'telemetry.report_id';
   static const _dayKey = 'telemetry.errors_day';
   static const _dayCountKey = 'telemetry.errors_day_count';
+  static const _eventsDayKey = 'telemetry.events_day';
+  static const _eventsDayCountKey = 'telemetry.events_day_count';
   // No 0/O or 1/I/L, so the ID reads aloud unambiguously (AC27).
   static const _reportAlphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   static const _sessionAlphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
-  late final String _sessionId;
+  late String _sessionId;
+  DateTime? _backgroundedAt;
+  String? _currentScreen;
   late final Future<void> _ready;
   final _breadcrumbs = <Breadcrumb>[];
   // Same error (type and stack) → its queued row and payload, this session.
@@ -91,7 +102,9 @@ class DriftTelemetryRepository implements TelemetryRepository {
       _reportId = _newReportId();
       await prefs.setString(_reportIdKey, _reportId!);
     }
-    _sender.schedule();
+    _sender
+      ..schedule()
+      ..startEventTimer();
   }
 
   String _newReportId() {
@@ -105,10 +118,69 @@ class DriftTelemetryRepository implements TelemetryRepository {
       );
 
   @override
-  void recordBreadcrumb(BreadcrumbKind kind, String name) {
-    if (!_enabled) return;
-    _breadcrumbs.add(Breadcrumb(time: _now(), kind: kind, name: name));
-    if (_breadcrumbs.length > _maxBreadcrumbs) _breadcrumbs.removeAt(0);
+  void track(BreadcrumbKind kind, String name,
+      {String? result, Duration? duration}) {
+    final time = _now();
+    if (kind == BreadcrumbKind.screen) _currentScreen = name;
+    if (_enabled) {
+      _breadcrumbs.add(Breadcrumb(time: time, kind: kind, name: name));
+      if (_breadcrumbs.length > _maxBreadcrumbs) _breadcrumbs.removeAt(0);
+    }
+    final uid = _context.currentUid();
+    if (uid == null) return;
+    // Everything about the moment is captured now, before any await.
+    final event = (
+      uid: uid,
+      session: _sessionId,
+      screen: _currentScreen,
+      time: time,
+    );
+    unawaited(
+        _recordEvent(event, kind, name, result, duration).catchError((_) {}));
+  }
+
+  Future<void> _recordEvent(
+      ({String uid, String session, String? screen, DateTime time}) event,
+      BreadcrumbKind kind,
+      String name,
+      String? result,
+      Duration? duration) async {
+    if (!await _takeDailySlot(
+        _eventsDayKey, _eventsDayCountKey, maxEventsPerDay)) {
+      return;
+    }
+    final payload = <String, Object?>{
+      'uid': event.uid,
+      'session_id': event.session,
+      'client_time': event.time.millisecondsSinceEpoch,
+      'kind': kind.name,
+      'name': name,
+      'screen': event.screen,
+      'result': result,
+      'duration_ms': duration?.inMilliseconds,
+      'platform': _context.platform,
+      'app_version': await _context.appVersion(),
+      'language': await _context.language(),
+      'online': _sender.lastReachedServer,
+    };
+    await _dao.enqueue(TelemetrySender.eventKind, jsonEncode(payload),
+        max: maxQueuedEvents);
+  }
+
+  @override
+  void setForeground(bool foreground) {
+    if (!foreground) {
+      _backgroundedAt = _now();
+      _sender.stopEventTimer();
+      unawaited(_sender.flushEvents());
+      return;
+    }
+    final away = _backgroundedAt;
+    if (away != null && _now().difference(away) >= _sessionTimeout) {
+      _sessionId = _randomId(12, _sessionAlphabet);
+    }
+    _backgroundedAt = null;
+    _sender.startEventTimer();
   }
 
   @override
@@ -117,12 +189,18 @@ class DriftTelemetryRepository implements TelemetryRepository {
     // Captured now, so the trail matches the moment of the error.
     final breadcrumbs = List<Breadcrumb>.of(_breadcrumbs);
     final time = _now();
-    unawaited(_record(error, stack, breadcrumbs, time, shownToUser)
+    final session = _sessionId;
+    unawaited(_record(error, stack, breadcrumbs, time, session, shownToUser)
         .catchError((_) {}));
   }
 
-  Future<void> _record(Object error, StackTrace? stack,
-      List<Breadcrumb> breadcrumbs, DateTime time, bool shownToUser) async {
+  Future<void> _record(
+      Object error,
+      StackTrace? stack,
+      List<Breadcrumb> breadcrumbs,
+      DateTime time,
+      String session,
+      bool shownToUser) async {
     // An error during start-up waits for the settings, then is dropped if
     // reports are off.
     await _ready;
@@ -138,7 +216,7 @@ class DriftTelemetryRepository implements TelemetryRepository {
       await _dao.updatePayload(rowId, jsonEncode(payload));
       return;
     }
-    if (!await _takeDailySlot()) return;
+    if (!await _takeDailySlot(_dayKey, _dayCountKey, maxErrorsPerDay)) return;
 
     final names = await _context.knownNames();
     String clean(String s, int max) {
@@ -148,13 +226,13 @@ class DriftTelemetryRepository implements TelemetryRepository {
 
     final payload = <String, Object?>{
       'report_id': _reportId,
-      'session_id': _sessionId,
+      'session_id': session,
       'client_time': time.millisecondsSinceEpoch,
       'platform': _context.platform,
       'os': _context.os,
       'app_version': await _context.appVersion(),
       'language': await _context.language(),
-      'signed_in': _context.signedIn(),
+      'signed_in': _context.currentUid() != null,
       'online': _sender.lastReachedServer,
       // Failures the app displayed are kept apart from uncaught errors.
       'error_type':
@@ -185,14 +263,14 @@ class DriftTelemetryRepository implements TelemetryRepository {
     return inner?.group(1) ?? type;
   }
 
-  Future<bool> _takeDailySlot() async {
+  Future<bool> _takeDailySlot(String dayKey, String countKey, int max) async {
     final prefs = await SharedPreferences.getInstance();
     final today = _now().toIso8601String().substring(0, 10);
     final count =
-        prefs.getString(_dayKey) == today ? prefs.getInt(_dayCountKey) ?? 0 : 0;
-    if (count >= maxErrorsPerDay) return false;
-    await prefs.setString(_dayKey, today);
-    await prefs.setInt(_dayCountKey, count + 1);
+        prefs.getString(dayKey) == today ? prefs.getInt(countKey) ?? 0 : 0;
+    if (count >= max) return false;
+    await prefs.setString(dayKey, today);
+    await prefs.setInt(countKey, count + 1);
     return true;
   }
 

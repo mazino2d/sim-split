@@ -1,7 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import 'package:simsplit/core/constants/app_links.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/failures/auth_failure.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
@@ -10,7 +13,8 @@ import 'package:simsplit/presentation/theme/app_theme.dart';
 
 /// The only screen before the group list (R-3 AC1): the app name, one line
 /// on why, and the Google button (Sign in with Apple joins in R-3 P8). The router leaves it on its own once
-/// the user is signed in.
+/// the user is signed in. Signing in is agreeing to the privacy policy, said
+/// in one line under the button; the details are in the policy (R-4 AC6).
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
 
@@ -20,6 +24,15 @@ class SignInScreen extends ConsumerStatefulWidget {
 
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   Failure? _failure;
+  final _policyTap = TapGestureRecognizer()
+    ..onTap =
+        () => launchUrl(privacyPolicyUrl, mode: LaunchMode.externalApplication);
+
+  @override
+  void dispose() {
+    _policyTap.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -82,6 +95,24 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 label: l10n.continueWithGoogle,
                 busy: busy,
                 onPressed: busy ? null : _signInWithGoogle,
+              ),
+              const SizedBox(height: 16),
+              Text.rich(
+                TextSpan(
+                  text: l10n.signInAgreementPrefix,
+                  children: [
+                    TextSpan(
+                      text: l10n.privacyPolicyLink,
+                      recognizer: _policyTap,
+                      style:
+                          const TextStyle(decoration: TextDecoration.underline),
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),

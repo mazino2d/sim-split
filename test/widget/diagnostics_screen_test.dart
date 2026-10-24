@@ -48,7 +48,11 @@ class _FakeTelemetry implements TelemetryRepository {
   }
 
   @override
-  void recordBreadcrumb(BreadcrumbKind kind, String name) {}
+  void track(BreadcrumbKind kind, String name,
+      {String? result, Duration? duration}) {}
+
+  @override
+  void setForeground(bool foreground) {}
 
   @override
   void recordError(Object error, StackTrace? stack,

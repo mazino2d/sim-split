@@ -27,6 +27,7 @@ void main() {
         client: client,
         endpoint: to ?? endpoint,
         appCheckToken: () async => 'app-check',
+        idToken: () async => 'id-token',
       );
 
   test('sends queued reports with the App Check token and removes them',
@@ -79,6 +80,7 @@ void main() {
       }),
       endpoint: null,
       appCheckToken: () async => null,
+      idToken: () async => null,
     );
     await s.flushErrors();
     expect(called, isFalse);
@@ -90,5 +92,31 @@ void main() {
     final rows = await db.telemetryDao.oldest('error', 100);
     expect(rows, hasLength(50));
     expect(jsonDecode(rows.first.payload), {'n': 5});
+  });
+
+  test('sends usage events in batches with the account ID token (AC14)',
+      () async {
+    for (var i = 0; i < 3; i++) {
+      await db.telemetryDao.enqueue('event', jsonEncode({'n': i}), max: 2000);
+    }
+    final requests = <http.Request>[];
+    final s = sender(MockClient((request) async {
+      requests.add(request);
+      return http.Response('{}', 202);
+    }));
+    await s.flushEvents();
+    expect(requests.single.url.path, '/v1/events');
+    expect(requests.single.headers['authorization'], 'Bearer id-token');
+    expect((jsonDecode(requests.single.body) as Map)['events'], hasLength(3));
+    expect(await db.telemetryDao.watchCount('event').first, 0);
+    s.dispose();
+  });
+
+  test('drops events of an account that is no longer signed in', () async {
+    await db.telemetryDao.enqueue('event', '{}', max: 2000);
+    final s = sender(MockClient((_) async => http.Response('', 403)));
+    await s.flushEvents();
+    expect(await db.telemetryDao.watchCount('event').first, 0);
+    s.dispose();
   });
 }

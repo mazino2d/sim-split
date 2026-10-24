@@ -71,7 +71,7 @@ GoRouter appRouter(Ref ref) {
     final pattern = router.routerDelegate.currentConfiguration.fullPath;
     if (pattern.isEmpty || pattern == lastScreen) return;
     lastScreen = pattern;
-    ref.read(recordBreadcrumbProvider)(BreadcrumbKind.screen, pattern);
+    ref.read(trackEventProvider)(BreadcrumbKind.screen, pattern);
   }
 
   router.routerDelegate.addListener(recordScreen);

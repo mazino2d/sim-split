@@ -65,6 +65,30 @@ void main() {
       expect(pusher.isRunning, isFalse);
       expect(puller.isRunning, isFalse);
     });
+
+    test(
+        'drops data left by another account instead of uploading it '
+        '(R-4 AC12)', () async {
+      var cleared = false;
+      final repo = FirestoreSyncRepository(
+        syncDao: database.syncDao,
+        uploader: LocalDataUploader(database: database),
+        pusher: pusher,
+        puller: puller,
+        firestore: cloud,
+        currentUid: () => 'alice',
+        clearLocalData: () async => cleared = true,
+      );
+      await database.syncDao
+          .writeState(LocalDataUploader.uploadedForKey, 'old');
+
+      await repo.start(const AuthUser(uid: 'alice'));
+      expect(cleared, isTrue);
+
+      cleared = false;
+      await repo.start(const AuthUser(uid: 'alice'));
+      expect(cleared, isFalse);
+    });
   });
 
   group('deleteCloudData (AC6)', () {

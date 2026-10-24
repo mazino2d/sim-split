@@ -14,11 +14,15 @@ void main() {
   late MockAuthRepository auth;
   late MockLocalDataRepository localData;
   late MockSyncRepository sync;
+  late MockUserProfileRepository profiles;
 
   setUp(() {
     auth = MockAuthRepository();
     localData = MockLocalDataRepository();
     sync = MockSyncRepository();
+    profiles = MockUserProfileRepository();
+    when(() => profiles.deleteProfile())
+        .thenAnswer((_) async => right<Failure, Unit>(unit));
     when(() => localData.clearAll())
         .thenAnswer((_) async => right<Failure, Unit>(unit));
     when(() => sync.pendingChangeCount())
@@ -38,6 +42,7 @@ void main() {
         authRepository: auth,
         localDataRepository: localData,
         syncRepository: sync,
+        userProfileRepository: profiles,
       );
 
   group('SignOut', () {
@@ -100,6 +105,7 @@ void main() {
       expect(result.isRight(), isTrue);
       verifyInOrder([
         () => sync.deleteCloudData(),
+        () => profiles.deleteProfile(),
         () => auth.deleteAccount(),
         () => localData.clearAll(),
       ]);

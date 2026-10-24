@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:simsplit/core/constants/app_links.dart';
 import 'package:simsplit/core/constants/auth_constants.dart';
 import 'package:simsplit/core/constants/invite_constants.dart';
 import 'package:simsplit/core/constants/telemetry.dart';
@@ -37,6 +38,7 @@ import 'package:simsplit/data/repositories/drift_settlement_repository.dart';
 import 'package:simsplit/data/repositories/drift_telemetry_repository.dart';
 import 'package:simsplit/data/repositories/firestore_invite_repository.dart';
 import 'package:simsplit/data/repositories/firestore_sync_repository.dart';
+import 'package:simsplit/data/repositories/firestore_user_profile_repository.dart';
 import 'package:simsplit/data/sync/firestore_sync_puller.dart';
 import 'package:simsplit/data/sync/firestore_sync_pusher.dart';
 import 'package:simsplit/data/sync/local_data_uploader.dart';
@@ -53,6 +55,7 @@ import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/domain/repositories/sync_repository.dart';
 import 'package:simsplit/domain/repositories/telemetry_repository.dart';
+import 'package:simsplit/domain/repositories/user_profile_repository.dart';
 import 'package:simsplit/domain/use_cases/activity/watch_activity.dart';
 import 'package:simsplit/domain/use_cases/auth/delete_account.dart';
 import 'package:simsplit/domain/use_cases/auth/sign_in_with_google.dart';
@@ -83,7 +86,8 @@ import 'package:simsplit/domain/use_cases/settlements/settle_debt.dart';
 import 'package:simsplit/domain/use_cases/sync/start_sync.dart';
 import 'package:simsplit/domain/use_cases/sync/stop_sync.dart';
 import 'package:simsplit/domain/use_cases/sync/watch_unsynced_record_ids.dart';
-import 'package:simsplit/domain/use_cases/telemetry/record_breadcrumb.dart';
+import 'package:simsplit/domain/use_cases/telemetry/set_app_foreground.dart';
+import 'package:simsplit/domain/use_cases/telemetry/track_event.dart';
 import 'package:simsplit/domain/use_cases/telemetry/record_error.dart';
 import 'package:simsplit/domain/use_cases/telemetry/set_error_reports_enabled.dart';
 import 'package:simsplit/domain/use_cases/telemetry/watch_error_report_settings.dart';
@@ -206,6 +210,9 @@ SyncRepository syncRepository(Ref ref) {
     puller: puller,
     firestore: firestore,
     currentUid: () => FirebaseAuth.instance.currentUser?.uid,
+    clearLocalData: () async {
+      await DriftLocalDataRepository(database: database).clearAll();
+    },
   );
 }
 
@@ -225,6 +232,14 @@ ActivityRepository activityRepository(Ref ref) =>
 @Riverpod(keepAlive: true)
 LocalDataRepository localDataRepository(Ref ref) =>
     DriftLocalDataRepository(database: ref.watch(appDatabaseProvider));
+
+/// Only read when [authAvailable] is true.
+@Riverpod(keepAlive: true)
+UserProfileRepository userProfileRepository(Ref ref) =>
+    FirestoreUserProfileRepository(
+      firestore: ref.watch(firestoreProvider),
+      currentUid: () => FirebaseAuth.instance.currentUser?.uid,
+    );
 
 // ── Use Cases ─────────────────────────────────────────────────────────────
 
@@ -317,8 +332,11 @@ WatchCurrentUser watchCurrentUser(Ref ref) =>
     WatchCurrentUser(authRepository: ref.watch(authRepositoryProvider));
 
 @riverpod
-SignInWithGoogle signInWithGoogle(Ref ref) =>
-    SignInWithGoogle(authRepository: ref.watch(authRepositoryProvider));
+SignInWithGoogle signInWithGoogle(Ref ref) => SignInWithGoogle(
+      authRepository: ref.watch(authRepositoryProvider),
+      userProfileRepository: ref.watch(userProfileRepositoryProvider),
+      policyVersion: privacyPolicyVersion,
+    );
 
 @riverpod
 SignOut signOut(Ref ref) => SignOut(
@@ -332,6 +350,7 @@ DeleteAccount deleteAccount(Ref ref) => DeleteAccount(
       authRepository: ref.watch(authRepositoryProvider),
       localDataRepository: ref.watch(localDataRepositoryProvider),
       syncRepository: ref.watch(syncRepositoryProvider),
+      userProfileRepository: ref.watch(userProfileRepositoryProvider),
     );
 
 @riverpod
@@ -399,6 +418,14 @@ TelemetrySender telemetrySender(Ref ref) {
         return null;
       }
     },
+    // Cached by Firebase Auth and refreshed when it expires.
+    idToken: () async {
+      try {
+        return await FirebaseAuth.instance.currentUser?.getIdToken();
+      } on Object {
+        return null;
+      }
+    },
   );
   ref.onDispose(() {
     sender.dispose();
@@ -423,7 +450,8 @@ TelemetryRepository telemetryRepository(Ref ref) {
       },
       language: () async => (await SharedPreferences.getInstance())
           .getString('locale_language_code'),
-      signedIn: () => available && FirebaseAuth.instance.currentUser != null,
+      currentUid: () =>
+          available ? FirebaseAuth.instance.currentUser?.uid : null,
       knownNames: () async {
         final rows = await db
             .customSelect(
@@ -444,7 +472,11 @@ RecordError recordError(Ref ref) =>
     RecordError(telemetryRepository: ref.watch(telemetryRepositoryProvider));
 
 @riverpod
-RecordBreadcrumb recordBreadcrumb(Ref ref) => RecordBreadcrumb(
+TrackEvent trackEvent(Ref ref) =>
+    TrackEvent(telemetryRepository: ref.watch(telemetryRepositoryProvider));
+
+@riverpod
+SetAppForeground setAppForeground(Ref ref) => SetAppForeground(
     telemetryRepository: ref.watch(telemetryRepositoryProvider));
 
 @riverpod

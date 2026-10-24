@@ -54,6 +54,17 @@ void main() {
       expect(find.byType(TextField), findsNothing);
     });
 
+    testWidgets('says signing in is agreeing to the privacy policy (R-4 AC6)',
+        (tester) async {
+      await pumpScreen(tester);
+
+      expect(
+        find.text('By continuing, you agree to the Privacy Policy',
+            findRichText: true),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('says a connection is needed when offline (AC3)',
         (tester) async {
       when(() => signIn(any())).thenAnswer((_) async =>

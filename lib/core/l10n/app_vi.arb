@@ -337,5 +337,7 @@
   "copied": "Đã sao chép",
   "appVersionLabel": "Phiên bản ứng dụng",
   "platformLabel": "Nền tảng",
-  "errorReportsWaiting": "Báo cáo đang chờ gửi"
+  "errorReportsWaiting": "Báo cáo đang chờ gửi",
+  "signInAgreementPrefix": "Khi tiếp tục, bạn đồng ý với ",
+  "privacyPolicyLink": "Chính sách quyền riêng tư"
 }
