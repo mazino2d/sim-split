@@ -119,4 +119,26 @@ void main() {
     expect(await db.telemetryDao.watchCount('event').first, 0);
     s.dispose();
   });
+
+  test('events from the end of a session use the last ID token', () async {
+    String? token = 'id-token';
+    final seen = <String?>[];
+    final s = TelemetrySender(
+      dao: db.telemetryDao,
+      client: MockClient((request) async {
+        seen.add(request.headers['authorization']);
+        return http.Response('{}', 202);
+      }),
+      endpoint: endpoint,
+      appCheckToken: () async => 'app-check',
+      idToken: () async => token,
+    );
+    await db.telemetryDao.enqueue('event', '{}', max: 2000);
+    await s.flushEvents();
+    token = null;
+    await db.telemetryDao.enqueue('event', '{}', max: 2000);
+    await s.flushEvents();
+    expect(seen, ['Bearer id-token', 'Bearer id-token']);
+    s.dispose();
+  });
 }

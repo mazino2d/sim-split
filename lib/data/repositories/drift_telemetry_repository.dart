@@ -83,6 +83,9 @@ class DriftTelemetryRepository implements TelemetryRepository {
   static const _sessionAlphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
   late String _sessionId;
+  // The account signed in at the last tracked event: an operation that ends
+  // the session (sign-out, account deletion) completes after the uid is gone.
+  String? _lastUid;
   DateTime? _backgroundedAt;
   String? _currentScreen;
   late final Future<void> _ready;
@@ -135,7 +138,12 @@ class DriftTelemetryRepository implements TelemetryRepository {
       _breadcrumbs.add(Breadcrumb(time: time, kind: kind, name: name));
       if (_breadcrumbs.length > _maxBreadcrumbs) _breadcrumbs.removeAt(0);
     }
-    final uid = _context.currentUid();
+    final current = _context.currentUid();
+    if (current != null) _lastUid = current;
+    // Only operations fall back to the last account; screens and taps after
+    // sign-out are not tracked (AC9).
+    final uid = current ?? (kind == BreadcrumbKind.op ? _lastUid : null);
+    if (current == null) _lastUid = null;
     if (uid == null) return;
     // Everything about the moment is captured now, before any await.
     final event = (
