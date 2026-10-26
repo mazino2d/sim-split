@@ -62,6 +62,8 @@ main ──► PR "chore(release): YYYY.M.D" (pubspec bump, whatsnew, docs, list
          → sent for review → GitHub Release with the AAB
                                          → firebase_deploy.yml (prd: web app at
          simsplit.web.app, Firestore rules and indexes)
+                      validate-version → telemetry_deploy.yml (R-4 endpoint on
+         Cloud Run)
          each prd job waits for approval in the prd environment     (user approves)
      ──► approved: live for 20 % (managed publishing is off)
      ──► play_rollout.yml: 50 % → 100 % after checking Android vitals  (user confirms)
@@ -144,8 +146,8 @@ GH_TOKEN=$(gh auth token --user mazino2d) gh run watch \
 ```
 
 Every job in the `prd` GitHub Environment (the Android upload, then the Firebase
-deploy) waits for the maintainer's approval: tell the user to approve it in the run
-(**Review deployments**) or with
+deploy, and the telemetry deploy) waits for the maintainer's approval: tell the
+user to approve it in the run (**Review deployments**) or with
 `gh api -X POST repos/mazino2d/sim-split/actions/runs/<run-id>/pending_deployments`
 (`-f 'environment_ids[]=<id>' -f state=approved -f comment=…`). The Firebase deploy
 starts only after the upload succeeded. Release candidates (`-rc.N` tags) wait for
@@ -190,5 +192,9 @@ GH_TOKEN=$(gh auth token --user mazino2d) gh workflow run play_rollout.yml -f ac
 - A manual `firebase_deploy.yml` run always deploys dev; prd web, rules and
   indexes ship only through `release.yml`. To redeploy prd, re-run the failed
   jobs of the release run.
+- The telemetry endpoint (`services/telemetry/`) ships only with a production
+  tag, not on merge, so an endpoint fix ships with the next release. It must stay
+  compatible with the builds already out. A manual `telemetry_deploy.yml` run from
+  a production tag only redeploys that tag's endpoint.
 - iOS is not in `release.yml` yet (R-3 P8); say so when the user asks for "all
   platforms".

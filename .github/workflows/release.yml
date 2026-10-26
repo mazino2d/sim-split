@@ -64,6 +64,17 @@ jobs:
     with:
       environment: prd
 
+  # The R-4 telemetry endpoint ships with the release too. It doesn't wait
+  # for the Android upload: the endpoint must accept what the new build sends
+  # and stays compatible with the builds already out.
+  deploy-telemetry:
+    name: Telemetry Deploy
+    needs: validate-version
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/telemetry_deploy.yml
+
   # build-ios:                         # disabled — Apple Developer account not yet active
   #   name: iOS App Store Build
   #   needs: validate-version
