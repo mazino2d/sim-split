@@ -5,13 +5,16 @@ Usage:
   play_metadata.py check                  Validate metadata offline (stdlib only).
   play_metadata.py sync [--dry-run]       Push listings, images and contact details.
                         [--data-safety]   Also upload data_safety.csv.
+                        [--env dev]       Sync the dev app (SimSplit Dev) instead of prd.
 
 `sync` needs google-api-python-client and Application Default Credentials for an
 account invited in Play Console with "Manage store presence" (in CI:
 google-github-actions/auth via Workload Identity Federation).
 
 Layout (fastlane-compatible):
-  play.json                                package name, default language, contact
+  play.json                                package name, default language, contact;
+                                           "dev": the dev app's package name and title
+                                           (every other field is shared with prd)
   data_safety.csv                          optional, exported from Play Console
   <lang>/title.txt                         max 30 chars
   <lang>/short_description.txt             max 80 chars
@@ -86,6 +89,12 @@ def check() -> list[str]:
             errors.append(f"play.json: missing {key}")
     if config.get("defaultLanguage") not in languages():
         errors.append(f"play.json: defaultLanguage {config.get('defaultLanguage')} has no folder")
+    dev = config.get("dev") or {}
+    for key in ("packageName", "title"):
+        if not dev.get(key):
+            errors.append(f"play.json: missing dev.{key}")
+    if len(dev.get("title", "")) > TEXT_LIMITS["title.txt"]:
+        errors.append(f"play.json: dev.title is {len(dev['title'])} chars, max {TEXT_LIMITS['title.txt']}")
 
     for lang in languages():
         for name, limit in TEXT_LIMITS.items():
@@ -132,13 +141,17 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def sync(dry_run: bool, data_safety: bool) -> None:
+def sync(dry_run: bool, data_safety: bool, env: str) -> None:
     import google.auth
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload
 
     config = json.loads((ROOT / "play.json").read_text())
-    package = config["packageName"]
+    # The dev app (SimSplit Dev) shares prd's listing, images and Data safety;
+    # only its package name and title differ.
+    dev = config["dev"] if env == "dev" else None
+    package = dev["packageName"] if dev else config["packageName"]
+    print(f"Package: {package}")
     credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/androidpublisher"])
     api = build("androidpublisher", "v3", credentials=credentials, cache_discovery=False)
     edits = api.edits()
@@ -167,6 +180,8 @@ def sync(dry_run: bool, data_safety: bool) -> None:
                 field: (ROOT / lang / name).read_text().strip()
                 for name, field in LISTING_FIELDS.items()
             }
+            if dev:
+                wanted["title"] = dev["title"]
             current = remote_listings.get(lang, {})
             if any(current.get(k, "") != v for k, v in wanted.items()):
                 changes.append(f"{lang} listing" + ("" if current else " (new)"))
@@ -225,6 +240,7 @@ def main() -> None:
     sync_parser = sub.add_parser("sync")
     sync_parser.add_argument("--dry-run", action="store_true")
     sync_parser.add_argument("--data-safety", action="store_true")
+    sync_parser.add_argument("--env", choices=["prd", "dev"], default="prd")
     args = parser.parse_args()
 
     errors = check()
@@ -235,7 +251,7 @@ def main() -> None:
     if args.command == "check":
         print(f"Store metadata OK ({', '.join(languages())}).")
         return
-    sync(args.dry_run, args.data_safety)
+    sync(args.dry_run, args.data_safety, args.env)
 
 
 if __name__ == "__main__":

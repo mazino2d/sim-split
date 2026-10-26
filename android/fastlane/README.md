@@ -1,8 +1,9 @@
 # Google Play configuration
 
-Store configuration for `com.mazino2d.simsplit`. Everything the Play Developer
-API supports is managed from this repo; the rest is set by hand in Play Console
-and recorded below so it can be re-entered or audited.
+Store configuration for `com.mazino2d.simsplit` and its dev app SimSplit Dev
+(`com.mazino2d.simsplit.dev`). Everything the Play Developer API supports is
+managed from this repo; the rest is set by hand in Play Console and recorded
+below so it can be re-entered or audited.
 
 ## Managed from the repo (GitOps)
 
@@ -12,6 +13,7 @@ and recorded below so it can be re-entered or audited.
 | Icon, feature graphic | `metadata/android/<lang>/images/{icon,featureGraphic}.png` | `play_metadata.yml` |
 | Phone / 7" / 10" screenshots | `metadata/android/<lang>/images/{phone,sevenInch,tenInch}Screenshots/` | `play_metadata.yml` |
 | Default language, contact email, website | `metadata/android/play.json` | `play_metadata.yml` |
+| Dev app: package name and title (everything else is shared with prd) | `metadata/android/play.json` → `dev` | `play_metadata.yml` (`--env dev`, after prd) |
 | Data safety form | `metadata/android/data_safety.csv` (export from Play Console) | `play_metadata.yml` when the CSV changes |
 | Release notes (max 500 chars) | `whatsnew/whatsnew-<lang>` | `release.yml` / `release_candidate.yml` on a tag |
 | App bundles, tracks | `build_android.yml`, `release_candidate.yml`, `release.yml` | push to `main` (internal, `YYYY.M.D-dev.<sha7>`) / manual dispatch / `vYYYY.M.D-rc.N` tag (closed testing) / `vYYYY.M.D` tag (production, 20 %) |
@@ -37,7 +39,7 @@ and recorded below so it can be re-entered or audited.
 Granted by hand (the Play API supports it, but only community Terraform
 providers exist and they need an admin-level JSON key):
 Play Console → **Users and permissions** → `gha-play-publisher@…` →
-**App permissions** → **SimSplit**.
+**App permissions** → **SimSplit** and **SimSplit Dev**.
 
 | Section | Permission | Why |
 | --- | --- | --- |
