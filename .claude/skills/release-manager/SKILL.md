@@ -1,6 +1,6 @@
 ---
 name: release-manager
-description: Plan, check and ship a SimSplit release to Google Play production (and later the App Store) — pick the CalVer version (YYYY.M.D), review what is in main since the last tag, walk the pre-release checklist (CI, e2e, Data safety, store listing, privacy policy, Firebase and App Check), bump pubspec.yaml, push the v-tag that runs release.yml (release notes, 20 % staged rollout sent for review), widen the rollout with play_rollout.yml and record it in the docs. Use when the user asks to "release", "ship", "go live", "lên production", "lên version mới", "tag a release", "promote to production", "what do I need before releasing", "release checklist", or invokes /release-manager. Not for internal-test uploads (every app-code merge to main uploads one to the separate SimSplit Dev app; other branches: run build_android.yml manually) or for verifying a PR (e2e-tester).
+description: Plan, check and ship a SimSplit release to Google Play production (and later the App Store) — pick the CalVer version (YYYY.M.D), review what is in main since the last tag, walk the pre-release checklist (CI, e2e, Data safety, store listing, privacy policy, Firebase and App Check), bump pubspec.yaml, push the v-tag that runs release.yml (release notes, 20 % staged rollout sent for review), widen the rollout with play_rollout.yml and record it in the docs. Use when the user asks to "release", "ship", "go live", "lên production", "lên version mới", "tag a release", "promote to production", "what do I need before releasing", "release checklist", or invokes /release-manager. Not for internal-test uploads (every app-code merge to main uploads one to the separate SimSplit [Dev] app; other branches: run build_android.yml manually) or for verifying a PR (e2e-tester).
 argument-hint: "[plan|preflight|ship|post] [YYYY.M.D]"
 allowed-tools: Read, Edit, Write, Grep, Glob, AskUserQuestion, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(python3 scripts/play_metadata.py check), Bash(python3 .claude/skills/docs-writer/scripts/*)
 ---
@@ -40,7 +40,7 @@ Every build gets a versionName that says what it is (`build_android.yml` passes
 
 | Build | Trigger | versionName | Play app | Play track |
 | --- | --- | --- | --- | --- |
-| Dev | merge to `main` touching app code, or a manual run | `YYYY.M.D-dev.<sha7>` (build date, UTC) | SimSplit Dev (`com.mazino2d.simsplit.dev`, `simsplit-as-se1-dev`) | internal |
+| Dev | merge to `main` touching app code, or a manual run | `YYYY.M.D-dev.<sha7>` (build date, UTC) | SimSplit [Dev] (`com.mazino2d.simsplit.dev`, `simsplit-as-se1-dev`) | internal |
 | Release candidate | tag `vYYYY.M.D-rc.N` (`release_candidate.yml`) | `YYYY.M.D-rc.N` | SimSplit (`com.mazino2d.simsplit`, `simsplit-as-se1-prd`) | closed testing (`alpha`) |
 | Production | tag `vYYYY.M.D` (`release.yml`) | `YYYY.M.D` | SimSplit | production, 20 % |
 
