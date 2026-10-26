@@ -4,14 +4,14 @@ name: Telemetry Deploy
 # Cloud Run service `telemetry` in simsplit-as-se1-prd. The service, its limits
 # and the deployer account are managed in mazino2d/everything-as-code
 # (terraform/gcp/simsplit-as-se1-prd/telemetry.tf); this workflow only ships
-# new images.
+# new images. It ships with production releases only:
+#   - release.yml calls it for a vYYYY.M.D tag after checking the tag against
+#     pubspec.yaml, or
+#   - a manual run from such a tag (to redeploy without a new release).
+# The job runs in the prd GitHub Environment, so it waits for the
+# maintainer's approval. PRs test the endpoint in pr_validate.yml.
 on:
-  push:
-    branches: [main]
-    paths:
-      - services/telemetry/**
-      - "!services/telemetry/test/**"
-      - .github/workflows/telemetry_deploy.yml
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -30,7 +30,18 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: prd
     steps:
+      # The prd environment admits every v* tag, release candidates too, so
+      # the exact production tag is checked here. Under workflow_call the ref
+      # is the caller's tag.
+      - name: Check tag
+        run: |
+          if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Telemetry deploys only from a vYYYY.M.D tag, not '$GITHUB_REF_NAME'"
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
 
       # Keyless auth via Workload Identity Federation; only main and v* tags of

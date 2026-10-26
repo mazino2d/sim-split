@@ -8,6 +8,9 @@ name: Play Store Metadata
 #   - pull request → dry run against Play, result posted as a PR comment
 #   - push to main  → real sync
 #   - manual run    → dry run by default; a real sync only from main
+# Both jobs run in the `store` GitHub Environment (managed in
+# mazino2d/everything-as-code), which admits main only; pull_request_target
+# runs on main too.
 on:
   # pull_request_target runs with the base ref (main), which is what the
   # Workload Identity provider accepts. The plan job therefore must never run
@@ -49,6 +52,7 @@ jobs:
       cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: store
     permissions:
       contents: read
       id-token: write # OIDC token for Workload Identity Federation
@@ -141,6 +145,7 @@ jobs:
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: store
     permissions:
       contents: read
       id-token: write # OIDC token for Workload Identity Federation

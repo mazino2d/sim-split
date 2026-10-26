@@ -8,8 +8,11 @@ name: Build Android
 #       - manually via workflow_dispatch (defaults to the internal track);
 #   - prd (`--flavor prd`, APP_ENV=prd, com.mazino2d.simsplit, Firebase
 #     simsplit-as-se1-prd), only from a tag:
-#       - release.yml (vYYYY.M.D tag → production, inProgress 20 %) or
+#       - release.yml (vYYYY.M.D tag → production, completed: 100 %) or
 #       - release_candidate.yml (vYYYY.M.D-rc.N tag → alpha, completed).
+# The job runs in the GitHub Environment of the same name (managed in
+# mazino2d/everything-as-code): dev admits main only, so manual runs work from
+# main; prd admits v* tags and waits for the maintainer's approval.
 on:
   push:
     branches: [main]
@@ -84,7 +87,9 @@ jobs:
     permissions:
       contents: read
       id-token: write # OIDC token for Workload Identity Federation
-    # Only a release tag builds prd; main and manual runs build dev.
+    # Only a release tag builds prd; main and manual runs build dev. The
+    # environment can't read the job's env, so it repeats the test.
+    environment: ${{ inputs.release_tag != '' && 'prd' || 'dev' }}
     env:
       APP_ENV: ${{ inputs.release_tag != '' && 'prd' || 'dev' }}
       PACKAGE_NAME: ${{ inputs.release_tag != '' && 'com.mazino2d.simsplit' || 'com.mazino2d.simsplit.dev' }}
@@ -138,10 +143,10 @@ jobs:
         #   anything else (main, manual)    → YYYY.M.D-dev.<sha7>, build date UTC
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
-          # R-4 telemetry endpoint, a repo variable set by everything-as-code;
-          # while it is unset, error reports are queued but never sent. prd
-          # only: the endpoint accepts App Check tokens from the prd project,
-          # so dev builds never send telemetry.
+          # R-4 telemetry endpoint, a prd environment variable set by
+          # everything-as-code; while it is unset, error reports are queued but
+          # never sent. The endpoint accepts App Check tokens from the prd
+          # project only, so dev builds never send telemetry.
           TELEMETRY_URL: ${{ inputs.release_tag != '' && vars.TELEMETRY_URL || '' }}
         run: |
           BUILD_NUMBER=$(( ($(date -u +%s) - 1767225600) / 60 ))

@@ -1,5 +1,7 @@
 name: Release
 
+# Every job that deploys runs in the prd GitHub Environment (set in the
+# called workflows), so each one waits for the maintainer's approval.
 on:
   push:
     tags:
@@ -41,25 +43,37 @@ jobs:
     uses: ./.github/workflows/build_android.yml
     with:
       track: production
-      # Committing an inProgress release sends it for review (managed publishing
-      # is off), and once approved it reaches 20 % of users. Widen, halt or
-      # resume it with play_rollout.yml.
-      status: inProgress
-      user_fraction: "0.2"
+      # Committing a completed release sends it for review (managed publishing
+      # is off), and once approved it reaches every user. Full rollout while
+      # the user base is small; for a staged rollout again, set status
+      # inProgress with user_fraction "0.2" and widen with play_rollout.yml.
+      status: completed
       release_tag: ${{ github.ref_name }}
     secrets: inherit
 
   # The web app, Firestore rules and indexes go to simsplit-as-se1-prd only
-  # with a production tag; main deploys them to dev.
+  # with a production tag; main deploys them to dev. They wait for the
+  # Android upload, so a failed or rejected build ships nothing to prd.
   deploy-firebase:
     name: Firebase Production Deploy
-    needs: validate-version
+    needs: [build-android]
     permissions:
       contents: read
       id-token: write
     uses: ./.github/workflows/firebase_deploy.yml
     with:
       environment: prd
+
+  # The R-4 telemetry endpoint ships with the release too. It doesn't wait
+  # for the Android upload: the endpoint must accept what the new build sends
+  # and stays compatible with the builds already out.
+  deploy-telemetry:
+    name: Telemetry Deploy
+    needs: validate-version
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/telemetry_deploy.yml
 
   # build-ios:                         # disabled — Apple Developer account not yet active
   #   name: iOS App Store Build

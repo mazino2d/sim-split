@@ -1,7 +1,8 @@
 name: Play Rollout
 
-# Widens, halts or resumes the staged production rollout that release.yml
-# starts at 20 %. Check Android vitals (crashes, ANRs) before each step.
+# Widens, halts or resumes a staged production rollout. release.yml ships at
+# 100 % for now (no staged rollout to widen); this applies again once it goes
+# back to a staged release. Check Android vitals (crashes, ANRs) before each step.
 on:
   workflow_dispatch:
     inputs:
@@ -19,6 +20,10 @@ jobs:
     name: Rollout ${{ inputs.action }}
     # Rollouts run from main only (Workload Identity would also admit v* tags).
     if: github.ref == 'refs/heads/main'
+    # Not prd: that environment admits v* tags only. `store` admits main and
+    # is the Play environment play_metadata.yml uses too (managed in
+    # mazino2d/everything-as-code).
+    environment: store
     # Play rejects concurrent edits: rollout changes run one at a time.
     concurrency:
       group: play-rollout

@@ -4,6 +4,8 @@ name: Release Candidate
 # (alpha) as YYYY.M.D-rc.N, with the release notes in android/fastlane/whatsnew/.
 # YYYY.M.D is the day the candidate is cut; N counts candidates that day.
 # release.yml ignores these tags: its filter matches the whole tag name.
+# The upload runs in the prd GitHub Environment (see build_android.yml), so it
+# waits for the maintainer's approval.
 on:
   push:
     tags:
