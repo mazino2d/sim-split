@@ -47,10 +47,16 @@ Play Console → **Users and permissions** → `gha-play-publisher@…` →
 | Releases | Release apps to testing tracks | `build_android.yml` |
 | Releases | Manage testing tracks and edit tester lists | testing tracks |
 | Store presence | Manage store presence | `play_metadata.yml` |
+| Draft apps | Edit and delete draft apps (**SimSplit [Dev] only**) | `play_metadata.yml` |
 
-Leave everything else unticked, in particular **Edit and delete draft apps**
-(lets the account delete an unpublished app; not needed for uploads or
-listing sync) and any account-level/admin permission.
+Leave everything else unticked, including any account-level/admin permission.
+On **SimSplit**, also leave **Edit and delete draft apps** unticked: it lets the
+account delete an unpublished app, and the published app doesn't need it.
+**SimSplit [Dev]** is a draft app. Its listing sync failed with 403 "The caller
+does not have permission" on the edit commit, and passed once this permission
+was granted. The dashboard setup (app content, store settings, store listing)
+was being filled in at the same time, so either may have been the fix. Uploads
+to its internal track worked without this permission.
 
 ## Set by hand in Play Console (no API)
 
