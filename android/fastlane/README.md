@@ -1,6 +1,6 @@
 # Google Play configuration
 
-Store configuration for `com.mazino2d.simsplit` and its dev app SimSplit Dev
+Store configuration for `com.mazino2d.simsplit` and its dev app SimSplit [Dev]
 (`com.mazino2d.simsplit.dev`). Everything the Play Developer API supports is
 managed from this repo; the rest is set by hand in Play Console and recorded
 below so it can be re-entered or audited.
@@ -39,7 +39,7 @@ below so it can be re-entered or audited.
 Granted by hand (the Play API supports it, but only community Terraform
 providers exist and they need an admin-level JSON key):
 Play Console → **Users and permissions** → `gha-play-publisher@…` →
-**App permissions** → **SimSplit** and **SimSplit Dev**.
+**App permissions** → **SimSplit** and **SimSplit [Dev]**.
 
 | Section | Permission | Why |
 | --- | --- | --- |

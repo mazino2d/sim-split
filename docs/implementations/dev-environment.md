@@ -12,10 +12,10 @@ tags reach production. Work spans this repo and `everything-as-code` (infrastruc
 | Topic | Decision | Why |
 | --- | --- | --- |
 | Environments | Two: **dev** (`simsplit-as-se1-dev`) and **prd** (`simsplit-as-se1-prd`, unchanged) | One place to try `main` against real Firebase without touching users' data. |
-| What ships where | Push to `main` → dev (Android internal track of SimSplit Dev, web at `simsplit-as-se1-dev.web.app`, rules and indexes). `vYYYY.M.D-rc.N` → prd Play closed testing. `vYYYY.M.D` → prd Play production, web, rules and indexes | Production changes only through a reviewed release tag. |
+| What ships where | Push to `main` → dev (Android internal track of SimSplit [Dev], web at `simsplit-as-se1-dev.web.app`, rules and indexes). `vYYYY.M.D-rc.N` → prd Play closed testing. `vYYYY.M.D` → prd Play production, web, rules and indexes | Production changes only through a reviewed release tag. |
 | Selecting the environment in Dart | `--dart-define=APP_ENV=dev\|prd`, default `prd`, read once in `lib/core/constants/app_env.dart`; an unknown value throws | A build without the define behaves exactly as before. A typo fails at start-up instead of silently talking to the wrong backend. |
 | Per-environment values | Firebase options (`firebase_options.dart` / `firebase_options_dev.dart`), Google sign-in server client ID, web origin (invite links) switch on `appEnv`; the reCAPTCHA site key and telemetry URL stay `--dart-define`s that CI fills per environment | One switch per value, next to the value; nothing else hardcodes a project, package or domain. |
-| Android | Product flavors `dev` (`applicationIdSuffix ".dev"`, label "SimSplit Dev", App Link host `simsplit-as-se1-dev.web.app`) and `prd`; both sign with the same upload key | A separate Play app keeps dev builds away from production testers and lets both be installed side by side. |
+| Android | Product flavors `dev` (`applicationIdSuffix ".dev"`, label "SimSplit [Dev]", App Link host `simsplit-as-se1-dev.web.app`) and `prd`; both sign with the same upload key | A separate Play app keeps dev builds away from production testers and lets both be installed side by side. |
 | `google-services.json` | None, per flavor or otherwise | The app never used it: Firebase is initialised from the Dart options and the Google Services Gradle plugin is not applied. Adding placeholder JSON files would be dead config. |
 | iOS | Out of scope; builds as today against prd. `DevFirebaseOptions` has no iOS app, so an iOS build with `APP_ENV=dev` runs local-only | No Apple Developer account (R-3 P8). |
 | Telemetry | prd only: dev builds get no `TELEMETRY_URL` | The endpoint lives in prd and only accepts prd App Check tokens; dev noise stays out of the warehouse. |
@@ -33,7 +33,7 @@ tags reach production. Work spans this repo and `everything-as-code` (infrastruc
 
 ## Manual steps (no API or Terraform support)
 
-1. Create the Play app "SimSplit Dev" (`com.mazino2d.simsplit.dev`) in Play Console,
+1. Create the Play app "SimSplit [Dev]" (`com.mazino2d.simsplit.dev`) in Play Console,
    upload the first AAB by hand (the API can't create an app or its first release),
    and set up the internal testing track and testers.
 2. Invite `gha-play-publisher@simsplit-as-se1-prd.iam.gserviceaccount.com` to SimSplit
