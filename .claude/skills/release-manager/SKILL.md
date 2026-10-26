@@ -1,6 +1,6 @@
 ---
 name: release-manager
-description: Plan, check and ship a SimSplit release to Google Play production (and later the App Store) — pick the CalVer version (YYYY.M.D), review what is in main since the last tag, walk the pre-release checklist (CI, e2e, Data safety, store listing, privacy policy, Firebase and App Check), bump pubspec.yaml, push the v-tag that runs release.yml (release notes, 20 % staged rollout sent for review), widen the rollout with play_rollout.yml and record it in the docs. Use when the user asks to "release", "ship", "go live", "lên production", "lên version mới", "tag a release", "promote to production", "what do I need before releasing", "release checklist", or invokes /release-manager. Not for internal-test uploads (every app-code merge to main uploads one to the separate SimSplit [Dev] app; other branches: run build_android.yml manually) or for verifying a PR (e2e-tester).
+description: Plan, check and ship a SimSplit release to Google Play production (and later the App Store) — pick the CalVer version (YYYY.M.D), review what is in main since the last tag, walk the pre-release checklist (CI, e2e, Data safety, store listing, privacy policy, Firebase and App Check), bump pubspec.yaml, push the v-tag that runs release.yml (release notes, 100 % release sent for review), widen a staged rollout with play_rollout.yml when one is used and record it in the docs. Use when the user asks to "release", "ship", "go live", "lên production", "lên version mới", "tag a release", "promote to production", "what do I need before releasing", "release checklist", or invokes /release-manager. Not for internal-test uploads (every app-code merge to main uploads one to the separate SimSplit [Dev] app; other branches: run build_android.yml manually) or for verifying a PR (e2e-tester).
 argument-hint: "[plan|preflight|ship|post] [YYYY.M.D]"
 allowed-tools: Read, Edit, Write, Grep, Glob, AskUserQuestion, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(python3 scripts/play_metadata.py check), Bash(python3 .claude/skills/docs-writer/scripts/*)
 ---
@@ -42,7 +42,7 @@ Every build gets a versionName that says what it is (`build_android.yml` passes
 | --- | --- | --- | --- | --- |
 | Dev | merge to `main` touching app code, or a manual run | `YYYY.M.D-dev.<sha7>` (build date, UTC) | SimSplit [Dev] (`com.mazino2d.simsplit.dev`, `simsplit-as-se1-dev`) | internal |
 | Release candidate | tag `vYYYY.M.D-rc.N` (`release_candidate.yml`) | `YYYY.M.D-rc.N` | SimSplit (`com.mazino2d.simsplit`, `simsplit-as-se1-prd`) | closed testing (`alpha`) |
-| Production | tag `vYYYY.M.D` (`release.yml`) | `YYYY.M.D` | SimSplit | production, 20 % |
+| Production | tag `vYYYY.M.D` (`release.yml`) | `YYYY.M.D` | SimSplit | production, 100 % |
 
 The web app, Firestore rules and indexes follow the same split: `main` deploys them
 to dev (`simsplit-as-se1-dev.web.app`), and only the production tag deploys them to prd
@@ -58,15 +58,15 @@ does not need to match pubspec or the later production date. RC builds carry the
 main ──► PR "chore(release): YYYY.M.D" (pubspec bump, whatsnew, docs, listing) ──► merge
      ──► git tag vYYYY.M.D && git push origin vYYYY.M.D                  (user confirms)
      ──► release.yml: validate-version → build_android.yml (--flavor prd, track:
-         production, status: inProgress, 20 %, notes from android/fastlane/whatsnew/)
+         production, status: completed, 100 %, notes from android/fastlane/whatsnew/)
          → sent for review → GitHub Release with the AAB
                                          → firebase_deploy.yml (prd: web app at
          simsplit.web.app, Firestore rules and indexes)
                       validate-version → telemetry_deploy.yml (R-4 endpoint on
          Cloud Run)
          each prd job waits for approval in the prd environment     (user approves)
-     ──► approved: live for 20 % (managed publishing is off)
-     ──► play_rollout.yml: 50 % → 100 % after checking Android vitals  (user confirms)
+     ──► approved: live for 100 % (managed publishing is off; no staged
+         rollout while the user base is small)
 ```
 
 Pushing the tag builds **whatever `main` is at that commit** — check what is in it.
@@ -156,9 +156,11 @@ approval the same way.
 If `validate-version` fails, the tag and pubspec disagree: delete the tag
 (`git push origin :refs/tags/vYYYY.M.D`, with the user's OK), fix, re-tag.
 
-The upload goes to Play review by itself and reaches 20 % of users when approved;
-nothing to do in Play Console. Then, one step at a time and only on the user's yes
-after they checked Android vitals (crashes, ANRs):
+The upload goes to Play review by itself and reaches every user when approved;
+nothing to do in Play Console. `release.yml` ships at 100 % for now; if it is
+switched back to a staged rollout (status inProgress, user_fraction "0.2"), widen
+it one step at a time and only on the user's yes after they checked Android
+vitals (crashes, ANRs):
 
 ```bash
 GH_TOKEN=$(gh auth token --user mazino2d) gh workflow run play_rollout.yml -f action=status

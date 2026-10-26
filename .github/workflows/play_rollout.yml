@@ -1,7 +1,8 @@
 name: Play Rollout
 
-# Widens, halts or resumes the staged production rollout that release.yml
-# starts at 20 %. Check Android vitals (crashes, ANRs) before each step.
+# Widens, halts or resumes a staged production rollout. release.yml ships at
+# 100 % for now (no staged rollout to widen); this applies again once it goes
+# back to a staged release. Check Android vitals (crashes, ANRs) before each step.
 on:
   workflow_dispatch:
     inputs:

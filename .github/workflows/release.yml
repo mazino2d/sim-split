@@ -43,11 +43,11 @@ jobs:
     uses: ./.github/workflows/build_android.yml
     with:
       track: production
-      # Committing an inProgress release sends it for review (managed publishing
-      # is off), and once approved it reaches 20 % of users. Widen, halt or
-      # resume it with play_rollout.yml.
-      status: inProgress
-      user_fraction: "0.2"
+      # Committing a completed release sends it for review (managed publishing
+      # is off), and once approved it reaches every user. Full rollout while
+      # the user base is small; for a staged rollout again, set status
+      # inProgress with user_fraction "0.2" and widen with play_rollout.yml.
+      status: completed
       release_tag: ${{ github.ref_name }}
     secrets: inherit
 

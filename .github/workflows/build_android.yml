@@ -8,7 +8,7 @@ name: Build Android
 #       - manually via workflow_dispatch (defaults to the internal track);
 #   - prd (`--flavor prd`, APP_ENV=prd, com.mazino2d.simsplit, Firebase
 #     simsplit-as-se1-prd), only from a tag:
-#       - release.yml (vYYYY.M.D tag → production, inProgress 20 %) or
+#       - release.yml (vYYYY.M.D tag → production, completed: 100 %) or
 #       - release_candidate.yml (vYYYY.M.D-rc.N tag → alpha, completed).
 # The job runs in the GitHub Environment of the same name (managed in
 # mazino2d/everything-as-code): dev admits main only, so manual runs work from
