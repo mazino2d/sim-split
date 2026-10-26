@@ -49,6 +49,18 @@ jobs:
       release_tag: ${{ github.ref_name }}
     secrets: inherit
 
+  # The web app, Firestore rules and indexes go to simsplit-as-se1-prd only
+  # with a production tag; main deploys them to dev.
+  deploy-firebase:
+    name: Firebase Production Deploy
+    needs: validate-version
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/firebase_deploy.yml
+    with:
+      environment: prd
+
   # build-ios:                         # disabled — Apple Developer account not yet active
   #   name: iOS App Store Build
   #   needs: validate-version
@@ -69,11 +81,11 @@ jobs:
       - name: Download AAB artifact
         uses: actions/download-artifact@v8
         with:
-          name: simsplit-release.aab
+          name: simsplit-prd-release.aab
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          files: app-release.aab
+          files: app-prd-release.aab
           generate_release_notes: true
           name: 'SimSplit ${{ github.ref_name }}'

@@ -1,11 +1,17 @@
 {
   "projects": {
-    "default": "simsplit-as-se1-prd"
+    "default": "simsplit-as-se1-prd",
+    "dev": "simsplit-as-se1-dev"
   },
   "targets": {
     "simsplit-as-se1-prd": {
       "hosting": {
         "app": ["simsplit"]
+      }
+    },
+    "simsplit-as-se1-dev": {
+      "hosting": {
+        "app": ["simsplit-as-se1-dev"]
       }
     }
   }

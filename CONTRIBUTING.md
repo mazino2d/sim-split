@@ -30,7 +30,7 @@ git clone https://github.com/mazino2d/sim-split.git
 cd sim-split
 bash scripts/setup.sh                                      # bootstrap once
 cp .env.example .env.local                                 # local build settings (gitignored)
-flutter run -d chrome --dart-define-from-file=.env.local   # drop -d chrome for a device
+flutter run -d chrome --dart-define-from-file=.env.local   # on Android: --flavor prd instead of -d chrome
 ```
 
 See the [README](README.md) for web, release and CI details.

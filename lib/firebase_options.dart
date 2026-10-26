@@ -1,4 +1,5 @@
-// Firebase app config for the simsplit-as-se1-prd project.
+// Firebase app config for the simsplit-as-se1-prd project (APP_ENV=prd, the
+// default; see firebase_options_dev.dart for dev).
 //
 // Generated from the Firebase Management API (the same values `flutterfire
 // configure` writes). The API keys identify the app to Firebase and are not

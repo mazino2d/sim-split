@@ -1,17 +1,21 @@
 name: Build Android
 
-# Uploads to Google Play:
-#   - on push to main when app code changes (internal track, completed, so
-#     internal testers get it at once),
-#   - manually via workflow_dispatch (defaults to the internal track), or
-#   - from release.yml (vYYYY.M.D tag → production, inProgress 20 %) or
-#     release_candidate.yml (vYYYY.M.D-rc.N tag → alpha, completed).
+# Uploads to Google Play, one Play app per environment:
+#   - dev (`--flavor dev`, APP_ENV=dev, com.mazino2d.simsplit.dev "SimSplit Dev",
+#     Firebase simsplit-as-se1-dev):
+#       - on push to main when app code changes (internal track, completed, so
+#         internal testers get it at once), or
+#       - manually via workflow_dispatch (defaults to the internal track);
+#   - prd (`--flavor prd`, APP_ENV=prd, com.mazino2d.simsplit, Firebase
+#     simsplit-as-se1-prd), only from a tag:
+#       - release.yml (vYYYY.M.D tag → production, inProgress 20 %) or
+#       - release_candidate.yml (vYYYY.M.D-rc.N tag → alpha, completed).
 on:
   push:
     branches: [main]
     # pubspec.yaml is left out on purpose: a release PR only bumps its version,
-    # and an internal upload then would race the tag's production upload.
-    # Dependency changes still show up in pubspec.lock.
+    # which needs no new dev build. Dependency changes still show up in
+    # pubspec.lock.
     paths:
       - "lib/**"
       - "android/**"
@@ -50,8 +54,9 @@ on:
       user_fraction:
         type: string
         default: ""
-      # The tag that triggered the caller (vYYYY.M.D or vYYYY.M.D-rc.N); empty
-      # builds a dev name. See "Build App Bundle".
+      # The tag that triggered the caller (vYYYY.M.D or vYYYY.M.D-rc.N). Set,
+      # it builds prd under the tag's name; empty builds dev with a dev name.
+      # See "Build App Bundle".
       release_tag:
         type: string
         default: ""
@@ -79,6 +84,10 @@ jobs:
     permissions:
       contents: read
       id-token: write # OIDC token for Workload Identity Federation
+    # Only a release tag builds prd; main and manual runs build dev.
+    env:
+      APP_ENV: ${{ inputs.release_tag != '' && 'prd' || 'dev' }}
+      PACKAGE_NAME: ${{ inputs.release_tag != '' && 'com.mazino2d.simsplit' || 'com.mazino2d.simsplit.dev' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -130,8 +139,10 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
           # R-4 telemetry endpoint, a repo variable set by everything-as-code;
-          # while it is unset, error reports are queued but never sent.
-          TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
+          # while it is unset, error reports are queued but never sent. prd
+          # only: the endpoint accepts App Check tokens from the prd project,
+          # so dev builds never send telemetry.
+          TELEMETRY_URL: ${{ inputs.release_tag != '' && vars.TELEMETRY_URL || '' }}
         run: |
           BUILD_NUMBER=$(( ($(date -u +%s) - 1767225600) / 60 ))
           if [ -n "$RELEASE_TAG" ]; then
@@ -139,20 +150,25 @@ jobs:
           else
             BUILD_NAME="$(date -u +%Y.%-m.%-d)-dev.${GITHUB_SHA::7}"
           fi
-          echo "versionName: $BUILD_NAME, versionCode: $BUILD_NUMBER" | tee -a "$GITHUB_STEP_SUMMARY"
-          flutter build appbundle --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" \
+          echo "$PACKAGE_NAME ($APP_ENV) versionName: $BUILD_NAME, versionCode: $BUILD_NUMBER" | tee -a "$GITHUB_STEP_SUMMARY"
+          flutter build appbundle --release --flavor "$APP_ENV" \
+            --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" \
+            --dart-define=APP_ENV="$APP_ENV" \
             --dart-define=TELEMETRY_URL="$TELEMETRY_URL"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v7
         with:
-          name: simsplit-release.aab
-          path: build/app/outputs/bundle/release/app-release.aab
+          # release.yml and release_candidate.yml download it by this name.
+          name: simsplit-${{ env.APP_ENV }}-release.aab
+          path: build/app/outputs/bundle/${{ env.APP_ENV }}Release/app-${{ env.APP_ENV }}-release.aab
           retention-days: 7
 
       # Keyless auth via Workload Identity Federation, managed in
       # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-prd/github_actions.tf).
       # Only main and v* tags (vYYYY.M.D, vYYYY.M.D-rc.N) of this repo can impersonate the account.
+      # The same account uploads both Play apps; it needs access to SimSplit
+      # Dev in Play Console → Users and permissions too.
       - name: Authenticate to Google Cloud
         id: gcp-auth
         uses: google-github-actions/auth@v3
@@ -164,8 +180,8 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ steps.gcp-auth.outputs.credentials_file_path }}
-          packageName: com.mazino2d.simsplit
-          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: build/app/outputs/bundle/${{ env.APP_ENV }}Release/app-${{ env.APP_ENV }}-release.aab
           track: ${{ inputs.track || 'internal' }}
           status: ${{ inputs.status || (github.event_name == 'push' && 'completed') || 'draft' }}
           userFraction: ${{ inputs.user_fraction }}

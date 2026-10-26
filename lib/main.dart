@@ -11,9 +11,11 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:simsplit/app.dart';
 import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/constants/app_check.dart';
+import 'package:simsplit/core/constants/app_env.dart';
 import 'package:simsplit/core/constants/firebase_emulators.dart';
 import 'package:simsplit/domain/use_cases/telemetry/record_error.dart';
 import 'package:simsplit/firebase_options.dart';
+import 'package:simsplit/firebase_options_dev.dart';
 
 var _urlStrategySet = false;
 
@@ -25,7 +27,7 @@ void main() async {
   // so the first frame (with potentially unloaded icon fonts) is never shown.
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  // Web URLs without '#', so invite links read simsplit.web.app/join/<token>.
+  // Web URLs without '#', so invite links read <web app>/join/<token>.
   // It can be set only once, and the e2e journey calls main() per relaunch.
   if (!_urlStrategySet) {
     usePathUrlStrategy();
@@ -60,10 +62,14 @@ void _reportUncaughtErrors(ProviderContainer container) {
   };
 }
 
-/// Connects to Firebase on Android, iOS and web (no network needed). A
-/// failure must not stop the app from starting: it then stays local-only.
+/// Connects to the [appEnv] Firebase project on Android, iOS and web (no
+/// network needed). A failure must not stop the app from starting: it then
+/// stays local-only.
 Future<void> _initFirebase() async {
-  final options = DefaultFirebaseOptions.currentPlatform;
+  final options = switch (appEnv) {
+    AppEnv.dev => DevFirebaseOptions.currentPlatform,
+    AppEnv.prd => DefaultFirebaseOptions.currentPlatform,
+  };
   // The e2e journey calls main() once per relaunch.
   if (options == null || Firebase.apps.isNotEmpty) return;
   final useEmulators = firebaseEmulatorHost.isNotEmpty;

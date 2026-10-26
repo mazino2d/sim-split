@@ -29,7 +29,7 @@ follows once the Apple Developer account is active.
 | Framework | Flutter 3.47.x (Android, iOS, web) |
 | State management | Riverpod |
 | Local database | Drift / SQLite (WASM on web) |
-| Backend | Firebase Auth + Cloud Firestore (`simsplit-as-se1-prd`, asia-southeast1); Hosting serves the web app |
+| Backend | Firebase Auth + Cloud Firestore (`simsplit-as-se1-prd`, and `simsplit-as-se1-dev` for dev builds; asia-southeast1); Hosting serves the web app |
 | Architecture | Clean Architecture |
 | CI/CD | GitHub Actions + Fastlane |
 
@@ -58,10 +58,27 @@ cd sim-split
 # and downloads the web database assets matching pubspec.lock
 bash scripts/setup.sh
 
-# Run the app (App Check is enforced: debug builds need the token in .env.local)
+# Run the app (App Check is enforced: debug builds need the token in .env.local).
+# Android needs a flavor that matches APP_ENV in .env.local (see Environments).
 cp .env.example .env.local
-flutter run --dart-define-from-file=.env.local
+flutter run --flavor prd --dart-define-from-file=.env.local
 ```
+
+### Environments
+
+| | dev | prd |
+| --- | --- | --- |
+| `--dart-define=APP_ENV=` | `dev` | `prd` (the default) |
+| Android `--flavor` | `dev` | `prd` |
+| Firebase project | `simsplit-as-se1-dev` | `simsplit-as-se1-prd` |
+| Android package (Play app) | `com.mazino2d.simsplit.dev` ("SimSplit Dev") | `com.mazino2d.simsplit` ("SimSplit") |
+| Web app | [simsplit-as-se1-dev.web.app](https://simsplit-as-se1-dev.web.app) | [simsplit.web.app](https://simsplit.web.app) |
+| Ships on | every push to `main` | tags only: `vYYYY.M.D-rc.N` → Play closed testing, `vYYYY.M.D` → Play production, web, Firestore rules and indexes |
+
+Android builds need `--flavor` (a build without it fails). Web and iOS have no
+flavors; iOS always uses `prd`. Telemetry (R-4) is prd only. The Firebase options of
+the two projects are in `lib/firebase_options.dart` (prd) and
+`lib/firebase_options_dev.dart` (dev).
 
 ### Running on the web
 
@@ -97,10 +114,10 @@ flutter gen-l10n
 bash scripts/generate.sh
 
 # Debug APK (no keystore needed)
-flutter build apk --debug
+flutter build apk --debug --flavor prd
 ```
 
-Release builds (`flutter build appbundle --release`, `flutter build apk --release`)
+Release builds (`flutter build appbundle --release --flavor prd`, `flutter build apk --release --flavor prd`)
 **require** `android/key.properties`; the Gradle build fails with a clear error if
 it is missing instead of falling back to the debug key.
 
@@ -134,13 +151,13 @@ lib/
 | Workflow | Trigger | Result |
 | --- | --- | --- |
 | `pr_validate` | Every PR → `main` | Parallel format/analyze/test, store-metadata check, Firestore rules tests, telemetry endpoint tests and actionlint, each skipped unless its files change; `PR Validation` is the required check |
-| `build_android` | Push to `main` touching app code, manual (`workflow_dispatch`), or called by `release` / `release_candidate` | Signed AAB → Google Play; on push straight to internal testers, manual runs pick the track (default `internal`) |
+| `build_android` | Push to `main` touching app code, manual (`workflow_dispatch`), or called by `release` / `release_candidate` | Signed AAB → Google Play. Push and manual runs build the `dev` flavor for SimSplit Dev (`com.mazino2d.simsplit.dev`): on push straight to internal testers, manual runs pick the track (default `internal`). Tags build the `prd` flavor for `com.mazino2d.simsplit` |
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
 | `release_candidate` | Push a `vYYYY.M.D-rc.N` tag | Uploads the AAB as `YYYY.M.D-rc.N` with release notes to the closed testing track (`alpha`), creates a GitHub pre-release |
-| `release` | Push a `vYYYY.M.D` tag | Validates the tag, uploads the AAB with release notes to the `production` track as a 20 % staged rollout (sent for review), creates a GitHub Release |
+| `release` | Push a `vYYYY.M.D` tag | Validates the tag, uploads the AAB with release notes to the `production` track as a 20 % staged rollout (sent for review), deploys the web app and Firestore rules and indexes to prd (`firebase_deploy`), creates a GitHub Release |
 | `play_rollout` | Manual, from `main` | Widens the production rollout to 50 % or 100 %, or halts / resumes it |
 | `play_metadata` | Push to `main` touching `android/fastlane/metadata/**`, or manual (dry run by default) | Syncs the Play store listing, images, contact details and Data safety form — see [android/fastlane/README.md](android/fastlane/README.md) |
-| `firebase_deploy` | Push to `main` touching the app, `web/` or `firebase/**`, or manual | Builds the web app and deploys it to [simsplit.web.app](https://simsplit.web.app), with the Firestore rules and indexes |
+| `firebase_deploy` | Push to `main` touching the app, `web/` or `firebase/**`, manual, or called by `release` | Builds the web app and deploys it with the Firestore rules and indexes: to dev ([simsplit-as-se1-dev.web.app](https://simsplit-as-se1-dev.web.app)) from `main` and manual runs on a branch, to prd ([simsplit.web.app](https://simsplit.web.app)) from a `vYYYY.M.D` tag |
 | `telemetry_deploy` | Push to `main` touching `services/telemetry/**`, or manual | Builds the error report and usage endpoint (R-4) and deploys it to Cloud Run |
 | `pages` | Push to `main` touching `docs/**`, or manual; PRs build only | Publishes `docs/` (landing page, privacy policy) to [mazino2d.github.io/sim-split](https://mazino2d.github.io/sim-split/) |
 | `codeql` | Workflow changes, weekly | CodeQL scan of the workflows |
@@ -169,8 +186,9 @@ ANDROID_KEY_PASSWORD      ANDROID_KEY_ALIAS
 Workload Identity Federation as
 `gha-play-publisher@simsplit-as-se1-prd.iam.gserviceaccount.com`, defined in
 [everything-as-code](https://github.com/mazino2d/everything-as-code/blob/main/terraform/gcp/simsplit-as-se1-prd/github_actions.tf).
-Only `main` and `vX.Y.Z` tags can use it. The account must be invited in Play
-Console → Users and permissions with the app permissions listed in
+Only `main` and `vX.Y.Z` tags can use it. It uploads both Play apps (SimSplit and
+SimSplit Dev), so it must be invited in Play Console → Users and permissions with the
+app permissions listed in
 [android/fastlane/README.md](android/fastlane/README.md#play-console-access-for-ci)
 (release + Manage store presence).
 
