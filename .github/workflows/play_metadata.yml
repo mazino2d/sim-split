@@ -2,8 +2,9 @@ name: Play Store Metadata
 
 # Syncs the store listing (text, icon, feature graphic, screenshots, contact
 # details) and, when data_safety.csv changes, the Data safety form from
-# android/fastlane/metadata/android to Google Play, plan/apply
-# style:
+# android/fastlane/metadata/android to Google Play, for both apps: prd
+# (com.mazino2d.simsplit) and dev (SimSplit Dev, com.mazino2d.simsplit.dev,
+# same listing under its own title). Plan/apply style:
 #   - pull request → dry run against Play, result posted as a PR comment
 #   - push to main  → real sync
 #   - manual run    → dry run by default; a real sync only from main
@@ -93,7 +94,10 @@ jobs:
           args=(--dry-run)
           [ "$DATA_SAFETY" = "true" ] && args+=(--data-safety)
           status=0
-          python scripts/play_metadata.py sync "${args[@]}" > plan.txt 2>&1 || status=$?
+          for env in prd dev; do
+            echo "== $env" >> plan.txt
+            python scripts/play_metadata.py sync "${args[@]}" --env "$env" >> plan.txt 2>&1 || status=$?
+          done
           cat plan.txt
           echo "status=$status" >> "$GITHUB_OUTPUT"
 
@@ -153,7 +157,7 @@ jobs:
         run: pip install --quiet google-api-python-client google-auth
 
       # Same keyless identity as build_android.yml; it also needs "Manage store
-      # presence" in Play Console → Users and permissions.
+      # presence" on both apps in Play Console → Users and permissions.
       - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: projects/113980760756/locations/global/workloadIdentityPools/github/providers/sim-split
@@ -180,4 +184,8 @@ jobs:
           args=()
           [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
           [ "$DATA_SAFETY" = "true" ] && args+=(--data-safety)
-          python scripts/play_metadata.py sync "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+          # prd first, so a dev failure never holds back the production listing.
+          for env in prd dev; do
+            echo "### $env" | tee -a "$GITHUB_STEP_SUMMARY"
+            python scripts/play_metadata.py sync "${args[@]}" --env "$env" | tee -a "$GITHUB_STEP_SUMMARY"
+          done

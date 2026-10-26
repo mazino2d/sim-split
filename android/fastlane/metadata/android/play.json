@@ -2,5 +2,9 @@
   "packageName": "com.mazino2d.simsplit",
   "defaultLanguage": "en-US",
   "contactEmail": "mazino2d@gmail.com",
-  "contactWebsite": "https://github.com/mazino2d/sim-split"
+  "contactWebsite": "https://github.com/mazino2d/sim-split",
+  "dev": {
+    "packageName": "com.mazino2d.simsplit.dev",
+    "title": "SimSplit Dev"
+  }
 }
