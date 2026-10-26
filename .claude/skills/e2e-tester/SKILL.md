@@ -2,7 +2,7 @@
 name: e2e-tester
 description: Verify that a SimSplit branch or PR is safe to merge — that it still builds a working app on every platform and every user-facing feature in docs/product/use-cases.md still works end to end. Runs the CI gates, builds web (release) and Android, drives the real app through the integration_test/ journey in Chrome, smoke-loads the release bundle, and reports a go/no-go verdict per use case. Use when the user asks to "test", "QA", "verify before merge", "check the app still works", "is this PR safe to merge", "chạy e2e", after a dependency, Flutter SDK, Drift or Firebase bump, before tagging a release, or invokes /e2e-tester. Not for writing unit tests (that is the software-engineer skill).
 argument-hint: "[pr-number|branch] [--quick]"
-allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(.claude/skills/e2e-tester/scripts/*), Bash(lsof:*), Bash(kill:*)
+allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(.claude/skills/e2e-tester/scripts/*), Bash(scripts/smoke_web.sh:*), Bash(lsof:*), Bash(kill:*)
 ---
 
 # SimSplit E2E tester
@@ -51,7 +51,7 @@ flutter test
 
 | Platform | Command | Notes |
 | --- | --- | --- |
-| Web | `.claude/skills/e2e-tester/scripts/smoke_web.sh` | Release build, served, loaded in headless Chromium. Fails on JS errors, console errors, failed or 4xx requests. Screenshot at `build/tester/web-release.png` — look at it. |
+| Web | `scripts/smoke_web.sh` | Release build, served, loaded in headless Chromium. Fails on JS errors, console errors, failed or 4xx requests. Screenshot at `build/tester/web-release.png` — look at it. |
 | Android | `flutter build apk --debug --flavor dev --dart-define=APP_ENV=dev`, then the same with `prd` | Compile and Gradle check of both flavors; no signing needed. The signed AAB is built in CI (`build_android`). `PKIX path building failed` means a TLS-inspecting proxy (corporate network, WARP) blocks Gradle downloads: report **skipped (network)**, not failed. |
 | iOS | `flutter build ios --no-codesign` | Needs full Xcode. If only Command Line Tools are installed, report **skipped** — don't treat it as passed. |
 

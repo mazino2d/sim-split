@@ -47,7 +47,9 @@ Android, the matching `--flavor dev|prd`: **dev** (`simsplit-as-se1-dev`,
 `com.mazino2d.simsplit.dev`, `simsplit-as-se1-dev.web.app`) gets every push to `main`; **prd**
 (`simsplit-as-se1-prd`, `com.mazino2d.simsplit`, `simsplit.web.app`) gets only tags
 (`vYYYY.M.D-rc.N` → Play alpha, `vYYYY.M.D` → Play production, web, Firestore rules and
-indexes). Anything that differs per environment reads `appEnv`
+indexes). CI jobs that deploy run in the GitHub Environment of the same name (plus
+`store` for Play listing and rollout); every `prd` job waits for the maintainer's
+approval. Anything that differs per environment reads `appEnv`
 (`lib/core/constants/app_env.dart`); never hardcode a project, package or domain.
 
 Commits and PR titles use Conventional Commits (`feat(expenses): …`).

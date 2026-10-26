@@ -60,8 +60,9 @@ main ──► PR "chore(release): YYYY.M.D" (pubspec bump, whatsnew, docs, list
      ──► release.yml: validate-version → build_android.yml (--flavor prd, track:
          production, status: inProgress, 20 %, notes from android/fastlane/whatsnew/)
          → sent for review → GitHub Release with the AAB
-                      validate-version → firebase_deploy.yml (prd: web app at
+                                         → firebase_deploy.yml (prd: web app at
          simsplit.web.app, Firestore rules and indexes)
+         each prd job waits for approval in the prd environment     (user approves)
      ──► approved: live for 20 % (managed publishing is off)
      ──► play_rollout.yml: 50 % → 100 % after checking Android vitals  (user confirms)
 ```
@@ -142,6 +143,14 @@ GH_TOKEN=$(gh auth token --user mazino2d) gh run watch \
   $(GH_TOKEN=$(gh auth token --user mazino2d) gh run list --workflow release.yml --limit 1 --json databaseId -q '.[0].databaseId')
 ```
 
+Every job in the `prd` GitHub Environment (the Android upload, then the Firebase
+deploy) waits for the maintainer's approval: tell the user to approve it in the run
+(**Review deployments**) or with
+`gh api -X POST repos/mazino2d/sim-split/actions/runs/<run-id>/pending_deployments`
+(`-f 'environment_ids[]=<id>' -f state=approved -f comment=…`). The Firebase deploy
+starts only after the upload succeeded. Release candidates (`-rc.N` tags) wait for
+approval the same way.
+
 If `validate-version` fails, the tag and pubspec disagree: delete the tag
 (`git push origin :refs/tags/vYYYY.M.D`, with the user's OK), fix, re-tag.
 
@@ -175,6 +184,11 @@ GH_TOKEN=$(gh auth token --user mazino2d) gh workflow run play_rollout.yml -f ac
   Dev, a separate app, so they no longer race a tag; don't run `play_rollout.yml`
   while `release.yml` is uploading.
 - Only `main` and `v*` tags can authenticate to Play (Workload Identity in
-  everything-as-code), so a release from another branch fails at upload.
+  everything-as-code), so a release from another branch fails at upload. The
+  GitHub Environments enforce the same: `prd` admits `v*` tags only, `dev` and
+  `store` (`play_rollout.yml`, `play_metadata.yml`) admit `main` only.
+- A manual `firebase_deploy.yml` run always deploys dev; prd web, rules and
+  indexes ship only through `release.yml`. To redeploy prd, re-run the failed
+  jobs of the release run.
 - iOS is not in `release.yml` yet (R-3 P8); say so when the user asks for "all
   platforms".

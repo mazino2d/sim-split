@@ -20,7 +20,7 @@ tags reach production. Work spans this repo and `everything-as-code` (infrastruc
 | iOS | Out of scope; builds as today against prd. `DevFirebaseOptions` has no iOS app, so an iOS build with `APP_ENV=dev` runs local-only | No Apple Developer account (R-3 P8). |
 | Telemetry | prd only: dev builds get no `TELEMETRY_URL` | The endpoint lives in prd and only accepts prd App Check tokens; dev noise stays out of the warehouse. |
 | App Links on the dev site | `firebase/hosting/dev/` is copied over `build/web/` before a dev deploy; it holds the dev `assetlinks.json` | `web/` stays the prd source; the override is explicit and small. |
-| Prd web deploy | `release.yml` calls `firebase_deploy.yml` with `environment: prd` after `validate-version` | A mistyped tag can't deploy the web app while the Play upload is refused. |
+| Prd web deploy | `release.yml` calls `firebase_deploy.yml` with `environment: prd` after the Android build and upload succeeded; a manual run always deploys dev | A mistyped tag or a failed upload can't deploy the web app, and no other path (e.g. a release-candidate tag) reaches prd. |
 | Dev Firebase config | `lib/firebase_options_dev.dart` is committed, generated from the Firebase Management API like `lib/firebase_options.dart` | Same approach as prd; no `google-services.json` or Gradle plugin. |
 
 ## Phases
@@ -28,7 +28,7 @@ tags reach production. Work spans this repo and `everything-as-code` (infrastruc
 | Phase | Repo | Scope | Effort (days) |
 | --- | --- | --- | --- |
 | P1 | sim-split | This change: `APP_ENV`, dev Firebase options (placeholders), flavors, dev Hosting overrides, `.firebaserc` alias and target, CI split (`build_android`, `firebase_deploy`, `release`), docs | 1 |
-| P2 | everything-as-code | Stack `terraform/gcp/simsplit-as-se1-dev`: project, Firebase (Android app `com.mazino2d.simsplit.dev`, Web app, Hosting site `simsplit-as-se1-dev` (the default site; `simsplit-dev` is taken)), Auth with Google, Firestore, App Check (Play Integrity, reCAPTCHA Enterprise key), WIF for this repo and the deployer account; repo variables `DEV_GCP_WORKLOAD_IDENTITY_PROVIDER`, `DEV_GCP_SERVICE_ACCOUNT`, `DEV_FIREBASE_PROJECT`, `DEV_RECAPTCHA_ENTERPRISE_SITE_KEY` | 1 |
+| P2 | everything-as-code | Stack `terraform/gcp/simsplit-as-se1-dev`: project, Firebase (Android app `com.mazino2d.simsplit.dev`, Web app, Hosting site `simsplit-as-se1-dev` (the default site; `simsplit-dev` is taken)), Auth with Google, Firestore, App Check (Play Integrity, reCAPTCHA Enterprise key), WIF for this repo and the deployer account; repo variables `DEV_GCP_WORKLOAD_IDENTITY_PROVIDER`, `DEV_GCP_SERVICE_ACCOUNT`, `DEV_FIREBASE_PROJECT`, `DEV_RECAPTCHA_ENTERPRISE_SITE_KEY` (later replaced by the `dev` and `prd` GitHub Environments' variables: `FIREBASE_PROJECT`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_FIREBASE_DEPLOYER`, `RECAPTCHA_ENTERPRISE_SITE_KEY`, `TELEMETRY_URL`) | 1 |
 | P3 | sim-split | Fill the placeholders (below) from P2's outputs and the Play app; first dev deploy and internal build | 0.5 |
 
 ## Manual steps (no API or Terraform support)

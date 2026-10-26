@@ -1,5 +1,7 @@
 name: Release
 
+# Every job that deploys runs in the prd GitHub Environment (set in the
+# called workflows), so each one waits for the maintainer's approval.
 on:
   push:
     tags:
@@ -50,10 +52,11 @@ jobs:
     secrets: inherit
 
   # The web app, Firestore rules and indexes go to simsplit-as-se1-prd only
-  # with a production tag; main deploys them to dev.
+  # with a production tag; main deploys them to dev. They wait for the
+  # Android upload, so a failed or rejected build ships nothing to prd.
   deploy-firebase:
     name: Firebase Production Deploy
-    needs: validate-version
+    needs: [build-android]
     permissions:
       contents: read
       id-token: write

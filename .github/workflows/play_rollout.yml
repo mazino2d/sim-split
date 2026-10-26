@@ -19,6 +19,10 @@ jobs:
     name: Rollout ${{ inputs.action }}
     # Rollouts run from main only (Workload Identity would also admit v* tags).
     if: github.ref == 'refs/heads/main'
+    # Not prd: that environment admits v* tags only. `store` admits main and
+    # is the Play environment play_metadata.yml uses too (managed in
+    # mazino2d/everything-as-code).
+    environment: store
     # Play rejects concurrent edits: rollout changes run one at a time.
     concurrency:
       group: play-rollout

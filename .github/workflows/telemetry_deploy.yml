@@ -30,6 +30,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # No GitHub Environment yet: this deploys to prd from main, and the prd
+    # environment admits v* tags only. Workload Identity still limits it to
+    # main and v* tags.
     steps:
       - uses: actions/checkout@v7
 
