@@ -42,12 +42,6 @@ tags reach production. Work spans this repo and `everything-as-code` (infrastruc
    `firebase/hosting/dev/.well-known/assetlinks.json`, and the SHA-1/SHA-256 into the
    dev Firebase Android app (Google sign-in, Play Integrity).
 
-## Left to fill after the Play app exists
-
-| File | Value | Source |
-| --- | --- | --- |
-| `firebase/hosting/dev/.well-known/assetlinks.json` | the Play App Signing SHA-256 (the upload key is in) | Play Console → SimSplit Dev → App integrity |
-
 ## Risks
 
 - Until P2 is applied and its repo variables exist, the dev `firebase_deploy` run on
