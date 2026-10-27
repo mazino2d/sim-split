@@ -26,7 +26,10 @@ on:
       # play_metadata.yml and release.yml, not as a new build.
       - "!android/fastlane/**"
       - "assets/**"
+      - "l10n.yaml"
       - "pubspec.lock"
+      - ".github/actions/flutter-setup/**"
+      - ".github/workflows/build_android.yml"
   workflow_dispatch:
     inputs:
       track:
@@ -73,15 +76,19 @@ on:
       ANDROID_KEY_ALIAS:
         required: true
 
-# Never run two uploads for the same ref at once (Play rejects concurrent
-# edits), but don't cancel one that is already uploading.
-concurrency:
-  group: build-android-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   build-android:
     name: Build & Upload AAB
+    # Play rejects concurrent edits on one app, so every workflow that edits a
+    # Play app (this one, play_metadata.yml, play_rollout.yml) shares one group
+    # per package: play-<package name>. It sits on the job, not the workflow:
+    # under workflow_call a workflow-level group is evaluated in the caller's
+    # context. Callers (release.yml, release_candidate.yml) must not hold a
+    # play-* group themselves, or the called job would wait on its own caller.
+    # Never cancel a run that may be uploading.
+    concurrency:
+      group: play-${{ inputs.release_tag != '' && 'com.mazino2d.simsplit' || 'com.mazino2d.simsplit.dev' }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -132,10 +139,16 @@ jobs:
         # Play requires a unique, increasing versionCode on every upload, so the
         # "+N" build number in pubspec.yaml is overridden in CI. GITHUB_RUN_NUMBER
         # is not usable: under workflow_call it is the *caller's* counter
-        # (release.yml), so manual and tag runs would collide. Instead use minutes
-        # elapsed since 2026-01-01 UTC: monotonic across all workflows and
-        # re-runs, far above the old pubspec codes (<= 5) and far below Play's
-        # 2,100,000,000 limit.
+        # (release.yml), so manual and tag runs would collide. Instead use
+        # seconds elapsed since 2026-01-01 UTC: monotonic across all workflows
+        # and re-runs, and builds of one app also run one after the other (the
+        # play-<package> group above), so two never share a code.
+        # Until 2026-10 the code counted *minutes* since the same date, so two
+        # builds in one minute collided; those codes stay below 525,600 until
+        # 2027, while seconds were already ~25,800,000 when the switch shipped,
+        # so every new code is above every code uploaded before.
+        # Headroom: Play's limit of 2,100,000,000 seconds lasts ~66 years
+        # (until ~2092).
         #
         # The versionName tells the builds apart (Play only compares codes):
         #   production  vYYYY.M.D tag       → YYYY.M.D
@@ -149,7 +162,7 @@ jobs:
           # project only, so dev builds never send telemetry.
           TELEMETRY_URL: ${{ inputs.release_tag != '' && vars.TELEMETRY_URL || '' }}
         run: |
-          BUILD_NUMBER=$(( ($(date -u +%s) - 1767225600) / 60 ))
+          BUILD_NUMBER=$(( $(date -u +%s) - 1767225600 ))
           if [ -n "$RELEASE_TAG" ]; then
             BUILD_NAME="${RELEASE_TAG#v}"
           else
@@ -182,7 +195,7 @@ jobs:
           service_account: gha-play-publisher@simsplit-as-se1-prd.iam.gserviceaccount.com
 
       - name: Upload to Play Store
-        uses: r0adkll/upload-google-play@v1
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJson: ${{ steps.gcp-auth.outputs.credentials_file_path }}
           packageName: ${{ env.PACKAGE_NAME }}
