@@ -26,7 +26,8 @@ below so it can be re-entered or audited.
     comment ("Would change: …") and updated on every push. Same-repo PRs only;
     the sync script always comes from `main`, the PR only supplies files.
   - **Merge to `main`** → the listing is synced to Play automatically.
-  - **Manual run** → dry run by default; runs outside `main` are always dry runs.
+  - **Manual run** (from `main` only: the `store` environment rejects other
+    branches) → dry run by default; untick `dry_run` for a real sync.
 - Only images present in the repo are synced; an image type with no files here
   is left untouched on Play. Pushing the listing replaces what was edited by
   hand in Play Console for the same fields.

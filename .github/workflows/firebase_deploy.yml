@@ -59,11 +59,20 @@ jobs:
     steps:
       # The prd environment admits every v* tag, release candidates too, so
       # the exact production tag is checked here as well.
+      # The project and deployer come from environment variables. An unset
+      # FIREBASE_PROJECT would make firebase-tools fall back to the
+      # .firebaserc default (prd), so both must be set and match the
+      # environment before anything is built.
       - name: Check environment
+        env:
+          FIREBASE_PROJECT: ${{ vars.FIREBASE_PROJECT }}
+          GCP_FIREBASE_DEPLOYER: ${{ vars.GCP_FIREBASE_DEPLOYER }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
         run: |
           case "$APP_ENV" in
-            dev) ;;
+            dev) expected=simsplit-as-se1-dev ;;
             prd)
+              expected=simsplit-as-se1-prd
               if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
                 echo "::error::prd deploys only from a vYYYY.M.D tag, not '$GITHUB_REF_NAME'"
                 exit 1
@@ -71,6 +80,17 @@ jobs:
               ;;
             *) echo "::error::Unknown environment '$APP_ENV'"; exit 1 ;;
           esac
+          : "${FIREBASE_PROJECT:?vars.FIREBASE_PROJECT is not set in the $APP_ENV environment}"
+          : "${GCP_FIREBASE_DEPLOYER:?vars.GCP_FIREBASE_DEPLOYER is not set in the $APP_ENV environment}"
+          : "${GCP_WORKLOAD_IDENTITY_PROVIDER:?vars.GCP_WORKLOAD_IDENTITY_PROVIDER is not set in the $APP_ENV environment}"
+          if [ "$FIREBASE_PROJECT" != "$expected" ]; then
+            echo "::error::$APP_ENV must deploy to $expected, but FIREBASE_PROJECT is '$FIREBASE_PROJECT'"
+            exit 1
+          fi
+          if [[ "$GCP_FIREBASE_DEPLOYER" != *"@$expected.iam.gserviceaccount.com" ]]; then
+            echo "::error::GCP_FIREBASE_DEPLOYER '$GCP_FIREBASE_DEPLOYER' is not an account of $expected"
+            exit 1
+          fi
           echo "Deploying $APP_ENV from $GITHUB_REF_NAME" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/checkout@v7
@@ -110,9 +130,12 @@ jobs:
       - name: Deploy Firestore and Hosting
         env:
           FIREBASE_PROJECT: ${{ vars.FIREBASE_PROJECT }}
-        run: >-
-          npx --yes firebase-tools@14 deploy --only firestore,hosting
-          --project "$FIREBASE_PROJECT" --non-interactive
+        # Checked above; repeated so this step can never deploy to the
+        # .firebaserc default.
+        run: |
+          : "${FIREBASE_PROJECT:?}"
+          npx --yes firebase-tools@14.27.0 deploy --only firestore,hosting \
+            --project "$FIREBASE_PROJECT" --non-interactive
 
       # dev only: prd changes ship with the release, which the maintainer
       # checks by hand. The dev site is the project's default Hosting site.

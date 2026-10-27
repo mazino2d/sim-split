@@ -12,6 +12,8 @@ updates:
       pub-minor-patch:
         update-types: [minor, patch]
 
+  # Third-party actions are pinned to a commit SHA with a "# vX.Y.Z" comment;
+  # Dependabot bumps the SHA and the comment together.
   - package-ecosystem: github-actions
     directories:
       - /
@@ -21,6 +23,31 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  # R-4 telemetry endpoint (Cloud Run) and its base image.
+  - package-ecosystem: npm
+    directory: /services/telemetry
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      telemetry-npm-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /services/telemetry
+    schedule:
+      interval: weekly
+
+  # Firestore rules tests (firebase/test).
+  - package-ecosystem: npm
+    directory: /firebase/test
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      rules-test-npm-minor-patch:
+        update-types: [minor, patch]
 
   # Features in .devcontainer/devcontainer.json (the Flutter version in its
   # Dockerfile is bumped by hand together with flutter-setup).

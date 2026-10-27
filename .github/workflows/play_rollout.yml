@@ -24,9 +24,11 @@ jobs:
     # is the Play environment play_metadata.yml uses too (managed in
     # mazino2d/everything-as-code).
     environment: store
-    # Play rejects concurrent edits: rollout changes run one at a time.
+    # Play rejects concurrent edits on one app: the same group as uploads
+    # (build_android.yml) and listing syncs (play_metadata.yml) of the
+    # package this edits (play.json packageName, the prd app).
     concurrency:
-      group: play-rollout
+      group: play-com.mazino2d.simsplit
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
