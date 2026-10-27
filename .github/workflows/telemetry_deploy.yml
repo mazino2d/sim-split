@@ -1,44 +1,82 @@
 name: Telemetry Deploy
 
 # Builds the R-4 telemetry endpoint (services/telemetry) and deploys it to the
-# Cloud Run service `telemetry` in simsplit-as-se1-prd. The service, its limits
+# Cloud Run service `telemetry` of one environment. The service, its limits
 # and the deployer account are managed in mazino2d/everything-as-code
-# (terraform/gcp/simsplit-as-se1-prd/telemetry.tf); this workflow only ships
-# new images. It ships with production releases only:
-#   - release.yml calls it for a vYYYY.M.D tag after checking the tag against
-#     pubspec.yaml, or
-#   - a manual run from such a tag (to redeploy without a new release).
-# The job runs in the prd GitHub Environment, so it waits for the
-# maintainer's approval. PRs test the endpoint in pr_validate.yml.
+# (terraform/gcp/simsplit-as-se1-<env>/telemetry.tf); this workflow only ships
+# new images.
+#   - dev: push to main touching the endpoint, or a manual run from main
+#     → simsplit-as-se1-dev, which writes to dataplatform-as-se1-dev.
+#   - prd: release.yml calls it for a vYYYY.M.D tag after checking the tag
+#     against pubspec.yaml, or a manual run from such a tag (to redeploy
+#     without a new release) → simsplit-as-se1-prd.
+# Each job runs in the GitHub Environment of the same name, which holds the
+# image repository and deployer; prd waits for the maintainer's approval.
+# PRs test the endpoint in pr_validate.yml.
 on:
-  workflow_call:
+  push:
+    branches: [main]
+    paths:
+      - services/telemetry/**
+      - .github/workflows/telemetry_deploy.yml
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "dev or prd (prd only from a vYYYY.M.D tag)"
+        type: choice
+        options: [dev, prd]
+        default: dev
+  workflow_call:
+    inputs:
+      environment:
+        description: "dev or prd"
+        type: string
+        required: true
 
 permissions:
   contents: read
   id-token: write
 
 concurrency:
-  group: telemetry-deploy
+  group: telemetry-deploy-${{ inputs.environment || 'dev' }}
   cancel-in-progress: false
 
 env:
   REGION: asia-southeast1
-  IMAGE: asia-southeast1-docker.pkg.dev/simsplit-as-se1-prd/telemetry/telemetry
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: prd
+    # inputs.environment is unset on push, which always deploys dev.
+    environment: ${{ inputs.environment || 'dev' }}
+    env:
+      APP_ENV: ${{ inputs.environment || 'dev' }}
+      IMAGE: ${{ vars.TELEMETRY_IMAGE_REPOSITORY }}/telemetry
     steps:
-      # The prd environment admits every v* tag, release candidates too, so
-      # the exact production tag is checked here. Under workflow_call the ref
-      # is the caller's tag.
-      - name: Check tag
+      # The image repository and deployer come from environment variables, so
+      # both must be set and belong to the environment's project. The prd
+      # environment admits every v* tag, release candidates too, so the exact
+      # production tag is checked as well. Under workflow_call the ref is the
+      # caller's tag.
+      - name: Check environment
+        env:
+          TELEMETRY_IMAGE_REPOSITORY: ${{ vars.TELEMETRY_IMAGE_REPOSITORY }}
+          GCP_TELEMETRY_DEPLOYER: ${{ vars.GCP_TELEMETRY_DEPLOYER }}
         run: |
-          if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Telemetry deploys only from a vYYYY.M.D tag, not '$GITHUB_REF_NAME'"
+          case "$APP_ENV" in
+            dev) expected=simsplit-as-se1-dev ;;
+            prd)
+              expected=simsplit-as-se1-prd
+              if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "::error::prd deploys only from a vYYYY.M.D tag, not '$GITHUB_REF_NAME'"
+                exit 1
+              fi
+              ;;
+            *) echo "::error::Unknown environment '$APP_ENV'"; exit 1 ;;
+          esac
+          if [[ "$TELEMETRY_IMAGE_REPOSITORY" != */"$expected"/* ]] || [[ "$GCP_TELEMETRY_DEPLOYER" != *"@$expected.iam.gserviceaccount.com" ]]; then
+            echo "::error::Environment $APP_ENV must point at $expected (TELEMETRY_IMAGE_REPOSITORY='$TELEMETRY_IMAGE_REPOSITORY', GCP_TELEMETRY_DEPLOYER='$GCP_TELEMETRY_DEPLOYER')"
             exit 1
           fi
 
@@ -49,8 +87,8 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
-          workload_identity_provider: projects/113980760756/locations/global/workloadIdentityPools/github/providers/sim-split
-          service_account: gha-telemetry-deployer@simsplit-as-se1-prd.iam.gserviceaccount.com
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_TELEMETRY_DEPLOYER }}
 
       - uses: google-github-actions/setup-gcloud@v3
 

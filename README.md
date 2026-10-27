@@ -76,7 +76,7 @@ flutter run --flavor prd --dart-define-from-file=.env.local
 | Ships on | every push to `main` | tags only: `vYYYY.M.D-rc.N` → Play closed testing, `vYYYY.M.D` → Play production, web, Firestore rules and indexes |
 
 Android builds need `--flavor` (a build without it fails). Web and iOS have no
-flavors; iOS always uses `prd`. Telemetry (R-4) is prd only. The Firebase options of
+flavors; iOS always uses `prd`. Telemetry (R-4) goes to each environment's own endpoint and warehouse (`dataplatform-as-se1-dev` for dev). The Firebase options of
 the two projects are in `lib/firebase_options.dart` (prd) and
 `lib/firebase_options_dev.dart` (dev).
 
@@ -197,8 +197,8 @@ app permissions listed in
 
 **Firebase deploys** need no secret either: the `dev` and `prd` GitHub Environments
 hold the same variables (`FIREBASE_PROJECT`, `GCP_WORKLOAD_IDENTITY_PROVIDER`,
-`GCP_FIREBASE_DEPLOYER`, `RECAPTCHA_ENTERPRISE_SITE_KEY`, and in prd `TELEMETRY_URL`),
-set by everything-as-code.
+`GCP_FIREBASE_DEPLOYER`, `RECAPTCHA_ENTERPRISE_SITE_KEY`, `TELEMETRY_URL`,
+`TELEMETRY_IMAGE_REPOSITORY`, `GCP_TELEMETRY_DEPLOYER`), set by everything-as-code.
 
 **iOS (not needed until the Apple account is active):**
 

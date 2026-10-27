@@ -156,11 +156,12 @@ jobs:
         #   anything else (main, manual)    → YYYY.M.D-dev.<sha7>, build date UTC
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
-          # R-4 telemetry endpoint, a prd environment variable set by
-          # everything-as-code; while it is unset, error reports are queued but
-          # never sent. The endpoint accepts App Check tokens from the prd
-          # project only, so dev builds never send telemetry.
-          TELEMETRY_URL: ${{ inputs.release_tag != '' && vars.TELEMETRY_URL || '' }}
+          # R-4 telemetry endpoint of the job's environment, set by
+          # everything-as-code: dev builds send to simsplit-as-se1-dev's
+          # endpoint (warehouse dataplatform-as-se1-dev), prd builds to prd's.
+          # Each endpoint accepts App Check tokens from its own project only.
+          # While it is unset, error reports are queued but never sent.
+          TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
         run: |
           BUILD_NUMBER=$(( $(date -u +%s) - 1767225600 ))
           if [ -n "$RELEASE_TAG" ]; then

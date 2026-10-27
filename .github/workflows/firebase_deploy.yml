@@ -99,8 +99,8 @@ jobs:
 
       # App Check on web (R-3 P9). The reCAPTCHA Enterprise site key is public
       # and comes from the environment; while it is unset, App Check stays off
-      # on web. TELEMETRY_URL is set in prd only (the endpoint accepts App
-      # Check tokens from prd).
+      # on web. TELEMETRY_URL is the environment's own endpoint (each accepts
+      # App Check tokens from its own project only).
       - name: Build web
         env:
           RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.RECAPTCHA_ENTERPRISE_SITE_KEY }}
