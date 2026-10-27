@@ -17,6 +17,7 @@ Read the reference that matches the layer you touch before writing code:
 | `lib/domain/`, `lib/data/` (incl. `sync/`), `lib/core/di/` | [references/architecture.md](references/architecture.md) |
 | `lib/presentation/` (screens, widgets, providers, theme) | [references/presentation.md](references/presentation.md) |
 | `.github/workflows/`, `firebase/`, releases, store metadata | [references/ci.md](references/ci.md) |
+| `services/telemetry/` (TypeScript, Node 24: the R-4 endpoint on Cloud Run) | the `telemetry-analyst` skill and `docs/implementations/R-4-error-reports-and-usage-analytics.md`; test with `npm ci --prefix services/telemetry`, `npm --prefix services/telemetry run typecheck`, `npm --prefix services/telemetry test` |
 
 ## Implementation plans
 
@@ -41,10 +42,17 @@ criteria here — raise spec changes with the product owner.
    look unrelated to your change.
 
 4. **Test** at the right level (see Testing below). Bug fixes start with a
-   failing test that reproduces the bug.
-5. **Check** with exactly what CI runs (analyze, format, test — see
-   `AGENTS.md`). If `firebase/` changed, also run the rules tests
-   ([references/ci.md](references/ci.md)).
+   failing test that reproduces the bug. Every new interactive callback in
+   `lib/presentation` is wrapped in `context.tracked(TelemetryEvent.…, …)` (or
+   `trackedValue`, `trackedCall`, `trackedValueCall`; helpers in
+   `lib/presentation/utils/tracking.dart`), every new use case runs through
+   `trackOp` or a notifier's `_run(event, …)`, and a new event name is added to
+   `lib/domain/entities/telemetry/telemetry_event.dart`.
+   `test/unit/presentation/tracking_coverage_test.dart` must pass.
+5. **Check** with exactly what CI runs for the paths you touched
+   (`AGENTS.md` § What CI runs on every PR): analyze, format and test, plus the
+   rules tests if `firebase/` changed and the endpoint tests if
+   `services/telemetry/` changed.
 
 6. **See it.** For UI changes, render the screen (golden preview with
    provider overrides, or `flutter run -d chrome --dart-define-from-file=.env.local`)

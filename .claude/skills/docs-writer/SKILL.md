@@ -29,7 +29,10 @@ Docs copied from docs is how drift spreads.
 
 - `docs/product/strategy.md`, `principles.md`, `use-cases.md`, `roadmap.md` and
   `specs/` belong to the **product-owner** skill. Fix links, typos and status mirrors
-  there; never change criteria, non-goals or priorities — tell the user instead.
+  there; never change criteria, non-goals or priorities — tell the user instead. A
+  shipped status comes from the plan's phase table and you only mirror it into the
+  roadmap; moving an item between horizons is product-owner's (`release-manager`
+  mirrors the same way).
 - The technical content of `docs/implementations/` plans belongs to
   **software-engineer**. You may update the phase table's status and keep its
   wording in house style.

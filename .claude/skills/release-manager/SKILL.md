@@ -1,7 +1,7 @@
 ---
 name: release-manager
-description: Plan, check and ship a SimSplit release to Google Play production (and later the App Store) — pick the CalVer version (YYYY.M.D), review what is in main since the last tag, walk the pre-release checklist (CI, e2e, Data safety, store listing, privacy policy, Firebase and App Check), bump pubspec.yaml, push the v-tag that runs release.yml (release notes, 100 % release sent for review), widen a staged rollout with play_rollout.yml when one is used and record it in the docs. Use when the user asks to "release", "ship", "go live", "lên production", "lên version mới", "tag a release", "promote to production", "what do I need before releasing", "release checklist", or invokes /release-manager. Not for internal-test uploads (every app-code merge to main uploads one to the separate SimSplit [Dev] app; other branches: run build_android.yml manually) or for verifying a PR (e2e-tester).
-argument-hint: "[plan|preflight|ship|post] [YYYY.M.D]"
+description: Plan, check and ship a SimSplit release to Google Play production (and later the App Store) — pick the CalVer version (YYYY.M.D), review what is in main since the last tag, walk the pre-release checklist (CI, e2e, Data safety, store listing, privacy policy, Firebase and App Check), bump pubspec.yaml, optionally cut a release candidate (vYYYY.M.D-rc.N tag → release_candidate.yml → Play closed testing), push the v-tag that runs release.yml (release notes, 100 % release sent for review), widen a staged rollout with play_rollout.yml when one is used and record it in the docs. Use when the user asks to "release", "ship", "go live", "lên production", "lên version mới", "tag a release", "promote to production", "cut a release candidate", "tag an RC", "what do I need before releasing", "release checklist", or invokes /release-manager. Not for internal-test uploads (every app-code merge to main uploads one to the separate SimSplit [Dev] app; other branches: run build_android.yml manually) or for verifying a PR (e2e-tester).
+argument-hint: "[plan|preflight|rc|ship|post] [YYYY.M.D]"
 allowed-tools: Read, Edit, Write, Grep, Glob, AskUserQuestion, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(python3 scripts/play_metadata.py check), Bash(python3 .claude/skills/docs-writer/scripts/*)
 ---
 
@@ -31,7 +31,8 @@ Releases use **CalVer `YYYY.M.D`** of the day the tag is pushed, e.g. `2026.10.2
   increases. Bump `N` by one anyway so local builds differ.
 - Tag: `v2026.10.22`. It matches the `v[0-9]+.[0-9]+.[0-9]+` filter in
   `release.yml`, and `validate-version` fails the run if it differs from pubspec.
-- One production release per day. A same-day hotfix takes the next day's date.
+- One production release per day. A same-day hotfix takes the next day's date
+  (`incident-responder` hands hotfixes over here).
 - The last semver release is `1.0.0` (the offline R-2 build). Everything after it is
   CalVer; Play only compares versionCodes, so the jump from 1.0.0 is fine.
 
@@ -96,15 +97,15 @@ Run what can be run; list the rest as manual steps for the user.
 | # | Gate | How | Who |
 | --- | --- | --- | --- |
 | 1 | CI green on the release commit | the release PR's checks passed (`gh pr checks <n>`, required `PR Validation`); `gh run list --branch main --limit 5` shows the push runs green | you |
-| 2 | End-to-end | run the `e2e-tester` skill on `main`; for a Firebase release also on Android against the emulators | you |
-| 3 | Upgrade path | the previous production version upgrades cleanly: Drift migration test from its schema, first sign-in uploads local data (R-3 AC7/AC8) | you |
+| 2 | End-to-end | run the `e2e-tester` skill on `main` (web, against the emulators); Android: the user checks the changed flows by hand on the SimSplit [Dev] internal build of that `main` commit (versionName `YYYY.M.D-dev.<sha7>`), since no Android emulator runs here | you, then user |
+| 3 | Upgrade path | the previous production version upgrades cleanly: `test/unit/data/database/migration_test.dart` passes (it upgrades the 1.0 schema, `test/fixtures/schema_v2.sql`); if this release bumps `schemaVersion` in `lib/data/database/app_database.dart`, it also needs a case from the previous production schema, first sign-in uploads local data (R-3 AC7/AC8) | you |
 | 4 | Store listing | EN and VI describe what the build does; `python3 scripts/play_metadata.py check` passes | you, via `docs-writer` |
 | 5 | Privacy policy | `docs/privacy-policy.html` names the right versions and the data collected | you, via `docs-writer` |
 | 6 | Data safety | `android/fastlane/metadata/android/data_safety.csv` matches the build (account name, email, user ID, user content; encrypted in transit; deletion via the app and the web); `play_metadata.yml` uploads it on merge | you |
 | 7 | Sign in details | if sign-in is required, Play Console → App content → Sign in details (was App access) says so and how reviewers get in (any Google account); no API | user |
 | 8 | Account deletion URL | `PSL_ACCOUNT_DELETION_URL` in `data_safety.csv` points at `privacy-policy.html#delete` | you |
 | 9 | Signing fingerprints | Play App Signing SHA-1/SHA-256 are in Firebase (Google sign-in, Play Integrity) and in `assetlinks.json` (App Links); see everything-as-code `terraform/gcp/simsplit-as-se1-prd/_docs/setup.md` | user |
-| 10 | Backend ready | the rules and indexes on `main` deployed cleanly to dev (`firebase_deploy` push runs green); the tag deploys them to prd, so a new index must build before the app needs it; budget and kill switch healthy | you check runs, user checks console |
+| 10 | Backend ready | the rules and indexes on `main` deployed cleanly to dev (`firebase_deploy` push runs green, including the smoke test of the live dev site; look at its `smoke-dev` screenshot artifact); the tag deploys them to prd, so a new index must build before the app needs it; budget and kill switch healthy | you check runs, user checks console |
 | 11 | App Check | still enforced (`app_check_enforced = true` in everything-as-code); App Check metrics show verified traffic on Android and web | user checks console |
 | 12 | Release notes | `whatsnew/whatsnew-{en-US,vi}` describe this release; `python3 scripts/play_metadata.py check` passes | you |
 
@@ -132,7 +133,27 @@ makes the listing describe a build users can't get yet. Merge the release PR and
 push the tag the same day, and tell the user the listing is live before the build
 is approved.
 
-## 4. Ship (irreversible — ask first)
+## 4. Release candidate (optional — ask first)
+
+Mode `rc`: put `main`'s build in front of closed testers (Play `alpha`) on the
+production app before the production tag, e.g. for a backend-facing or risky
+release. It needs no release PR; pubspec is not checked.
+
+```bash
+git fetch origin --tags --quiet
+git tag --list 'vYYYY.M.D-rc.*'             # today's candidates; N is the next number from 1
+git switch main && git pull --ff-only
+git tag -a vYYYY.M.D-rc.N -m "SimSplit YYYY.M.D-rc.N"
+git push origin vYYYY.M.D-rc.N              # only after the user's yes
+```
+
+`release_candidate.yml` checks the tag format (`vYYYY.M.D-rc.N`, no zero padding,
+N from 1), builds with `--flavor prd`, uploads to `alpha` as completed with the
+`whatsnew/` notes, and creates a GitHub pre-release. The upload waits in the
+`prd` environment for the user's approval, like a production job. An RC build
+is not promoted to production by tagging; see § Known pitfalls.
+
+## 5. Ship (irreversible — ask first)
 
 Show the user the commit, version and checklist, and wait for an explicit yes. Then:
 
@@ -146,12 +167,12 @@ GH_TOKEN=$(gh auth token --user mazino2d) gh run watch \
 ```
 
 Every job in the `prd` GitHub Environment (the Android upload, then the Firebase
-deploy, and the telemetry deploy) waits for the maintainer's approval: tell the
-user to approve it in the run (**Review deployments**) or with
-`gh api -X POST repos/mazino2d/sim-split/actions/runs/<run-id>/pending_deployments`
-(`-f 'environment_ids[]=<id>' -f state=approved -f comment=…`). The Firebase deploy
-starts only after the upload succeeded. Release candidates (`-rc.N` tags) wait for
-approval the same way.
+deploy, and the telemetry deploy) waits for the maintainer's approval. The user
+approves each one in the run UI (GitHub → Actions → the run → **Review
+deployments**). **Never approve a `prd` deployment yourself**, by any route (see
+`AGENTS.md` § Destructive and production actions): give the user the run URL and
+wait. The Firebase deploy starts only after the upload succeeded. Release
+candidates (`-rc.N` tags) wait for approval the same way.
 
 If `validate-version` fails, the tag and pubspec disagree: delete the tag
 (`git push origin :refs/tags/vYYYY.M.D`, with the user's OK), fix, re-tag.
@@ -169,10 +190,13 @@ GH_TOKEN=$(gh auth token --user mazino2d) gh workflow run play_rollout.yml -f ac
 # bad vitals: -f action=halt (users who have it keep it), later -f action=resume
 ```
 
-## 5. Post-release
+## 6. Post-release
 
-- Release live → update the roadmap / implementation plan status (`product-owner`,
-  `docs-writer`), and the landing page if it names the version.
+- Release live → mark the phase shipped in the implementation plan's phase table,
+  then have `docs-writer` mirror that status into the roadmap row,
+  `docs/product/index.md`, the spec and the landing page (if it names the
+  version). `product-owner` owns `docs/product/roadmap.md` — moving the item out
+  of Now is its call, with the user; here you only mirror the status.
 - Check the GitHub Release `SimSplit vYYYY.M.D` has the AAB.
 - Watch Firebase usage and budget for the first days after a backend-facing
   release.
