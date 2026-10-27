@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@google-cloud/bigquery-storage": "^5.0.0",
+    "@google-cloud/bigquery-storage": "^6.3.0",
     "firebase-admin": "^14.5.0"
   },
   "devDependencies": {
