@@ -51,10 +51,9 @@ Pick this mode when the user brings a feature idea or request.
 1. **Restate the job.** One sentence: who, in what moment, wants what outcome. If you
    can't, ask — "what happened that made you want this?" beats "what should it do?".
 2. **Run the gates** (stop at the first hard fail and discuss it):
-   - Non-negotiables — quote each one from `strategy.md` and check the idea against it
-     (today: one shared truth per group, full trust with an auditable history, free to
-     run at ~100 users). An idea that adds roles/approvals, can lose or silently alter
-     synced data, or needs a paid backend plan fails here.
+   - Non-negotiables — read them in `strategy.md` (§ Non-negotiable) now, don't work from
+     memory, quote each one and check the idea against it. An idea that breaks one fails
+     here.
    - Non-goals — is this on the list? If so, has something changed that justifies
      revisiting it?
    - Product over profit — is the motivation revenue, engagement or lock-in rather than a
@@ -62,9 +61,10 @@ Pick this mode when the user brings a feature idea or request.
    - Persona — does it serve the trip bookkeeper, or only a secondary persona?
    - Principles — does it add interruption (Calm) or taps to the default path (Fast
      capture)? Remember Calm wins.
-   - Strong defaults — does it weaken one-tap sign-in, offline-after-sign-in, no ads /
-     no third-party analytics, or data used only for sync? Allowed, but only with the
-     trade-off written in the roadmap entry.
+   - Strong defaults (`strategy.md` § Strong defaults) — does it weaken one-tap sign-in,
+     offline after sign-in, no ads and no third-party analytics SDK, data never sold or
+     shared with third parties, or anonymous, opt-out error reports? Allowed, but only
+     with the trade-off written in the roadmap entry.
 3. **Map to value.** Which North Star bar or core success criterion does it move? If none,
    ask the user to articulate the reason or treat it as a likely "no".
 4. **Ask the questions that matter** (pick the relevant ones, not all):
@@ -137,7 +137,10 @@ Status: draft | ready | shipped   ·   Serves: <UC ids>   ·   Roadmap: <horizon
 Pick this mode for "what next?", reprioritising, or a periodic review.
 
 1. Read the roadmap plus recent history: `git log --oneline -20`. Mark shipped items
-   (move them out of Now, link the PR in Notes) — confirm with the user first.
+   (move them out of Now, link the PR in Notes) — confirm with the user first. You own
+   `docs/product/roadmap.md`: `release-manager` and `docs-writer` only mirror a shipped
+   status into it from the plan's phase table; horizons, scores and moves are decided
+   here.
 2. Check the store listing claims (`android/fastlane/metadata/android/*/full_description.txt`)
    against what the app does; a promised-but-missing feature is a backlog item.
 3. Ask 1–3 questions: has anything changed (tester feedback, Play vitals, ratings)? Is any

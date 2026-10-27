@@ -2,7 +2,7 @@
 name: pr-writer
 description: Draft and open a GitHub pull request for the SimSplit repo (mazino2d/sim-split). Use whenever the user asks to "write a PR", "open/create a PR", "tạo PR", "push and open a PR", "draft a PR description", or "/pr-writer" — including at the end of any coding task in this repo when the user wants the work submitted. Reviews the branch diff against Clean Architecture rules, runs the same checks as CI, writes an English title and body, and creates the PR with gh.
 argument-hint: "[base-branch] [--draft]"
-allowed-tools: Bash(git:*), Bash(gh:*), Bash(flutter pub get:*), Bash(dart run build_runner:*), Bash(flutter gen-l10n:*), Bash(flutter analyze:*), Bash(dart format:*), Bash(flutter test:*)
+allowed-tools: Bash(git:*), Bash(gh:*), Bash(flutter pub get:*), Bash(dart run build_runner:*), Bash(flutter gen-l10n:*), Bash(flutter analyze:*), Bash(dart format:*), Bash(flutter test:*), Bash(python3 .claude/skills/docs-writer/scripts/check_docs.py*), Bash(python3 scripts/play_metadata.py check), Bash(npm ci --prefix firebase/test), Bash(npm ci --prefix services/telemetry), Bash(npm --prefix services/telemetry run typecheck), Bash(npm --prefix services/telemetry test), Bash(npx firebase-tools@14 emulators:exec --only firestore --project demo-simsplit:*)
 ---
 
 # Write a SimSplit pull request
@@ -55,18 +55,14 @@ git diff origin/<base>...HEAD -U0 | grep -nE '^\+.*\.members\b'
 
 ## 3. Run CI checks locally
 
-Same as `.github/workflows/pr_validate.yml`. Run them whenever the PR touches Dart sources or their build inputs (the `dart` filter in `pr_validate.yml`); docs-only PRs skip these jobs. The format check covers the whole repo, so pre-existing issues on the base branch fail CI too.
+Run every job of `.github/workflows/pr_validate.yml` whose paths the diff touches. The jobs, their path filters and their local commands are listed once, in `AGENTS.md` § What CI runs on every PR — read it there; don't work from memory. Docs-only PRs skip them all. The format check covers the whole repo, so pre-existing issues on the base branch fail CI too.
 
-Resolve packages and regenerate code first. Without `pub get`, `dart format` can't read the package language version and reformats far more files than CI does.
+For the Dart jobs, resolve packages and regenerate code first. Without `pub get`, `dart format` can't read the package language version and reformats far more files than CI does.
 
 ```bash
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs
 flutter gen-l10n
-
-flutter analyze --fatal-infos
-dart format --output=none --set-exit-if-changed .
-flutter test
 ```
 
 Report results honestly. If something fails, show the output and ask whether to fix it or open the PR anyway (then list the failure under Notes for reviewers).
@@ -76,7 +72,7 @@ Report results honestly. If something fails, show the output and ask whether to 
 Conventional Commits, imperative, ≤ 72 chars, no trailing period:
 
 `<type>(<optional scope>): <summary>` — types: `feat`, `fix`, `refactor`, `chore`, `test`, `docs`, `ci`, `perf`.
-Scopes match the feature area: `groups`, `members`, `expenses`, `settlements`, `activity`, `sync`, `auth`, `invites`, `firebase`, `l10n`, `db`, `ui`, `ci`, `store`, `deps`, `skills`, `release`, `ios`, `android`; for docs, the doc area (`product`, `roadmap`, `r3`). Check `git log --oneline -30` when unsure.
+Scopes match the feature area: `groups`, `members`, `expenses`, `settlements`, `activity`, `sync`, `auth`, `invites`, `firebase`, `telemetry`, `env`, `l10n`, `db`, `ui`, `ci`, `store`, `play`, `security`, `e2e`, `deps`, `skills`, `release`, `ios`, `android`, `github`; for docs, the doc area (`product`, `roadmap`, `store`, or the release, e.g. `r3`, `r4`). Check `git log --oneline -30` when unsure.
 
 Example: `feat(expenses): add paid-by dropdown to expense form`
 
@@ -104,12 +100,20 @@ Use this template. Delete sections that don't apply — never leave placeholder 
 - [ ] Manual: <steps actually verified on device/simulator, or what reviewers should verify>
 
 ## Notes for reviewers
-<Risky areas, DB migrations, follow-ups, rule violations from step 2. Omit if none.>
+<What merging does (see below), risky areas, DB migrations, follow-ups, rule violations from step 2.>
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
-Tick a checkbox only for checks that actually ran and passed.
+Tick a checkbox only for checks that actually ran and passed. List every CI job from step 3 that ran (rules, telemetry, store metadata), not only the Dart three.
+
+Merging is a deploy, so say in Notes for reviewers what this PR's merge sets off (read the workflows' `on:` paths; `../software-engineer/references/ci.md` summarises them):
+
+- App code (`lib/`, `web/`, `assets/`, `pubspec.*`) → the web app, rules and indexes deploy to dev (`simsplit-as-se1-dev.web.app`); `lib/`, `android/`, `assets/` or `pubspec.lock` also upload an Android build to SimSplit [Dev] internal testing.
+- `firebase/` → rules and indexes deploy to dev.
+- `android/fastlane/metadata/` → `play_metadata.yml` syncs the store listing (and `data_safety.csv`) to **both** Play apps; it goes live on Play after Play's review — production users see it before the next build ships.
+- `docs/` → GitHub Pages (landing page, privacy policy) goes live.
+- Nothing reaches prd builds or `simsplit.web.app` until a `vYYYY.M.D` tag (`release-manager`).
 
 ## 6. Confirm, push, create
 

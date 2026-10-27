@@ -1,6 +1,6 @@
 ---
 name: uiux-designer
-description: Design SimSplit's brand assets — the launcher icon (iOS, Android adaptive and themed), the splash logo, and Play Store graphics (hi-res icon, feature graphic, framed screenshots in EN and VI). Works from hand-written SVG masters in design/, renders 2–3 variants on a review sheet for the user to pick, then exports PNGs and regenerates platform icons. Use when the user asks to design, redesign or update the app icon, splash, feature graphic, store screenshots or "brand assets", or invokes /uiux-designer.
+description: Design SimSplit's brand assets — the launcher icon (iOS, Android adaptive and themed), the splash logo, Play Store graphics (hi-res icon, feature graphic, framed screenshots in EN and VI), App Store screenshots (iPhone 6.9" and iPad 13") and the landing page's icon and screens (docs/assets/). Works from hand-written SVG masters in design/, renders 2–3 variants on a review sheet for the user to pick, then regenerates every output with one pipeline, design/build.py. Use when the user asks to design, redesign or update the app icon, splash, feature graphic, Play or App Store screenshots, landing page images or "brand assets", "thiết kế icon", "làm lại ảnh store", or invokes /uiux-designer.
 argument-hint: "[icon|splash|feature-graphic|screenshots] <brief>"
 allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion, Bash(.claude/skills/uiux-designer/scripts/*), Bash(python3 .claude/skills/uiux-designer/scripts/*), Bash(dart run flutter_launcher_icons*), Bash(dart run flutter_native_splash*), Bash(python3 design/build.py*), Bash(flutter test*), Bash(flutter analyze*), Bash(git status*), Bash(git diff*)
 ---
@@ -72,10 +72,10 @@ For the feature graphic or screenshots, render each variant with
 
 ### 4. Promote and export
 
-Move the chosen master to `design/<asset>/<asset>.svg` (delete the other
-variants unless the user wants them kept) and derive siblings from it — e.g.
+Move the chosen master to `design/<asset>/<asset>.svg` and derive siblings from it — e.g.
 the adaptive foreground and monochrome layers are the icon glyph without the
-background, scaled into the 61% safe zone.
+background, scaled into the 61% safe zone. List the other variants for the user and
+delete them only after they confirm.
 
 Then regenerate every output from the sources with **one command**:
 
@@ -110,7 +110,8 @@ output by hand. For a one-off render use
   generated platform icon files and `pubspec.yaml` changes only.
 - Run `flutter analyze --fatal-infos` if `pubspec.yaml` changed.
 - If the store listing changed, remind the user that `play_metadata` syncs it
-  on merge to `main`.
+  on merge to `main` to **both** Play apps (SimSplit, then SimSplit [Dev]),
+  and it goes live after Play's review — before the next build ships.
 - If the landing page assets changed (`docs/assets/`), they go live on GitHub
   Pages on merge — check `docs/index.html` still references them.
 

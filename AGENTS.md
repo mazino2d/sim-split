@@ -36,11 +36,31 @@ bash scripts/setup.sh                                      # bootstrap once afte
 dart run build_runner build --delete-conflicting-outputs   # after changing models / DAOs / providers
 flutter gen-l10n                                           # after changing ARB files
 flutter analyze --fatal-infos                              # ┐
-dart format --output=none --set-exit-if-changed .          # ├ what CI runs on every PR
+dart format --output=none --set-exit-if-changed .          # ├ CI on Dart changes (see below)
 flutter test                                               # ┘
 cp .env.example .env.local                                 # once: local build settings (gitignored)
 flutter run -d chrome --dart-define-from-file=.env.local   # run the app (on Android add --flavor prd|dev)
 ```
+
+Commits and PR titles use Conventional Commits (`feat(expenses): …`).
+
+### What CI runs on every PR
+
+`.github/workflows/pr_validate.yml` runs only the jobs whose paths changed (a skipped job
+counts as passing) and reports one required check, `PR Validation`. This is the complete
+list; skills and other docs point here instead of copying it.
+
+| Job | Runs when the diff touches | Run it locally |
+| --- | --- | --- |
+| Format, Analyze, Test | `lib/`, `test/`, `pubspec.*`, `analysis_options.yaml`, `build.yaml`, `l10n.yaml`, `.github/actions/flutter-setup/` | `flutter pub get`, codegen and `gen-l10n`, then the three commands above |
+| Store metadata | `android/fastlane/metadata/`, `android/fastlane/whatsnew/`, `scripts/play_metadata.py` | `python3 scripts/play_metadata.py check` |
+| Firestore rules | `firebase.json`, `firebase/` | `npm ci --prefix firebase/test`, then `npx firebase-tools@14 emulators:exec --only firestore --project demo-simsplit "npm --prefix firebase/test test"` (needs Java) |
+| Telemetry endpoint | `services/telemetry/` | `npm ci --prefix services/telemetry`, then `npm --prefix services/telemetry run typecheck` and `npm --prefix services/telemetry test` |
+| Lint workflows | `.github/workflows/`, `.github/actions/` | actionlint (the shared `lint.yml` in mazino2d/github-workflows) |
+
+A change to `pr_validate.yml` itself runs every job.
+
+### Environments
 
 Two environments, picked with `--dart-define=APP_ENV=dev|prd` (default `prd`) and, on
 Android, the matching `--flavor dev|prd`: **dev** (`simsplit-as-se1-dev`,
@@ -52,7 +72,22 @@ indexes). CI jobs that deploy run in the GitHub Environment of the same name (pl
 approval. Anything that differs per environment reads `appEnv`
 (`lib/core/constants/app_env.dart`); never hardcode a project, package or domain.
 
-Commits and PR titles use Conventional Commits (`feat(expenses): …`).
+## Destructive and production actions
+
+These cannot be undone or reach real users. Never run them on your own initiative, even
+when a skill or a script's docstring shows the command: list what would be affected
+(accounts, tags, releases, documents, users) and wait for the user to do it or say yes.
+
+- **Never run `scripts/wipe_accounts.py --yes`.** It deletes every Firebase Auth user and
+  all Firestore data in `simsplit-as-se1-prd`, plus the warehouse copy in
+  `simsplit_raw` (`dataplatform-as-se1-prd`). Without `--yes` it only counts.
+- **Never delete** tags or branches on `origin`, GitHub Releases, Play releases, Firestore
+  documents or BigQuery tables and rows.
+- **Never approve a `prd` deployment** — not in the run's **Review deployments**, not
+  through the `pending_deployments` API. The maintainer approves every `prd` job in the
+  run UI.
+- Pushing a `v*` tag, running `play_rollout.yml` and merging to `main` (which deploys dev
+  and syncs both Play listings) wait for the user's explicit go-ahead.
 
 ## Skills
 
@@ -66,6 +101,8 @@ the matching `SKILL.md` before starting the task.
 | Keep README, site, privacy policy, store listing and other docs in sync with a change; audit docs for drift | [`docs-writer`](.claude/skills/docs-writer/SKILL.md) — doc map of every fact's source and mirrors |
 | Open a pull request | [`pr-writer`](.claude/skills/pr-writer/SKILL.md) |
 | Verify a branch or PR before merge (builds + end-to-end use cases) | [`e2e-tester`](.claude/skills/e2e-tester/SKILL.md) |
-| Plan, check and ship a release to Google Play (CalVer `YYYY.M.D`, tag, Play Console) | [`release-manager`](.claude/skills/release-manager/SKILL.md) — preflight checklist and release flow |
+| Plan, check and ship a release to Google Play (CalVer `YYYY.M.D`, release candidate, tag, Play Console) | [`release-manager`](.claude/skills/release-manager/SKILL.md) — preflight checklist and release flow |
 | Triage ideas, write specs, update the roadmap | [`product-owner`](.claude/skills/product-owner/SKILL.md) — strategy and specs in `docs/product/` (public on GitHub Pages) |
-| App icon, splash, Play Store graphics | [`uiux-designer`](.claude/skills/uiux-designer/SKILL.md) — SVG masters in `design/` |
+| App icon, splash, Play Store and App Store graphics, landing page images | [`uiux-designer`](.claude/skills/uiux-designer/SKILL.md) — SVG masters in `design/`, one pipeline in `design/build.py` |
+| A production error or outage: triage, severity, same-day hotfix | [`incident-responder`](.claude/skills/incident-responder/SKILL.md) — R-4 error reports, read-only queries, hand-off to `release-manager` |
+| Telemetry endpoint, tracked events, usage questions to the warehouse | [`telemetry-analyst`](.claude/skills/telemetry-analyst/SKILL.md) — `services/telemetry/`, event schema, privacy rules, read-only BigQuery |

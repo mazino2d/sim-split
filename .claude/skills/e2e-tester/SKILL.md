@@ -2,7 +2,7 @@
 name: e2e-tester
 description: Verify that a SimSplit branch or PR is safe to merge — that it still builds a working app on every platform and every user-facing feature in docs/product/use-cases.md still works end to end. Runs the CI gates, builds web (release) and Android, drives the real app through the integration_test/ journey in Chrome, smoke-loads the release bundle, and reports a go/no-go verdict per use case. Use when the user asks to "test", "QA", "verify before merge", "check the app still works", "is this PR safe to merge", "chạy e2e", after a dependency, Flutter SDK, Drift or Firebase bump, before tagging a release, or invokes /e2e-tester. Not for writing unit tests (that is the software-engineer skill).
 argument-hint: "[pr-number|branch] [--quick]"
-allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(.claude/skills/e2e-tester/scripts/*), Bash(scripts/smoke_web.sh:*), Bash(lsof:*), Bash(kill:*)
+allowed-tools: Read, Edit, Write, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(.claude/skills/e2e-tester/scripts/*), Bash(scripts/smoke_web.sh:*), Bash(npm ci --prefix firebase/test), Bash(npm ci --prefix services/telemetry), Bash(npm --prefix services/telemetry run typecheck), Bash(npm --prefix services/telemetry test), Bash(npx firebase-tools@14 emulators:exec --only firestore --project demo-simsplit:*), Bash(python3 scripts/play_metadata.py check), Bash(lsof -i:*), Bash(pkill -f chromedriver)
 ---
 
 # SimSplit E2E tester
@@ -37,13 +37,20 @@ mismatches). Always regenerate first.
 
 ## 2. CI gates
 
-Same commands as `pr_validate`; all must pass.
+Every `pr_validate` job the diff triggers; all must pass. The jobs, their path
+filters and their local commands are listed once, in `AGENTS.md` § What CI runs
+on every PR. The Dart three always run here:
 
 ```bash
 dart format --output=none --set-exit-if-changed .
 flutter analyze --fatal-infos
 flutter test
 ```
+
+Add the Firestore rules job when the diff touches `firebase.json` or `firebase/`,
+the telemetry endpoint job (`npm` typecheck and test) when it touches
+`services/telemetry/`, and the store metadata check when it touches
+`android/fastlane/`.
 
 `--quick` stops here plus step 4 (E2E). Otherwise continue.
 
@@ -68,6 +75,14 @@ them through `--dart-define=FIREBASE_EMULATOR_HOST=localhost`, on the
 `demo-simsplit` project, and the journey signs in with a fake Google token
 that only the emulator accepts. It fetches a chromedriver that matches the
 installed Chrome into `.dart_tool/chromedriver/` on first use.
+
+**The journey runs only against the emulators, on `demo-simsplit`** — `e2e_web.sh`
+enforces it with `emulators:exec --project demo-simsplit` and
+`FIREBASE_EMULATOR_HOST=localhost`. Never point it at `simsplit-as-se1-dev` or
+`simsplit-as-se1-prd` (no `APP_ENV`, `--dart-define-from-file=.env.local` or
+dropped emulator host in the extra arguments): UC-8 creates invite links and
+UC-7.6 deletes the signed-in account, so a run against a real project writes and
+deletes real data.
 
 [integration_test/app_test.dart](../../../integration_test/app_test.dart) has
 one test per use case. They run in order on one database, and each one
@@ -97,6 +112,10 @@ Reading failures:
   message lists the texts that were on screen, so you can see where the
   app actually was.
 - Messages are also written to `build/integration_response_data.json`.
+- A port already in use (chromedriver on 4444, the emulators on 8080 and 9099)
+  means a previous run was left behind: find it with `lsof -i:<port>`; a stale
+  chromedriver goes with `pkill -f chromedriver`. Ask before stopping anything
+  else.
 - The script runs in **debug** mode on purpose: `enterText` does not reach
   text fields on web in profile or release mode, so a non-debug E2E run fails
   for test-harness reasons, not app reasons. Release-mode coverage comes from
@@ -111,7 +130,8 @@ Reading failures:
 | --- | --- |
 | `drift` or `sqlite3` version in `pubspec.lock` | Re-download the web worker and WASM that match: run the web-assets block of `scripts/setup.sh`, then repeat steps 3–4. A mismatched `web/drift_worker.js` breaks storage on web only. |
 | Flutter SDK pin (`.github/actions/flutter-setup`) | Install that SDK locally first; run everything. |
-| `firebase/` (rules, indexes) | Run the rules tests (see the `software-engineer` skill's `references/ci.md`); the E2E journey in step 4 also exercises the rules through the emulator. |
+| `firebase/` (rules, indexes) | The rules tests from step 2 are mandatory; the E2E journey in step 4 also exercises the rules through the emulator. |
+| `services/telemetry/` | The telemetry job from step 2 is mandatory. The journey sends no telemetry (no `TELEMETRY_URL`), so the endpoint is covered by its unit tests only. |
 | `lib/data/sync/` or `lib/data/repositories/firestore_*` | Step 4 is mandatory; UC-7.2 and UC-8 are the sync checks — read their output closely. |
 | A new screen or user flow | Add or extend a test in `integration_test/` for it (follow the existing helpers: `launch`, `openGroup`, `tapAndWait`, `waitFor`). |
 | `lib/core/l10n/*.arb` | Switch to Vietnamese by hand and check the changed screens for truncation. |
