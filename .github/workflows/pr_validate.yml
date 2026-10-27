@@ -30,7 +30,7 @@ jobs:
       firebase: ${{ steps.filter.outputs.firebase }}
       telemetry: ${{ steps.filter.outputs.telemetry }}
     steps:
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
           # Only Dart sources and their build inputs affect format/analyze/test.
@@ -99,10 +99,10 @@ jobs:
       - name: Run tests with coverage
         run: flutter test --coverage
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: coverage/lcov.info
+          files: coverage/lcov.info
           fail_ci_if_error: false
 
   store-metadata:
@@ -131,7 +131,7 @@ jobs:
         run: npm ci --prefix firebase/test
       - name: Test rules on the Firestore emulator
         run: >-
-          npx --yes firebase-tools@14 emulators:exec --only firestore
+          npx --yes firebase-tools@14.27.0 emulators:exec --only firestore
           --project demo-simsplit "npm --prefix firebase/test test"
 
   # The R-4 telemetry endpoint: type check and unit tests (fakes for Firebase

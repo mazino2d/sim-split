@@ -170,7 +170,8 @@ Shared logic comes from [mazino2d/github-workflows](https://github.com/mazino2d/
 
 Google Play needs a unique, increasing `versionCode` for every upload. CI ignores
 the `+N` build number in `pubspec.yaml` and passes
-`--build-number=<minutes since 2026-01-01 UTC>` to `flutter build appbundle`, which
+`--build-number=<seconds since 2026-01-01 UTC>` (minutes until 2026-10; seconds are
+always larger) to `flutter build appbundle`, which
 is monotonic across manual and tag-triggered runs. The `versionName` comes from the
 tag (`YYYY.M.D`, `YYYY.M.D-rc.N`), or is `YYYY.M.D-dev.<sha7>` for untagged builds;
 `pubspec.yaml`'s version is only checked against the production tag.

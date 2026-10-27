@@ -7,10 +7,12 @@ name: Play Store Metadata
 # same listing under its own title). Plan/apply style:
 #   - pull request → dry run against Play, result posted as a PR comment
 #   - push to main  → real sync
-#   - manual run    → dry run by default; a real sync only from main
+#   - manual run    → from main only; dry run by default, real sync when
+#                     dry_run is unticked
 # Both jobs run in the `store` GitHub Environment (managed in
-# mazino2d/everything-as-code), which admits main only; pull_request_target
-# runs on main too.
+# mazino2d/everything-as-code), which admits main only (pull_request_target
+# runs on main too), so a manual run from any other branch is rejected
+# before it starts; there is no branch preview.
 on:
   # pull_request_target runs with the base ref (main), which is what the
   # Workload Identity provider accepts. The plan job therefore must never run
@@ -29,7 +31,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Only report what would change (always on outside main)"
+        description: "Only report what would change (run from main)"
         type: boolean
         default: true
       data_safety:
@@ -47,6 +49,10 @@ jobs:
     if: >-
       github.event_name == 'pull_request_target' &&
       github.event.pull_request.head.repo.full_name == github.repository
+    # Not in the play-<package> groups: a dry run never commits its edit (it
+    # deletes it), so it can't clobber another workflow's edit, and PR plans
+    # shouldn't wait for uploads. A commit elsewhere at the same moment can
+    # fail the plan; re-run it.
     concurrency:
       group: play-metadata-plan-${{ github.event.pull_request.number }}
       cancel-in-progress: true
@@ -137,11 +143,23 @@ jobs:
           exit "$STATUS"
 
   apply:
-    name: Sync store listing
+    name: Sync store listing (${{ matrix.env }})
     if: github.event_name != 'pull_request_target'
-    # Applies queue up in order and are never cancelled half-way.
+    # One job per app, so each can join that app's Play edit group.
+    strategy:
+      # A dev failure never holds back the production listing, or vice versa.
+      fail-fast: false
+      matrix:
+        include:
+          - env: prd
+            package: com.mazino2d.simsplit
+          - env: dev
+            package: com.mazino2d.simsplit.dev
+    # Play rejects concurrent edits on one app: the same group as uploads
+    # (build_android.yml) and rollouts (play_rollout.yml) of that package.
+    # Never cancelled half-way.
     concurrency:
-      group: play-metadata-apply
+      group: play-${{ matrix.package }}
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -151,8 +169,6 @@ jobs:
       id-token: write # OIDC token for Workload Identity Federation
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 2
 
       - uses: actions/setup-python@v7
         with:
@@ -168,12 +184,22 @@ jobs:
           workload_identity_provider: projects/113980760756/locations/global/workloadIdentityPools/github/providers/sim-split
           service_account: gha-play-publisher@simsplit-as-se1-prd.iam.gserviceaccount.com
 
-      # On push, re-upload the Data safety form only when its CSV changed.
+      # On push, re-upload the Data safety form only when its CSV changed
+      # anywhere in the push (github.event.before..HEAD), not just in the last
+      # commit. The shallow checkout has HEAD only, so fetch `before` too (one
+      # commit is enough to diff two trees). No usable `before` (a new branch
+      # pushes all zeros, or a force push dropped it) → upload to be safe.
       - name: Detect Data safety change
         id: data-safety
         if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
         run: |
-          if git diff --quiet HEAD~1 HEAD -- "$METADATA/data_safety.csv"; then
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] \
+            || ! git fetch --no-tags --depth=1 origin "$BEFORE"; then
+            echo "No usable base commit ('$BEFORE'); uploading Data safety"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$BEFORE" HEAD -- "$METADATA/data_safety.csv"; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -181,16 +207,16 @@ jobs:
 
       - name: Sync
         env:
-          # Only main may change Play; manual runs on other branches are previews.
+          # The `store` environment admits main only, so this job never runs
+          # elsewhere; the ref check is a second guard that keeps any other
+          # ref from changing Play.
           DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) || github.ref != 'refs/heads/main' }}
           DATA_SAFETY: ${{ inputs.data_safety || steps.data-safety.outputs.changed == 'true' }}
+          APP_ENV: ${{ matrix.env }}
         run: |
           set -o pipefail
           args=()
           [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
           [ "$DATA_SAFETY" = "true" ] && args+=(--data-safety)
-          # prd first, so a dev failure never holds back the production listing.
-          for env in prd dev; do
-            echo "### $env" | tee -a "$GITHUB_STEP_SUMMARY"
-            python scripts/play_metadata.py sync "${args[@]}" --env "$env" | tee -a "$GITHUB_STEP_SUMMARY"
-          done
+          echo "### $APP_ENV" | tee -a "$GITHUB_STEP_SUMMARY"
+          python scripts/play_metadata.py sync "${args[@]}" --env "$APP_ENV" | tee -a "$GITHUB_STEP_SUMMARY"

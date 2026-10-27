@@ -27,7 +27,7 @@ Releases use **CalVer `YYYY.M.D`** of the day the tag is pushed, e.g. `2026.10.2
   semver, which forbids leading zeros, because pubspec and `release.yml` treat it as
   `X.Y.Z`.
 - pubspec: `version: 2026.10.22+N`. The `+N` is ignored in CI — `build_android.yml`
-  overrides the versionCode with minutes since 2026-01-01 UTC, so it always
+  overrides the versionCode with seconds since 2026-01-01 UTC, so it always
   increases. Bump `N` by one anyway so local builds differ.
 - Tag: `v2026.10.22`. It matches the `v[0-9]+.[0-9]+.[0-9]+` filter in
   `release.yml`, and `validate-version` fails the run if it differs from pubspec.
