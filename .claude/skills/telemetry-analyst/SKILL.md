@@ -103,6 +103,6 @@ GROUP BY name ORDER BY events DESC LIMIT 20'
 - Always filter on `received_at` (the partition column): it keeps queries in
   the free tier. Run `--dry_run` first on anything that scans more than a week.
 - Say what the data can't tell: device clocks make `client_time` unreliable
-  (use `received_at`), dev builds send nothing, and sending started with the
+  (use `received_at`), dev builds send to `dataplatform-as-se1-dev` instead (same tables, plus `fake-` rows from data-platform), and sending started with the
   2026.10.24 release, so there is no earlier data. With a few dozen users, give counts, not percentages to a decimal.
 - Ask which gcloud account to use before the first query.

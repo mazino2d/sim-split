@@ -74,6 +74,8 @@ jobs:
       contents: read
       id-token: write
     uses: ./.github/workflows/telemetry_deploy.yml
+    with:
+      environment: prd
 
   # build-ios:                         # disabled — Apple Developer account not yet active
   #   name: iOS App Store Build
