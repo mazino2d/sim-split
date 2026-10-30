@@ -30,7 +30,9 @@ const handle = createHandler({
   // Cloud Run turns each JSON line on stdout into a structured log entry.
   log: (entry) => console.log(JSON.stringify(entry)),
   now: () => new Date(),
-  allowedOrigins: ['https://simsplit.web.app', 'https://simsplit-as-se1-prd.web.app', 'http://localhost'],
+  // The web app of this environment's project (simsplit-as-se1-dev.web.app in
+  // dev), plus the prd custom domain.
+  allowedOrigins: ['https://simsplit.web.app', `https://${env('FIREBASE_PROJECT_ID')}.web.app`, 'http://localhost'],
 });
 
 createServer((req, res) => {
