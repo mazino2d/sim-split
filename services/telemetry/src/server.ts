@@ -31,8 +31,13 @@ const handle = createHandler({
   log: (entry) => console.log(JSON.stringify(entry)),
   now: () => new Date(),
   // The web app of this environment's project (simsplit-as-se1-dev.web.app in
-  // dev), plus the prd custom domain.
-  allowedOrigins: ['https://simsplit.web.app', `https://${env('FIREBASE_PROJECT_ID')}.web.app`, 'http://localhost'],
+  // dev), plus the prd custom domain. Local web builds (localhost) belong in
+  // dev, so prd never takes them.
+  allowedOrigins: [
+    'https://simsplit.web.app',
+    `https://${env('FIREBASE_PROJECT_ID')}.web.app`,
+    ...(env('FIREBASE_PROJECT_ID') === 'simsplit-as-se1-prd' ? [] : ['http://localhost']),
+  ],
 });
 
 createServer((req, res) => {
