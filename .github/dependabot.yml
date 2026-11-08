@@ -33,11 +33,20 @@ updates:
     groups:
       telemetry-npm-minor-patch:
         update-types: [minor, patch]
+    # Keep @types/node on the runtime's major: odd Node majors never become
+    # LTS, so skip their types.
+    ignore:
+      - dependency-name: "@types/node"
+        versions: ["25.x", "27.x", "29.x"]
 
   - package-ecosystem: docker
     directory: /services/telemetry
     schedule:
       interval: weekly
+    # Odd Node majors never become LTS; stay on even (LTS) majors.
+    ignore:
+      - dependency-name: node
+        versions: ["~> 25.0", "~> 27.0", "~> 29.0"]
 
   # Firestore rules tests (firebase/test).
   - package-ecosystem: npm
