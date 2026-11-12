@@ -36,8 +36,9 @@ Releases use **CalVer `YYYY.M.D`** of the day the tag is pushed, e.g. `2026.10.2
 - The last semver release is `1.0.0` (the offline R-2 build). Everything after it is
   CalVer; Play only compares versionCodes, so the jump from 1.0.0 is fine.
 
-Every build gets a versionName that says what it is (`build_android.yml` passes
-`--build-name`; pubspec only has to match production tags):
+Every build gets a versionName that says what it is (`.github/actions/build-version`
+computes `--build-name` for both `build_android.yml` and `firebase_deploy.yml`, so the
+web app reports the same version; pubspec only has to match production tags):
 
 | Build | Trigger | versionName | Play app | Play track |
 | --- | --- | --- | --- | --- |
@@ -46,8 +47,9 @@ Every build gets a versionName that says what it is (`build_android.yml` passes
 | Production | tag `vYYYY.M.D` (`release.yml`) | `YYYY.M.D` | SimSplit | production, 100 % |
 
 The web app, Firestore rules and indexes follow the same split: `main` deploys them
-to dev (`simsplit-as-se1-dev.web.app`), and only the production tag deploys them to prd
-(`simsplit.web.app`), from `release.yml`.
+to dev (`simsplit-as-se1-dev.web.app`, version `YYYY.M.D-dev.<sha7>`), and only the
+production tag deploys them to prd (`simsplit.web.app`, version `YYYY.M.D`), from
+`release.yml`.
 
 An RC's date is the day it is cut and N counts that day's candidates from 1; it
 does not need to match pubspec or the later production date. RC builds carry the
