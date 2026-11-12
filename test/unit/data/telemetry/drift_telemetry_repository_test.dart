@@ -12,6 +12,7 @@ import 'package:simsplit/data/repositories/drift_telemetry_repository.dart';
 import 'package:simsplit/data/telemetry/telemetry_sender.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/domain/failures/group_failure.dart';
+import 'package:simsplit/domain/failures/invite_failure.dart';
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -110,6 +111,16 @@ void main() {
         .recordError(const GroupFailure.notFound(), null, shownToUser: true);
     final [report] = await queued();
     expect(report['error_type'], startsWith('shown:'));
+  });
+
+  test(
+      'a failure is reported by its stable name, which web builds do not '
+      'minify (#108)', () async {
+    repository().recordError(const InviteFailure.invalidLink(), null,
+        shownToUser: true);
+    final [report] = await queued();
+    expect(report['error_type'], 'shown:invite_invalid_link');
+    expect(report['message'], 'invite_invalid_link');
   });
 
   test('the same error is sent once per session, with a count (AC15)',

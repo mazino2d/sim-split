@@ -83,11 +83,9 @@ Future<Either<Failure, T>> trackOp<T>(
   return result;
 }
 
-/// `GroupNameTooShort` → `group_name_too_short`.
-String failureName(Failure failure) => failure.runtimeType
-    .toString()
-    .replaceAllMapped(RegExp('(?<=[a-z0-9])[A-Z]'), (m) => '_${m[0]}')
-    .toLowerCase();
+/// `GroupNameTooShort` → `group_name_too_short`. Uses [Failure.name], not
+/// `runtimeType`, which dart2js minifies on web (#108).
+String failureName(Failure failure) => failure.name;
 
 /// Records dialogs, bottom sheets and menus opening and closing (AC8). Their
 /// content is never named: the screen they open over says where.

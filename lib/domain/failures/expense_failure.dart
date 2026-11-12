@@ -1,7 +1,7 @@
 import 'package:simsplit/domain/failures/core_failure.dart';
 
 sealed class ExpenseFailure extends Failure {
-  const ExpenseFailure() : super();
+  const ExpenseFailure(super.name);
 
   const factory ExpenseFailure.notFound() = ExpenseNotFound;
   const factory ExpenseFailure.memberNotFound() = ExpenseMemberNotFound;
@@ -19,53 +19,53 @@ sealed class ExpenseFailure extends Failure {
 }
 
 final class ExpenseNotFound extends ExpenseFailure {
-  const ExpenseNotFound() : super();
+  const ExpenseNotFound() : super('expense_not_found');
 }
 
 final class ExpenseMemberNotFound extends ExpenseFailure {
-  const ExpenseMemberNotFound() : super();
+  const ExpenseMemberNotFound() : super('expense_member_not_found');
 }
 
 final class InvalidSplitType extends ExpenseFailure {
-  const InvalidSplitType() : super();
+  const InvalidSplitType() : super('invalid_split_type');
 }
 
 final class PercentageDoesNotSum extends ExpenseFailure {
-  const PercentageDoesNotSum() : super();
+  const PercentageDoesNotSum() : super('percentage_does_not_sum');
 }
 
 final class ExactDoesNotSum extends ExpenseFailure {
-  const ExactDoesNotSum() : super();
+  const ExactDoesNotSum() : super('exact_does_not_sum');
 }
 
 final class InvalidShares extends ExpenseFailure {
-  const InvalidShares() : super();
+  const InvalidShares() : super('invalid_shares');
 }
 
 final class NoParticipants extends ExpenseFailure {
-  const NoParticipants() : super();
+  const NoParticipants() : super('no_participants');
 }
 
 final class AmountMustBePositive extends ExpenseFailure {
-  const AmountMustBePositive() : super();
+  const AmountMustBePositive() : super('amount_must_be_positive');
 }
 
 /// The payer or a split participant does not belong to the expense's group.
 final class ExpenseMemberNotInGroup extends ExpenseFailure {
-  const ExpenseMemberNotInGroup() : super();
+  const ExpenseMemberNotInGroup() : super('expense_member_not_in_group');
 }
 
 /// The expense title is empty or whitespace only.
 final class ExpenseTitleEmpty extends ExpenseFailure {
-  const ExpenseTitleEmpty() : super();
+  const ExpenseTitleEmpty() : super('expense_title_empty');
 }
 
 /// The same member appears more than once in the split inputs.
 final class DuplicateParticipant extends ExpenseFailure {
-  const DuplicateParticipant() : super();
+  const DuplicateParticipant() : super('duplicate_participant');
 }
 
 /// A percentage or exact split value is negative.
 final class NegativeSplitValue extends ExpenseFailure {
-  const NegativeSplitValue() : super();
+  const NegativeSplitValue() : super('negative_split_value');
 }

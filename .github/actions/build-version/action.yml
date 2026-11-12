@@ -1,0 +1,50 @@
+name: Build version
+description: >
+  Computes the app's --build-name and --build-number, shared by the Android
+  and web builds so both report the same version for the same commit (#126).
+
+  The build name tells the builds apart:
+    production  vYYYY.M.D tag       → YYYY.M.D
+    closed test vYYYY.M.D-rc.N tag  → YYYY.M.D-rc.N
+    anything else (main, manual)    → YYYY.M.D-dev.<sha7>, build date UTC
+
+  The build number is seconds since 2026-01-01 UTC. Play requires a unique,
+  increasing versionCode on every upload; GITHUB_RUN_NUMBER is not usable
+  because under workflow_call it is the *caller's* counter (release.yml), so
+  manual and tag runs would collide. Seconds are monotonic across all
+  workflows and re-runs. Until 2026-10 the code counted *minutes* since the
+  same date; those codes stay below 525,600 until 2027, while seconds were
+  already ~25,800,000 when the switch shipped, so every new code is above
+  every code uploaded before. Headroom: Play's limit of 2,100,000,000 seconds
+  lasts until ~2092.
+
+inputs:
+  release-tag:
+    description: The v* tag being released, or empty for a dev build.
+    required: false
+    default: ""
+
+outputs:
+  build-name:
+    description: Value for --build-name.
+    value: ${{ steps.version.outputs.build-name }}
+  build-number:
+    description: Value for --build-number.
+    value: ${{ steps.version.outputs.build-number }}
+
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      env:
+        RELEASE_TAG: ${{ inputs.release-tag }}
+      run: |
+        BUILD_NUMBER=$(( $(date -u +%s) - 1767225600 ))
+        if [ -n "$RELEASE_TAG" ]; then
+          BUILD_NAME="${RELEASE_TAG#v}"
+        else
+          BUILD_NAME="$(date -u +%Y.%-m.%-d)-dev.${GITHUB_SHA::7}"
+        fi
+        echo "build-name=$BUILD_NAME" >> "$GITHUB_OUTPUT"
+        echo "build-number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"

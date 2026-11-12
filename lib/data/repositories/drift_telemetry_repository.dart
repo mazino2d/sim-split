@@ -274,10 +274,11 @@ class DriftTelemetryRepository implements TelemetryRepository {
   }
 
   String _errorType(Object error) {
-    final type = error.runtimeType.toString();
+    // Failures carry a stable name; runtimeType is minified on web (#108).
+    if (error is Failure) return error.name;
     // Unwrap the presentation layer's FailureException(…) to the failure.
     final inner = RegExp(r'^FailureException\((\w+)\)$').firstMatch('$error');
-    return inner?.group(1) ?? type;
+    return inner?.group(1) ?? error.runtimeType.toString();
   }
 
   Future<bool> _takeDailySlot(String dayKey, String countKey, int max) async {

@@ -86,6 +86,10 @@ right(entity)                                // success
 
 New failures need a localized message in
 `lib/presentation/utils/failure_message.dart`.
+Each concrete failure passes its snake_case class name to `super('…')`
+(`InviteInvalidLink` → `'invite_invalid_link'`); telemetry uses it because
+`runtimeType` is minified on web. Add it to the list in
+`test/unit/domain/failures/failure_name_test.dart`.
 
 ## Use case
 
