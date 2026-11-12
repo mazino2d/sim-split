@@ -36,8 +36,9 @@ class _Recorder implements TelemetryRepository {
 }
 
 class _Form extends StatefulWidget {
-  const _Form({required this.submit});
+  const _Form({required this.submit, this.end = false});
   final bool submit;
+  final bool end;
   @override
   State<_Form> createState() => _FormState();
 }
@@ -49,10 +50,16 @@ class _FormState extends State<_Form> with TrackedForm<_Form> {
   TelemetryEvent get formAbandoned => TelemetryEvent.formGroupAbandoned;
 
   @override
-  Widget build(BuildContext context) => TextButton(
-        onPressed: widget.submit ? markSubmitted : null,
-        child: const Text('save'),
-      );
+  Widget build(BuildContext context) => Column(children: [
+        TextButton(
+          onPressed: widget.submit ? markSubmitted : null,
+          child: const Text('save'),
+        ),
+        TextButton(
+          onPressed: widget.end ? markEnded : null,
+          child: const Text('delete'),
+        ),
+      ]);
 }
 
 void main() {
@@ -146,6 +153,15 @@ void main() {
     await tester.pumpWidget(app(const SizedBox()));
     expect([for (final t in recorder.tracked) t.$2],
         ['form_group_submitted', 'form_group_abandoned']);
+  });
+
+  testWidgets(
+      'a form ended by deleting what it edits is neither submitted nor '
+      'abandoned (#129)', (tester) async {
+    await tester.pumpWidget(app(const _Form(submit: false, end: true)));
+    await tester.tap(find.text('delete'));
+    await tester.pumpWidget(app(const SizedBox()));
+    expect(recorder.tracked, isEmpty);
   });
 
   testWidgets('dialogs are recorded as opened and closed', (tester) async {

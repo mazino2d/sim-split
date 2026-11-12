@@ -443,6 +443,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen>
       ),
       (_) {
         _isDirty = false;
+        markEnded();
         context.go('/groups/${widget.groupId}');
       },
     );

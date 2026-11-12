@@ -147,7 +147,10 @@ class _MemberFormScreenState extends ConsumerState<MemberFormScreen>
       (failure) => scaffoldMessenger.showSnackBar(
         SnackBar(content: Text(failureMessage(failure, l10n))),
       ),
-      (_) => context.pop(),
+      (_) {
+        markEnded();
+        context.pop();
+      },
     );
   }
 

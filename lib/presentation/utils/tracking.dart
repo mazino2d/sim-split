@@ -135,6 +135,11 @@ mixin TrackedForm<W extends StatefulWidget> on State<W> {
     _formTrack?.call(formSubmitted.kind, formSubmitted.wireName);
   }
 
+  /// Ends the form without a submitted or abandoned event, for an action
+  /// that finishes the form some other way, such as deleting what it edits
+  /// (#129). The action's own op event records it.
+  void markEnded() => _formSubmitted = true;
+
   @override
   void dispose() {
     if (!_formSubmitted) {
