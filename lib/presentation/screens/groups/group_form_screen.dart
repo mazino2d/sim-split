@@ -441,6 +441,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
       (_) {
         _isDirty = false;
         _pendingRenames.clear();
+        markEnded();
         context.go('/');
       },
     );
