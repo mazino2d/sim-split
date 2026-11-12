@@ -9,6 +9,7 @@ import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/repositories/auth_repository.dart';
 import 'package:simsplit/domain/repositories/expense_repository.dart';
 import 'package:simsplit/domain/repositories/group_repository.dart';
+import 'package:simsplit/domain/repositories/invite_repository.dart';
 import 'package:simsplit/domain/repositories/local_data_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
@@ -30,6 +31,8 @@ class MockLocalDataRepository extends Mock implements LocalDataRepository {}
 class MockSyncRepository extends Mock implements SyncRepository {}
 
 class MockUserProfileRepository extends Mock implements UserProfileRepository {}
+
+class MockInviteRepository extends Mock implements InviteRepository {}
 
 final testDate = DateTime(2024);
 

@@ -373,8 +373,12 @@ ResetInviteLink resetInviteLink(Ref ref) =>
     ResetInviteLink(inviteRepository: ref.watch(inviteRepositoryProvider));
 
 @riverpod
-JoinGroup joinGroup(Ref ref) =>
-    JoinGroup(inviteRepository: ref.watch(inviteRepositoryProvider));
+JoinGroup joinGroup(Ref ref) => JoinGroup(
+      inviteRepository: ref.watch(inviteRepositoryProvider),
+      authRepository: ref.watch(authRepositoryProvider),
+      userProfileRepository: ref.watch(userProfileRepositoryProvider),
+      policyVersion: privacyPolicyVersion,
+    );
 
 @riverpod
 LeaveGroup leaveGroup(Ref ref) =>
