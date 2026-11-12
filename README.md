@@ -174,7 +174,8 @@ the `+N` build number in `pubspec.yaml` and passes
 always larger) to `flutter build appbundle`, which
 is monotonic across manual and tag-triggered runs. The `versionName` comes from the
 tag (`YYYY.M.D`, `YYYY.M.D-rc.N`), or is `YYYY.M.D-dev.<sha7>` for untagged builds;
-`pubspec.yaml`'s version is only checked against the production tag.
+`pubspec.yaml`'s version is only checked against the production tag. The web build
+gets the same name and number from the shared `.github/actions/build-version`.
 
 ### Required GitHub Secrets
 

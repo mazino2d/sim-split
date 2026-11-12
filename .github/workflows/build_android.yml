@@ -29,6 +29,7 @@ on:
       - "l10n.yaml"
       - "pubspec.lock"
       - ".github/actions/flutter-setup/**"
+      - ".github/actions/build-version/**"
       - ".github/workflows/build_android.yml"
   workflow_dispatch:
     inputs:
@@ -135,27 +136,20 @@ jobs:
             printf 'storeFile=simsplit.jks\n'
           } > android/key.properties
 
+      # Play only compares versionCodes; the versionName tells builds apart.
+      # Both are computed in .github/actions/build-version, shared with the
+      # web build. Builds of one app run one after the other (the
+      # play-<package> group above), so two never share a code.
+      - name: Build version
+        id: version
+        uses: ./.github/actions/build-version
+        with:
+          release-tag: ${{ inputs.release_tag }}
+
       - name: Build App Bundle
-        # Play requires a unique, increasing versionCode on every upload, so the
-        # "+N" build number in pubspec.yaml is overridden in CI. GITHUB_RUN_NUMBER
-        # is not usable: under workflow_call it is the *caller's* counter
-        # (release.yml), so manual and tag runs would collide. Instead use
-        # seconds elapsed since 2026-01-01 UTC: monotonic across all workflows
-        # and re-runs, and builds of one app also run one after the other (the
-        # play-<package> group above), so two never share a code.
-        # Until 2026-10 the code counted *minutes* since the same date, so two
-        # builds in one minute collided; those codes stay below 525,600 until
-        # 2027, while seconds were already ~25,800,000 when the switch shipped,
-        # so every new code is above every code uploaded before.
-        # Headroom: Play's limit of 2,100,000,000 seconds lasts ~66 years
-        # (until ~2092).
-        #
-        # The versionName tells the builds apart (Play only compares codes):
-        #   production  vYYYY.M.D tag       → YYYY.M.D
-        #   closed test vYYYY.M.D-rc.N tag  → YYYY.M.D-rc.N
-        #   anything else (main, manual)    → YYYY.M.D-dev.<sha7>, build date UTC
         env:
-          RELEASE_TAG: ${{ inputs.release_tag }}
+          BUILD_NAME: ${{ steps.version.outputs.build-name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
           # R-4 telemetry endpoint of the job's environment, set by
           # everything-as-code: dev builds send to simsplit-as-se1-dev's
           # endpoint (warehouse dataplatform-as-se1-dev), prd builds to prd's.
@@ -163,12 +157,6 @@ jobs:
           # While it is unset, error reports are queued but never sent.
           TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
         run: |
-          BUILD_NUMBER=$(( $(date -u +%s) - 1767225600 ))
-          if [ -n "$RELEASE_TAG" ]; then
-            BUILD_NAME="${RELEASE_TAG#v}"
-          else
-            BUILD_NAME="$(date -u +%Y.%-m.%-d)-dev.${GITHUB_SHA::7}"
-          fi
           echo "$PACKAGE_NAME ($APP_ENV) versionName: $BUILD_NAME, versionCode: $BUILD_NUMBER" | tee -a "$GITHUB_STEP_SUMMARY"
           flutter build appbundle --release --flavor "$APP_ENV" \
             --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" \

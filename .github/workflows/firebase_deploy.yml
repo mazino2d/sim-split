@@ -27,6 +27,7 @@ on:
       - pubspec.yaml
       - pubspec.lock
       - .github/actions/flutter-setup/**
+      - .github/actions/build-version/**
       - .github/workflows/firebase_deploy.yml
   # Manual runs deploy dev; prd needs release.yml's checks.
   workflow_dispatch:
@@ -97,16 +98,28 @@ jobs:
 
       - uses: ./.github/actions/flutter-setup
 
+      # The same version scheme as the Android build (#126). prd only runs
+      # from a vYYYY.M.D tag (checked above); dev is always a dev build.
+      - name: Build version
+        id: version
+        uses: ./.github/actions/build-version
+        with:
+          release-tag: ${{ env.APP_ENV == 'prd' && github.ref_name || '' }}
+
       # App Check on web (R-3 P9). The reCAPTCHA Enterprise site key is public
       # and comes from the environment; while it is unset, App Check stays off
       # on web. TELEMETRY_URL is the environment's own endpoint (each accepts
       # App Check tokens from its own project only).
       - name: Build web
         env:
+          BUILD_NAME: ${{ steps.version.outputs.build-name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
           RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.RECAPTCHA_ENTERPRISE_SITE_KEY }}
           TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
         run: |
+          echo "web ($APP_ENV) version: $BUILD_NAME+$BUILD_NUMBER" | tee -a "$GITHUB_STEP_SUMMARY"
           flutter build web --release \
+            --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" \
             --dart-define=APP_ENV="$APP_ENV" \
             --dart-define=RECAPTCHA_ENTERPRISE_SITE_KEY="$RECAPTCHA_ENTERPRISE_SITE_KEY" \
             --dart-define=TELEMETRY_URL="$TELEMETRY_URL"
