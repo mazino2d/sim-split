@@ -16,7 +16,7 @@ class FailureException implements Exception {
   final Failure failure;
 
   @override
-  String toString() => 'FailureException(${failure.runtimeType})';
+  String toString() => 'FailureException(${failure.name})';
 }
 
 /// Called with every error the app shows the user, so it is sent as an

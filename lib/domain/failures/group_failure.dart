@@ -1,7 +1,7 @@
 import 'package:simsplit/domain/failures/core_failure.dart';
 
 sealed class GroupFailure extends Failure {
-  const GroupFailure() : super();
+  const GroupFailure(super.name);
 
   const factory GroupFailure.notFound() = GroupNotFound;
   const factory GroupFailure.nameTooShort() = GroupNameTooShort;
@@ -10,18 +10,18 @@ sealed class GroupFailure extends Failure {
 }
 
 final class GroupNotFound extends GroupFailure {
-  const GroupNotFound() : super();
+  const GroupNotFound() : super('group_not_found');
 }
 
 final class GroupNameTooShort extends GroupFailure {
-  const GroupNameTooShort() : super();
+  const GroupNameTooShort() : super('group_name_too_short');
 }
 
 final class GroupNameTooLong extends GroupFailure {
-  const GroupNameTooLong() : super();
+  const GroupNameTooLong() : super('group_name_too_long');
 }
 
 /// The group's currency cannot change once it has expenses.
 final class GroupCurrencyLocked extends GroupFailure {
-  const GroupCurrencyLocked() : super();
+  const GroupCurrencyLocked() : super('group_currency_locked');
 }
