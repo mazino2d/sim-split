@@ -116,8 +116,9 @@ clear before the account is created. All of it must cost nothing to run.
   then it waits on the device and is sent once the device is online, even after an app
   restart. At most 50 error reports and 2,000 usage events wait; the oldest are dropped
   first.
-- **AC14** Usage events are sent in batches: at most one request per minute while the
-  app is open, plus one when it goes to the background.
+- **AC14** Usage events are sent in batches: one request a few seconds after the app
+  opens or comes back to the foreground, then at most one per minute while it is open,
+  plus one when it goes to the background.
 - **AC15** The same error (same type and stack) is sent at most once per app session, with
   a count of how many times it happened.
 - **AC16** One install sends at most 50 error reports and 5,000 usage events per day; the

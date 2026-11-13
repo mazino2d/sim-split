@@ -112,6 +112,49 @@ void main() {
     s.dispose();
   });
 
+  test(
+      'sends events soon after the app opens, so a short session does not '
+      'wait for the next launch (#128)', () async {
+    await db.telemetryDao.enqueue('event', '{}', max: 2000);
+    final requests = <http.Request>[];
+    final s = TelemetrySender(
+      dao: db.telemetryDao,
+      client: MockClient((request) async {
+        requests.add(request);
+        return http.Response('{}', 202);
+      }),
+      endpoint: endpoint,
+      appCheckToken: () async => 'app-check',
+      idToken: () async => 'id-token',
+      firstFlushDelay: const Duration(milliseconds: 50),
+    )..startEventTimer();
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    expect(requests, hasLength(1));
+    expect(await db.telemetryDao.watchCount('event').first, 0);
+    s.dispose();
+  });
+
+  test('backgrounding before the first flush cancels it', () async {
+    await db.telemetryDao.enqueue('event', '{}', max: 2000);
+    var calls = 0;
+    final s = TelemetrySender(
+      dao: db.telemetryDao,
+      client: MockClient((_) async {
+        calls++;
+        return http.Response('{}', 202);
+      }),
+      endpoint: endpoint,
+      appCheckToken: () async => 'app-check',
+      idToken: () async => 'id-token',
+      firstFlushDelay: const Duration(milliseconds: 50),
+    )
+      ..startEventTimer()
+      ..stopEventTimer();
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    expect(calls, 0);
+    s.dispose();
+  });
+
   test('drops events of an account that is no longer signed in', () async {
     await db.telemetryDao.enqueue('event', '{}', max: 2000);
     final s = sender(MockClient((_) async => http.Response('', 403)));
