@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,6 +10,7 @@ import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/failures/auth_failure.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/presentation/notifiers/auth_notifier.dart';
+import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
@@ -65,6 +67,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final theme = Theme.of(context);
     final busy = ref.watch(authProvider).isLoading;
     final failure = _failure;
+    final inAppBrowser = ref.watch(inAppBrowserProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -83,6 +86,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 ),
               ),
               const Spacer(),
+              if (inAppBrowser != null) ...[
+                _InAppBrowserNotice(app: inAppBrowser),
+                const SizedBox(height: 16),
+              ],
               if (failure != null) ...[
                 Text(
                   failure is AuthNoConnection
@@ -122,6 +129,55 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Shown in a chat app's built-in browser, where Google blocks sign-in
+/// (#109): how to open the page in a regular browser, and a button that
+/// copies the link (the invite link when there is one).
+class _InAppBrowserNotice extends ConsumerWidget {
+  const _InAppBrowserNotice({required this.app});
+
+  final String app;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: cs.outline),
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.inAppBrowserTitle, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 4),
+          Text(
+            l10n.inAppBrowserMessage(app),
+            style:
+                theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              icon: const Icon(Icons.link),
+              label: Text(l10n.copySignInLink),
+              onPressed:
+                  context.tracked(TelemetryEvent.tapCopySignInLink, () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final link = ref.read(signInPageLinkProvider).toString();
+                await Clipboard.setData(ClipboardData(text: link));
+                messenger.showSnackBar(SnackBar(content: Text(l10n.copied)));
+              }),
+            ),
+          ),
+        ],
       ),
     );
   }

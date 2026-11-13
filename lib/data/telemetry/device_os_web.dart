@@ -1,11 +1,17 @@
-import 'dart:js_interop';
+import 'package:simsplit/core/platform/user_agent.dart';
+import 'package:simsplit/core/utils/in_app_browser.dart';
 
-@JS('navigator.userAgent')
-external String get _userAgent;
-
-/// The browser name and major version for error reports, e.g. `Chrome 141`.
+/// The browser name and major version for error reports, e.g. `Chrome 141`,
+/// prefixed with the app for an in-app browser, e.g. `Zalo in-app browser`
+/// (#109).
 String deviceOs() {
-  final ua = _userAgent;
+  final ua = userAgent();
+  final app = inAppBrowserName(ua);
+  final browser = _browser(ua);
+  return app == null ? browser : '$app in-app $browser';
+}
+
+String _browser(String ua) {
   for (final (name, pattern) in [
     ('Edge', RegExp(r'Edg/(\d+)')),
     ('Samsung Internet', RegExp(r'SamsungBrowser/(\d+)')),

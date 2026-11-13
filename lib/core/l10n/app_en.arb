@@ -280,6 +280,14 @@
   "addPersonHint": "Add a person…",
   "signInTagline": "Sign in to keep your groups on every phone and share them with friends.",
   "continueWithGoogle": "Continue with Google",
+  "inAppBrowserTitle": "Open in your browser to sign in",
+  "inAppBrowserMessage": "Google sign-in doesn't work inside {app}. Open the menu (⋯) and choose Open in browser, or copy the link and paste it into Safari or Chrome.",
+  "@inAppBrowserMessage": {
+    "placeholders": {
+      "app": { "type": "String" }
+    }
+  },
+  "copySignInLink": "Copy link",
   "signInNeedsConnection": "You need a connection to sign in.",
   "signInFailed": "Couldn't sign in. Please try again.",
   "errorNoConnection": "You need a connection for this. Try again when you're online.",
