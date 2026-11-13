@@ -5,9 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:simsplit/data/daos/telemetry_dao.dart';
 
 /// Drains the telemetry queue to the endpoint in the background (R-4 AC13,
-/// AC14, AC17). Error reports go right away; usage events in batches, at
-/// most once a minute while the app is open and once when it goes to the
-/// background. Every failure is silent: items stay queued and are retried
+/// AC14, AC17). Error reports go right away; usage events in batches: a
+/// few seconds after the app opens or comes back, then at most once a
+/// minute while it is open, and once when it goes to the background. Every failure is silent: items stay queued and are retried
 /// with backoff; only items the endpoint rejects for good are dropped.
 class TelemetrySender {
   TelemetrySender({
@@ -16,7 +16,9 @@ class TelemetrySender {
     required Uri? endpoint,
     required Future<String?> Function() appCheckToken,
     required Future<String?> Function() idToken,
-  })  : _dao = dao,
+    Duration firstFlushDelay = const Duration(seconds: 3),
+  })  : _firstFlushDelay = firstFlushDelay,
+        _dao = dao,
         _client = client,
         _endpoint = endpoint,
         _appCheckToken = appCheckToken,
@@ -33,12 +35,17 @@ class TelemetrySender {
   static const _errorBatch = 20;
   static const _eventBatch = 500;
   static const _eventInterval = Duration(minutes: 1);
+  // Short sessions (a few seconds) never reach the first periodic flush, and
+  // the flush on backgrounding is often cut off when Android freezes the
+  // process, so their events arrived days late, on the next launch (#128).
+  final Duration _firstFlushDelay;
   static const _maxBackoff = Duration(minutes: 10);
 
   final _sending = <String>{};
   final _backoff = <String, Duration>{};
   final _retry = <String, Timer>{};
   Timer? _eventTimer;
+  Timer? _firstFlush;
 
   // The last ID token seen, so events recorded as the session ends (the
   // sign-out or account deletion itself) can still be sent; the endpoint
@@ -54,13 +61,17 @@ class TelemetrySender {
     unawaited(flushErrors());
   }
 
-  /// Sends usage events once a minute while the app is open.
+  /// Sends usage events a few seconds after the app opens or comes back,
+  /// then once a minute while it stays open.
   void startEventTimer() {
     if (_endpoint == null || _eventTimer != null) return;
+    _firstFlush = Timer(_firstFlushDelay, flushEvents);
     _eventTimer = Timer.periodic(_eventInterval, (_) => flushEvents());
   }
 
   void stopEventTimer() {
+    _firstFlush?.cancel();
+    _firstFlush = null;
     _eventTimer?.cancel();
     _eventTimer = null;
   }
