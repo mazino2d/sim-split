@@ -38,6 +38,7 @@ void main() {
         const MemberFailure.notInGroup(): l10n.errorMemberNotInGroup,
         const MemberFailure.notFound(): l10n.errorMemberNotFound,
         const ExpenseFailure.titleEmpty(): l10n.errorExpenseTitleEmpty,
+        const ExpenseFailure.titleTooLong(): l10n.errorExpenseTitleTooLong,
         const ExpenseFailure.duplicateParticipant():
             l10n.errorDuplicateParticipant,
         const ExpenseFailure.negativeSplitValue(): l10n.errorNegativeSplitValue,

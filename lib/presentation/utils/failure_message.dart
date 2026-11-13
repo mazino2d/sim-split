@@ -59,6 +59,7 @@ String failureMessage(Object? error, AppLocalizations l10n) {
     SettlementMemberNotInGroup() => l10n.errorMemberNotInGroup,
     ExpenseMemberNotInGroup() => l10n.errorMemberNotInGroup,
     ExpenseTitleEmpty() => l10n.errorExpenseTitleEmpty,
+    ExpenseTitleTooLong() => l10n.errorExpenseTitleTooLong,
     DuplicateParticipant() => l10n.errorDuplicateParticipant,
     NegativeSplitValue() => l10n.errorNegativeSplitValue,
     GroupCurrencyLocked() => l10n.currencyLockedHint,

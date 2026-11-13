@@ -53,7 +53,7 @@ class GroupCard extends ConsumerWidget {
                   children: [
                     Text(
                       group.name,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium,
                     ),

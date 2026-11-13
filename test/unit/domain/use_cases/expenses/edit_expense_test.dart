@@ -69,6 +69,16 @@ void main() {
     verifyNever(() => expenses.updateExpense(any()));
   });
 
+  test('rejects a title longer than $maxExpenseTitleLength characters',
+      () async {
+    final ok = await useCase(params(title: 'a' * maxExpenseTitleLength));
+    expect(ok.isRight(), isTrue);
+
+    final result =
+        await useCase(params(title: 'a' * (maxExpenseTitleLength + 1)));
+    expect(leftOf(result), isA<ExpenseTitleTooLong>());
+  });
+
   test('returns notFound for soft-deleted expense', () async {
     when(() => expenses.getExpense('e1'))
         .thenAnswer((_) async => right(testExpense(isDeleted: true)));

@@ -64,7 +64,7 @@ class ExpenseListTile extends StatelessWidget {
                       Flexible(
                         child: Text(
                           expense.title,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodyLarge
                               ?.copyWith(fontWeight: FontWeight.w500),

@@ -67,6 +67,16 @@ void main() {
     verifyNever(() => expenses.addExpense(any()));
   });
 
+  test('rejects a title longer than $maxExpenseTitleLength characters',
+      () async {
+    final ok = await useCase(params(title: 'a' * maxExpenseTitleLength));
+    expect(ok.isRight(), isTrue);
+
+    final result =
+        await useCase(params(title: 'a' * (maxExpenseTitleLength + 1)));
+    expect(leftOf(result), isA<ExpenseTitleTooLong>());
+  });
+
   test('rejects non-positive amount', () async {
     final result = await useCase(params(amountCents: 0));
 

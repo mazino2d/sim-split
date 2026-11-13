@@ -679,6 +679,10 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen>
                         focusNode: _titleFocusNode,
                         textCapitalization: TextCapitalization.sentences,
                         textInputAction: TextInputAction.done,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(
+                              maxExpenseTitleLength),
+                        ],
                         decoration: InputDecoration(
                           hintText: l10n.whatFor,
                           prefixIcon:

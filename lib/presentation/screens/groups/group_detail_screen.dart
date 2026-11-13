@@ -116,11 +116,7 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
             pinned: true,
-            title: Text(
-              '${group.emoji ?? ''} ${group.name}'.trim(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            title: _GroupTitle('${group.emoji ?? ''} ${group.name}'.trim()),
             actions: [
               GroupAppBarActions(groupId: group.id),
               const SizedBox(width: 8),
@@ -187,6 +183,36 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_TabBarDelegate oldDelegate) =>
       tabBar != oldDelegate.tabBar || background != oldDelegate.background;
+}
+
+/// The group name in the app bar: one line when it fits, otherwise two
+/// smaller lines, so a long name isn't cut after a few words (#111).
+class _GroupTitle extends StatelessWidget {
+  const _GroupTitle(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = DefaultTextStyle.of(context).style;
+    return LayoutBuilder(builder: (context, constraints) {
+      final painter = TextPainter(
+        text: TextSpan(text: title, style: style),
+        maxLines: 1,
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout(maxWidth: constraints.maxWidth);
+      final fits = !painter.didExceedMaxLines;
+      painter.dispose();
+      return Text(
+        title,
+        maxLines: fits ? 1 : 2,
+        overflow: TextOverflow.ellipsis,
+        style: fits ? null : theme.textTheme.titleMedium?.copyWith(height: 1.2),
+      );
+    });
+  }
 }
 
 // ── Header ──────────────────────────────────────────────────────────────────

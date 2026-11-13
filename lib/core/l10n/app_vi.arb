@@ -213,6 +213,7 @@
   "errorMemberNotInGroup": "Một thành viên được chọn không thuộc nhóm này",
   "errorMemberHasHistory": "Thành viên này đã có khoản chi hoặc thanh toán nên không thể xoá",
   "errorExpenseTitleEmpty": "Tiêu đề khoản chi không được để trống",
+  "errorExpenseTitleTooLong": "Tiêu đề khoản chi quá dài",
   "errorDuplicateParticipant": "Mỗi thành viên chỉ được xuất hiện một lần khi chia",
   "errorNegativeSplitValue": "Giá trị chia không được âm",
   "errorSettlementSameMember": "Thành viên không thể tự trả cho chính mình",

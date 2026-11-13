@@ -55,6 +55,8 @@ class SettlementListTile extends StatelessWidget {
           nameOf(settlement.fromMemberId),
           nameOf(settlement.toMemberId),
         ),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: theme.textTheme.bodyLarge,
       ),
       subtitle: Row(
