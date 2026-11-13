@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
@@ -45,6 +46,43 @@ void main() {
     }
 
     setUp(() => signIn = _MockSignInWithGoogle());
+
+    testWidgets(
+        'in a chat app\'s browser, explains how to open the link in a '
+        'browser and copies it (#109)', (tester) async {
+      final copied = <String>[];
+      tester.binding.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied.add((call.arguments as Map)['text'] as String);
+        }
+        return null;
+      });
+      addTearDown(() => tester.binding.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null));
+      await tester.pumpWidget(_app(const SignInScreen(), [
+        signInWithGoogleProvider.overrideWithValue(signIn),
+        inAppBrowserProvider.overrideWithValue('Zalo'),
+        signInPageLinkProvider
+            .overrideWithValue(Uri.parse('https://simsplit.web.app/join/tok')),
+      ]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Open in your browser to sign in'), findsOneWidget);
+      expect(find.textContaining('inside Zalo'), findsOneWidget);
+      await tester.tap(find.text('Copy link'));
+      await tester.pumpAndSettle();
+      expect(copied, ['https://simsplit.web.app/join/tok']);
+      expect(find.text('Copied'), findsOneWidget);
+      // Sign-in stays available: some in-app browsers may still work.
+      expect(find.text('Continue with Google'), findsOneWidget);
+    });
+
+    testWidgets('shows no browser notice in a regular browser or the app',
+        (tester) async {
+      await pumpScreen(tester);
+      expect(find.text('Open in your browser to sign in'), findsNothing);
+    });
 
     testWidgets('offers Google sign-in and nothing else to fill in',
         (tester) async {

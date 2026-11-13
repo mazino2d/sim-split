@@ -11,6 +11,7 @@ enum TelemetryEvent {
   tapDialogConfirm,
   tapCloseForm,
   tapSignInGoogle,
+  tapCopySignInLink,
   tapPrivacyPolicy,
   tapOpenSettings,
   tapOpenDiagnostics,
