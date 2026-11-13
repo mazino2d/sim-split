@@ -170,6 +170,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
       _isDirty = true;
     });
     _newFocusNode.requestFocus();
+    _revealAfterFrame(_newFocusNode);
   }
 
   Future<void> _loadExistingGroup() async {
@@ -1052,6 +1053,23 @@ class _MeRow extends StatelessWidget {
 
 /// Always-visible input for adding people. Enter or + adds the name, clears
 /// the field and keeps focus so the next name can be typed straight away.
+/// Scrolls the add field back into view once the frame is laid out. Each
+/// added row pushes it lower, and focusing a field that already has focus
+/// doesn't scroll, so the empty field for the next person sank under the
+/// keyboard (#113).
+void _revealAfterFrame(FocusNode node) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final context = node.context;
+    if (context == null || !context.mounted) return;
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+    );
+  });
+}
+
 class _AddMemberField extends StatelessWidget {
   const _AddMemberField({
     required this.controller,
@@ -1136,6 +1154,9 @@ class _EditModeMembersSectionState
   final _newNameController = TextEditingController();
   final _newFocusNode = FocusNode();
   String? _newEmoji;
+  // The added member arrives through the stream a little after the save, so
+  // the field is revealed when the list grows rather than right after it.
+  int? _shownOthers;
 
   @override
   void dispose() {
@@ -1182,6 +1203,11 @@ class _EditModeMembersSectionState
     return membersAsync.when(
       data: (allMembers) {
         final others = allMembers.where((m) => !m.isMe).toList();
+        final shown = _shownOthers;
+        _shownOthers = others.length;
+        if (shown != null && others.length > shown && _newFocusNode.hasFocus) {
+          _revealAfterFrame(_newFocusNode);
+        }
         return Column(
           children: [
             for (final member in others)

@@ -179,6 +179,38 @@ void main() {
       expect(addedNames(), ['Linh', 'Minh']);
     });
 
+    testWidgets(
+        'the add field stays in view above the keyboard after each add '
+        '(#113)', (tester) async {
+      // A small phone with the keyboard open: 360 x 640 with 280 of it
+      // covered.
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+      addTearDown(tester.view.reset);
+      await pumpForm(tester);
+
+      await tester.scrollUntilVisible(addField(), 100,
+          scrollable: find.byType(Scrollable).first);
+      await tester.showKeyboard(addField());
+      for (final name in ['An', 'Binh', 'Chi', 'Dung', 'Giang', 'Hoa']) {
+        await tester.enterText(addField(), name);
+        // The button keeps focus on the field, as on the reported devices.
+        await tester.tap(find.byTooltip('Add member'));
+        await tester.pumpAndSettle();
+
+        // Visible means above the Create Group bar, which sits on the
+        // keyboard.
+        final rect = tester.getRect(addField());
+        final bar = tester.getRect(find.text('Create Group'));
+        expect(rect.bottom, lessThanOrEqualTo(bar.top),
+            reason: 'after adding $name');
+        expect(rect.top, greaterThanOrEqualTo(0), reason: 'after adding $name');
+        expect(
+            tester.widget<TextField>(addField()).focusNode!.hasFocus, isTrue);
+      }
+    });
+
     testWidgets('remembers your name for the next group', (tester) async {
       SharedPreferences.setMockInitialValues({'my_member_name': 'Khoi'});
       await pumpForm(tester);
