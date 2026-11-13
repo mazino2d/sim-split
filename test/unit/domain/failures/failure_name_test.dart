@@ -28,6 +28,7 @@ const _all = <Failure>[
   ExpenseFailure.amountMustBePositive(),
   ExpenseFailure.memberNotInGroup(),
   ExpenseFailure.titleEmpty(),
+  ExpenseFailure.titleTooLong(),
   ExpenseFailure.duplicateParticipant(),
   ExpenseFailure.negativeSplitValue(),
   GroupFailure.notFound(),

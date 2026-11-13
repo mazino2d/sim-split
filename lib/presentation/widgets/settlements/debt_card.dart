@@ -38,25 +38,26 @@ class DebtCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Payer and receiver on their own lines: sharing one row
+                // cut both ordinary names (#111).
+                Text(
+                  name(debt.from),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium,
+                ),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
-                      child: Text(
-                        name(debt.from),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      padding: const EdgeInsets.only(top: 2, right: 4),
                       child: Icon(Icons.arrow_forward_rounded,
                           size: 16, color: cs.onSurfaceVariant),
                     ),
                     Flexible(
                       child: Text(
                         name(debt.to),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodyMedium,
                       ),

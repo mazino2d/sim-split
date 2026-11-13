@@ -3,6 +3,10 @@ import 'package:simsplit/domain/entities/expense_split.dart';
 
 part 'expense.freezed.dart';
 
+/// The longest expense title, after trimming. Like group names, so a pasted
+/// paragraph can't swamp the lists (#111).
+const maxExpenseTitleLength = 100;
+
 /// Expense categories shown in UI.
 enum ExpenseCategory {
   food,

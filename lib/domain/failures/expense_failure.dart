@@ -14,6 +14,7 @@ sealed class ExpenseFailure extends Failure {
   const factory ExpenseFailure.amountMustBePositive() = AmountMustBePositive;
   const factory ExpenseFailure.memberNotInGroup() = ExpenseMemberNotInGroup;
   const factory ExpenseFailure.titleEmpty() = ExpenseTitleEmpty;
+  const factory ExpenseFailure.titleTooLong() = ExpenseTitleTooLong;
   const factory ExpenseFailure.duplicateParticipant() = DuplicateParticipant;
   const factory ExpenseFailure.negativeSplitValue() = NegativeSplitValue;
 }
@@ -58,6 +59,11 @@ final class ExpenseMemberNotInGroup extends ExpenseFailure {
 /// The expense title is empty or whitespace only.
 final class ExpenseTitleEmpty extends ExpenseFailure {
   const ExpenseTitleEmpty() : super('expense_title_empty');
+}
+
+/// The expense title is longer than `maxExpenseTitleLength`.
+final class ExpenseTitleTooLong extends ExpenseFailure {
+  const ExpenseTitleTooLong() : super('expense_title_too_long');
 }
 
 /// The same member appears more than once in the split inputs.

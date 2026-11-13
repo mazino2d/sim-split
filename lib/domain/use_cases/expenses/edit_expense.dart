@@ -53,6 +53,9 @@ class EditExpense implements AsyncUseCase<Expense, EditExpenseParams> {
     if (params.title.trim().isEmpty) {
       return left(const ExpenseFailure.titleEmpty());
     }
+    if (params.title.trim().length > maxExpenseTitleLength) {
+      return left(const ExpenseFailure.titleTooLong());
+    }
     if (params.amountCents <= 0) {
       return left(const ExpenseFailure.amountMustBePositive());
     }
