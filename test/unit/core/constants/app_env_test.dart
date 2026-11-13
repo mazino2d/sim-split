@@ -31,6 +31,11 @@ void main() {
         'https://simsplit-as-se1-dev.web.app/join');
   });
 
+  test('web sign-in runs on the web app domain of the same environment', () {
+    expect(AppEnv.prd.authDomain, 'simsplit.web.app');
+    expect(AppEnv.dev.authDomain, 'simsplit-as-se1-dev.web.app');
+  });
+
   test('prd keeps the production Google sign-in client', () {
     expect(googleServerClientIdFor(AppEnv.prd), startsWith('113980760756-'));
     expect(googleServerClientIdFor(AppEnv.dev),

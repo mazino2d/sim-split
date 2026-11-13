@@ -66,12 +66,16 @@ void _reportUncaughtErrors(ProviderContainer container) {
 /// network needed). A failure must not stop the app from starting: it then
 /// stays local-only.
 Future<void> _initFirebase() async {
-  final options = switch (appEnv) {
+  final platformOptions = switch (appEnv) {
     AppEnv.dev => DevFirebaseOptions.currentPlatform,
     AppEnv.prd => DefaultFirebaseOptions.currentPlatform,
   };
   // The e2e journey calls main() once per relaunch.
-  if (options == null || Firebase.apps.isNotEmpty) return;
+  if (platformOptions == null || Firebase.apps.isNotEmpty) return;
+  // The generated options point web sign-in at `<project>.firebaseapp.com`.
+  final options = kIsWeb
+      ? platformOptions.copyWith(authDomain: appEnv.authDomain)
+      : platformOptions;
   final useEmulators = firebaseEmulatorHost.isNotEmpty;
   try {
     await Firebase.initializeApp(

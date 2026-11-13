@@ -25,6 +25,13 @@ enum AppEnv {
         AppEnv.dev => Uri.parse('https://simsplit-as-se1-dev.web.app'),
         AppEnv.prd => Uri.parse('https://simsplit.web.app'),
       };
+
+  /// Where the web app runs Firebase Auth's sign-in handler (`/__/auth/*`).
+  /// Hosting serves it on the app's own domain, so sign-in stays on one site
+  /// and survives browsers that partition cross-site storage, like Safari on
+  /// iOS (#138). Each domain's handler must be an authorized redirect URI of
+  /// the environment's Web OAuth client.
+  String get authDomain => webOrigin.host;
 }
 
 /// The environment of this build.
