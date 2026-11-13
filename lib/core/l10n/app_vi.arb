@@ -335,6 +335,7 @@
   "reportIdLabel": "Mã báo cáo",
   "reportIdHint": "Chạm để sao chép, rồi gửi cho người phát triển",
   "copied": "Đã sao chép",
+  "copyDiagnostics": "Sao chép tất cả",
   "appVersionLabel": "Phiên bản ứng dụng",
   "platformLabel": "Nền tảng",
   "errorReportsWaiting": "Báo cáo đang chờ gửi",

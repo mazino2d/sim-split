@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:simsplit/core/constants/app_links.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/domain/entities/telemetry/error_report_settings.dart';
 import 'package:simsplit/presentation/notifiers/error_reports_notifier.dart';
 import 'package:simsplit/presentation/providers/telemetry_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
@@ -26,8 +27,25 @@ class DiagnosticsScreen extends ConsumerWidget {
     // Keep the notifier alive while the switch saves.
     final busy = ref.watch(errorReportsProvider).isLoading;
 
+    Future<void> copy(String text) async {
+      final messenger = ScaffoldMessenger.of(context);
+      await Clipboard.setData(ClipboardData(text: text));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.copied)));
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.diagnostics)),
+      appBar: AppBar(
+        title: Text(l10n.diagnostics),
+        actions: [
+          if (settings != null)
+            IconButton(
+              icon: const Icon(Icons.copy_all_outlined),
+              tooltip: l10n.copyDiagnostics,
+              onPressed: context.tracked(TelemetryEvent.tapCopyDiagnostics,
+                  () => copy(diagnosticsText(settings))),
+            ),
+        ],
+      ),
       body: settings == null
           ? const SizedBox.shrink()
           : ListView(
@@ -79,19 +97,16 @@ class DiagnosticsScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    onTap: context.tracked(TelemetryEvent.tapCopyReportId,
-                        () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      await Clipboard.setData(ClipboardData(text: reportId));
-                      messenger
-                          .showSnackBar(SnackBar(content: Text(l10n.copied)));
-                    }),
+                    onTap: context.tracked(
+                        TelemetryEvent.tapCopyReportId, () => copy(reportId)),
                   ),
                 ListTile(
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
                   title: Text(l10n.appVersionLabel),
-                  trailing: Text(settings.appVersion),
+                  trailing: SelectableText(settings.appVersion),
+                  onTap: context.tracked(TelemetryEvent.tapCopyAppVersion,
+                      () => copy(settings.appVersion)),
                 ),
                 ListTile(
                   contentPadding:
@@ -110,3 +125,13 @@ class DiagnosticsScreen extends ConsumerWidget {
     );
   }
 }
+
+/// The details a bug report asks for, in one block (#127). In English
+/// whatever the app language, since it is pasted into the English bug
+/// template.
+String diagnosticsText(ErrorReportSettings settings) => [
+      'App version: ${settings.appVersion}',
+      'Platform: ${settings.platform}',
+      if (settings.reportId case final id?) 'Report ID: $id',
+      'Reports waiting: ${settings.waitingCount}',
+    ].join('\n');

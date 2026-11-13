@@ -20,6 +20,8 @@ enum TelemetryEvent {
   tapDeleteAccount,
   tapErrorReportsSwitch,
   tapCopyReportId,
+  tapCopyAppVersion,
+  tapCopyDiagnostics,
   tapNewGroup,
   tapOpenGroup,
   tapEditGroup,
