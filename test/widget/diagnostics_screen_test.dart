@@ -134,6 +134,29 @@ void main() {
     expect(find.text('Copied'), findsOneWidget);
   });
 
+  testWidgets('tapping the app version copies it and confirms (#127)',
+      (tester) async {
+    await pump(tester, AppRoutes.diagnostics);
+    await tester.tap(find.text('App version'));
+    await tester.pumpAndSettle();
+    expect(copied, ['2026.10.22+7']);
+    expect(find.text('Copied'), findsOneWidget);
+  });
+
+  testWidgets('Copy all copies every detail in one block (#127)',
+      (tester) async {
+    await pump(tester, AppRoutes.diagnostics);
+    await tester.tap(find.byTooltip('Copy all'));
+    await tester.pumpAndSettle();
+    expect(copied, [
+      'App version: 2026.10.22+7\n'
+          'Platform: android\n'
+          'Report ID: 7KQ-4MZ\n'
+          'Reports waiting: 2',
+    ]);
+    expect(find.text('Copied'), findsOneWidget);
+  });
+
   testWidgets('turning the switch off hides the report ID (AC26)',
       (tester) async {
     await pump(tester, AppRoutes.diagnostics);

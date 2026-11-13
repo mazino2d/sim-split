@@ -472,6 +472,7 @@
   "reportIdLabel": "Report ID",
   "reportIdHint": "Tap to copy it, then send it to the maintainer",
   "copied": "Copied",
+  "copyDiagnostics": "Copy all",
   "appVersionLabel": "App version",
   "platformLabel": "Platform",
   "errorReportsWaiting": "Reports waiting to be sent",
