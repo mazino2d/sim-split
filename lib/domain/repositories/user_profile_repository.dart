@@ -14,4 +14,11 @@ abstract interface class UserProfileRepository {
 
   /// Deletes the signed-in account's record.
   Future<Either<Failure, Unit>> deleteProfile();
+
+  /// The name the signed-in account goes by in groups (#112), or null when
+  /// it hasn't set one. Works offline from the last value seen.
+  Future<Either<Failure, String?>> getMemberName();
+
+  /// Saves the name the signed-in account goes by in groups (#112).
+  Future<Either<Failure, Unit>> setMemberName(String name);
 }

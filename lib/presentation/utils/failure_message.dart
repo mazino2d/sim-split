@@ -68,6 +68,7 @@ String failureMessage(Object? error, AppLocalizations l10n) {
     GroupNotOwner() => l10n.errorGroupNotOwner,
     MemberNotFound() => l10n.errorMemberNotFound,
     MemberNameEmpty() => l10n.errorMemberNameEmpty,
+    MemberNameTooLong() => l10n.errorMemberNameTooLong,
     MemberNotInGroup() => l10n.errorMemberNotInGroup,
     MemberHasHistory() => l10n.errorMemberHasHistory,
     AuthNoConnection() => l10n.errorNoConnection,

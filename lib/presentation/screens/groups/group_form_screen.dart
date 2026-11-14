@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/presentation/utils/my_name_prefill.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/use_cases/members/update_member.dart';
@@ -123,7 +124,6 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
   String? _newEmoji;
 
   /// Remembers "my" name so new groups start with it filled in.
-  static const _myNameKey = 'my_member_name';
 
   // ── Edit mode — renames of existing members not yet persisted ───────────
   // Keyed by member id. Flushed on form save, and on dispose as a fallback so
@@ -147,9 +147,10 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
     }
   }
 
+  /// "Your name": the account's "My name", then the name last used on this
+  /// device, then the Google name (#112). Doesn't count as an edit.
   Future<void> _prefillMyName() async {
-    final prefs = await SharedPreferences.getInstance();
-    final name = prefs.getString(_myNameKey);
+    final name = await prefilledMyName(ref);
     if (!mounted || name == null || _meNameController.text.isNotEmpty) return;
     _meNameController.text = name;
     setState(() => _isDirty = false);
@@ -395,7 +396,7 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
       }
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_myNameKey, _meNameController.text.trim());
+      await prefs.setString(lastMyNameKey, _meNameController.text.trim());
 
       if (!mounted) return;
       if (failure != null) _showFailure(messenger, failure);

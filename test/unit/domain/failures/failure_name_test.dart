@@ -41,6 +41,7 @@ const _all = <Failure>[
   InviteFailure.invalidLink(),
   MemberFailure.notFound(),
   MemberFailure.nameEmpty(),
+  MemberFailure.nameTooLong(),
   MemberFailure.notInGroup(),
   MemberFailure.hasHistory(),
   SettlementFailure.notFound(),
