@@ -33,6 +33,7 @@ import 'package:simsplit/presentation/widgets/members/who_is_me_card.dart';
 import 'package:simsplit/presentation/widgets/groups/archive_group.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
+import 'package:simsplit/presentation/widgets/settlements/share_split_sheet.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
@@ -628,6 +629,21 @@ class _SettleTab extends ConsumerWidget {
                       ],
                     ),
             ),
+            // Send the split to the chat, for friends without the app (#115).
+            if (summary.balances.any((b) => b.shareCents != 0))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppTheme.gutter, 8, AppTheme.gutter, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: context.tracked(TelemetryEvent.tapShareSplit,
+                        () => showShareSplitSheet(context, group)),
+                    icon: const Icon(Icons.ios_share_rounded),
+                    label: Text(l10n.shareSplit),
+                  ),
+                ),
+              ),
             if (summary.balances.isNotEmpty) ...[
               SectionLabel(
                 l10n.balances,
