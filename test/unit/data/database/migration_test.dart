@@ -40,6 +40,11 @@ void main() {
     final settlement = (await database.settlementDao.getSettlementById('st1'))!;
     expect(settlement.deleted, isFalse);
 
+    // v6 (#116): groups from before R-7 keep the fewest-transfers mode.
+    final upgraded = await database.select(database.groups).get();
+    expect(upgraded.map((g) => g.settlementMode), everyElement('simplified'));
+    expect(upgraded.map((g) => g.settlementHubMemberId), everyElement(isNull));
+
     expect(await database.syncDao.pendingCount(), 0);
     await database.syncDao.writeState('k', 'v');
     expect(await database.syncDao.readState('k'), 'v');
@@ -48,7 +53,7 @@ void main() {
     expect(
       (await database.customSelect('PRAGMA user_version').getSingle())
           .read<int>('user_version'),
-      5,
+      6,
     );
   });
 }

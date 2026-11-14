@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/domain/entities/member.dart';
 
 part 'debt.freezed.dart';
@@ -33,7 +34,13 @@ sealed class DebtSummary with _$DebtSummary {
     required String currencyCode,
     required List<MemberBalance> balances,
 
-    /// Minimized list of transactions to settle all debts.
+    /// Transfers that settle every balance, worked out per [mode].
     required List<Debt> suggestions,
+    @Default(SettlementMode.simplified) SettlementMode mode,
+
+    /// Who everyone settles with in [SettlementMode.hub]. Null in hub mode
+    /// means nobody could be picked automatically (the owner has no member
+    /// in the group): [suggestions] is then empty until someone picks one.
+    Member? collector,
   }) = _DebtSummary;
 }

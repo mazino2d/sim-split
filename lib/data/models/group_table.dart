@@ -9,6 +9,14 @@ class Groups extends Table {
   IntColumn get colorValue => integer()();
   TextColumn get currencyCode => text().withDefault(const Constant('VND'))();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+
+  /// How settlements are suggested (#116): `hub` or `simplified`. Groups
+  /// from before R-7 have `simplified`.
+  TextColumn get settlementMode =>
+      text().withDefault(const Constant('simplified'))();
+
+  /// The collector in hub mode; null for the owner's member.
+  TextColumn get settlementHubMemberId => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 

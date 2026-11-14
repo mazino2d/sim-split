@@ -195,6 +195,8 @@ class FirestoreSyncPuller {
           colorValue: d['colorValue'] as int,
           currencyCode: Value(d['currencyCode'] as String),
           isArchived: Value(d['isArchived'] as bool? ?? false),
+          settlementMode: Value(d['settlementMode'] as String? ?? 'simplified'),
+          settlementHubMemberId: Value(d['settlementHubMemberId'] as String?),
           createdAt: _date(d['createdAt']),
           updatedAt: _serverTime(d) ?? _date(d['createdAt']),
           createdBy: Value(d['createdBy'] as String?),

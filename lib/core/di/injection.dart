@@ -70,6 +70,7 @@ import 'package:simsplit/domain/use_cases/groups/create_group.dart';
 import 'package:simsplit/domain/use_cases/groups/delete_group.dart';
 import 'package:simsplit/domain/use_cases/groups/get_group.dart';
 import 'package:simsplit/domain/use_cases/groups/list_groups.dart';
+import 'package:simsplit/domain/use_cases/groups/set_settlement_mode.dart';
 import 'package:simsplit/domain/use_cases/groups/update_group.dart';
 import 'package:simsplit/domain/use_cases/invites/get_invite_link.dart';
 import 'package:simsplit/domain/use_cases/invites/join_group.dart';
@@ -305,6 +306,12 @@ EditExpense editExpense(Ref ref) => EditExpense(
 @riverpod
 DeleteExpense deleteExpense(Ref ref) =>
     DeleteExpense(expenseRepository: ref.watch(expenseRepositoryProvider));
+
+@riverpod
+SetSettlementMode setSettlementMode(Ref ref) => SetSettlementMode(
+      groupRepository: ref.watch(groupRepositoryProvider),
+      memberRepository: ref.watch(memberRepositoryProvider),
+    );
 
 @riverpod
 CalculateDebts calculateDebts(Ref ref) => CalculateDebts(

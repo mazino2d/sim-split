@@ -63,6 +63,7 @@ String failureMessage(Object? error, AppLocalizations l10n) {
     DuplicateParticipant() => l10n.errorDuplicateParticipant,
     NegativeSplitValue() => l10n.errorNegativeSplitValue,
     GroupCurrencyLocked() => l10n.currencyLockedHint,
+    GroupCollectorNotInGroup() => l10n.errorCollectorNotInGroup,
     MemberNotFound() => l10n.errorMemberNotFound,
     MemberNameEmpty() => l10n.errorMemberNameEmpty,
     MemberNotInGroup() => l10n.errorMemberNotInGroup,

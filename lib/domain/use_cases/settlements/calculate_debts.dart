@@ -1,5 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:simsplit/domain/entities/debt.dart';
+import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/failures/settlement_failure.dart';
 import 'package:simsplit/domain/repositories/expense_repository.dart';
@@ -11,10 +13,22 @@ class CalculateDebtsParams {
   const CalculateDebtsParams({
     required this.groupId,
     required this.currencyCode,
+    this.mode = SettlementMode.simplified,
+    this.hubMemberId,
+    this.ownerUid,
   });
 
   final String groupId;
   final String currencyCode;
+  final SettlementMode mode;
+
+  /// The chosen collector for [SettlementMode.hub]; null for the owner's
+  /// member.
+  final String? hubMemberId;
+
+  /// The group's owner; null until the group has synced, when the collector
+  /// defaults to this device's member.
+  final String? ownerUid;
 }
 
 /// Computes who owes whom in a group and suggests settlement transactions
@@ -99,17 +113,36 @@ class CalculateDebts
                 ),
             ];
 
-            // 3. Greedy debt simplification
-            final suggestions = _simplifyDebts(
-              balances: balances,
-              currencyCode: params.currencyCode,
-            );
-
+            // 3. Suggested transfers, per the group's settlement mode.
+            if (params.mode == SettlementMode.hub) {
+              final collector = resolveCollector(
+                members: members,
+                hubMemberId: params.hubMemberId,
+                ownerUid: params.ownerUid,
+              );
+              return right(DebtSummary(
+                groupId: params.groupId,
+                currencyCode: params.currencyCode,
+                balances: balances,
+                suggestions: collector == null
+                    ? const []
+                    : hubDebts(
+                        balances: balances,
+                        collector: collector,
+                        currencyCode: params.currencyCode,
+                      ),
+                mode: SettlementMode.hub,
+                collector: collector,
+              ));
+            }
             return right(DebtSummary(
               groupId: params.groupId,
               currencyCode: params.currencyCode,
               balances: balances,
-              suggestions: suggestions,
+              suggestions: _simplifyDebts(
+                balances: balances,
+                currencyCode: params.currencyCode,
+              ),
             ));
           }),
         ));
@@ -165,3 +198,45 @@ class CalculateDebts
     return debts;
   }
 }
+
+/// The collector of a hub-mode group (#116): the chosen member while it is
+/// still in the group, otherwise the owner's member (this device's member
+/// before the group has synced), otherwise null.
+Member? resolveCollector({
+  required List<Member> members,
+  required String? hubMemberId,
+  required String? ownerUid,
+}) {
+  final chosen = members.where((m) => m.id == hubMemberId).firstOrNull;
+  if (chosen != null) return chosen;
+  return ownerUid == null
+      ? members.where((m) => m.isMe).firstOrNull
+      : members.where((m) => m.linkedUid == ownerUid).firstOrNull;
+}
+
+/// Everyone settles with [collector] (#116): each member who owes pays the
+/// collector what they owe, and the collector pays back each member who is
+/// owed. The collector's own balance is settled by the difference. Members
+/// at 0 get no transfer. Nets sum to 0, so the amounts are exact.
+List<Debt> hubDebts({
+  required List<MemberBalance> balances,
+  required Member collector,
+  required String currencyCode,
+}) =>
+    [
+      for (final b in balances)
+        if (b.member.id != collector.id && b.netAmountCents != 0)
+          b.netAmountCents < 0
+              ? Debt(
+                  from: b.member,
+                  to: collector,
+                  amountCents: -b.netAmountCents,
+                  currencyCode: currencyCode,
+                )
+              : Debt(
+                  from: collector,
+                  to: b.member,
+                  amountCents: b.netAmountCents,
+                  currencyCode: currencyCode,
+                ),
+    ];

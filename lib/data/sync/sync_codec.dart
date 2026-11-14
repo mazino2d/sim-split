@@ -39,6 +39,8 @@ class SyncCodec {
         'colorValue': r.colorValue,
         'currencyCode': r.currencyCode,
         'isArchived': r.isArchived,
+        'settlementMode': r.settlementMode,
+        'settlementHubMemberId': r.settlementHubMemberId,
         'createdAt': r.createdAt.millisecondsSinceEpoch,
         'createdBy': r.createdBy,
         'updatedBy': r.updatedBy,
