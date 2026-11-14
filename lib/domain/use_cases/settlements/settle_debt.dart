@@ -6,6 +6,8 @@ import 'package:simsplit/domain/failures/settlement_failure.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/domain/value_objects/unique_id.dart';
+import 'package:simsplit/domain/repositories/group_repository.dart';
+import 'package:simsplit/domain/use_cases/groups/group_guard.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
 
 class SettleDebtParams {
@@ -32,11 +34,14 @@ class SettleDebt implements AsyncUseCase<Settlement, SettleDebtParams> {
   const SettleDebt({
     required SettlementRepository settlementRepository,
     required MemberRepository memberRepository,
+    required GroupRepository groupRepository,
   })  : _settlementRepository = settlementRepository,
-        _memberRepository = memberRepository;
+        _memberRepository = memberRepository,
+        _groupRepository = groupRepository;
 
   final SettlementRepository _settlementRepository;
   final MemberRepository _memberRepository;
+  final GroupRepository _groupRepository;
 
   @override
   Future<Either<Failure, Settlement>> call(SettleDebtParams params) async {
@@ -45,6 +50,10 @@ class SettleDebt implements AsyncUseCase<Settlement, SettleDebtParams> {
     }
     if (params.fromMemberId == params.toMemberId) {
       return left(const SettlementFailure.sameMember());
+    }
+    if (await ensureGroupWritable(_groupRepository, params.groupId)
+        case Left(value: final failure)) {
+      return left(failure);
     }
 
     for (final memberId in [params.fromMemberId, params.toMemberId]) {

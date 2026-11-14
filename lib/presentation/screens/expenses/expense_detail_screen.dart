@@ -78,15 +78,17 @@ class ExpenseDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: l10n.editExpense,
-            onPressed: context.tracked(
-                TelemetryEvent.tapEditExpense,
-                () => context.push(
-                      '/groups/$groupId/expenses/$expenseId/edit',
-                    )),
-          ),
+          // An archived group is read-only (#117).
+          if (groupAsync.value?.isArchived != true)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: l10n.editExpense,
+              onPressed: context.tracked(
+                  TelemetryEvent.tapEditExpense,
+                  () => context.push(
+                        '/groups/$groupId/expenses/$expenseId/edit',
+                      )),
+            ),
           const SizedBox(width: 8),
         ],
       ),

@@ -22,7 +22,8 @@ void main() {
 
   group('AddMember', () {
     test('adds a member with trimmed name', () async {
-      final result = await AddMember(memberRepository: members)(
+      final result = await AddMember(
+          memberRepository: members, groupRepository: groupsWith())(
         const AddMemberParams(groupId: 'g1', name: '  Alice  '),
       );
 
@@ -33,7 +34,8 @@ void main() {
 
     for (final name in ['', '   ', '\t\n']) {
       test('rejects blank name "${name.replaceAll('\n', r'\n')}"', () async {
-        final result = await AddMember(memberRepository: members)(
+        final result = await AddMember(
+            memberRepository: members, groupRepository: groupsWith())(
           AddMemberParams(groupId: 'g1', name: name),
         );
 
@@ -54,15 +56,18 @@ void main() {
         );
 
     test('updates a member', () async {
-      final result =
-          await UpdateMember(memberRepository: members)(params('Bob'));
+      final result = await UpdateMember(
+          memberRepository: members,
+          groupRepository: groupsWith())(params('Bob'));
 
       expect(result.isRight(), isTrue);
       verify(() => members.updateMember(any())).called(1);
     });
 
     test('rejects blank name', () async {
-      final result = await UpdateMember(memberRepository: members)(params(' '));
+      final result = await UpdateMember(
+          memberRepository: members,
+          groupRepository: groupsWith())(params(' '));
 
       expect(leftOf(result), isA<MemberNameEmpty>());
       verifyNever(() => members.updateMember(any()));

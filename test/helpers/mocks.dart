@@ -22,6 +22,14 @@ class MockMemberRepository extends Mock implements MemberRepository {}
 
 class MockGroupRepository extends Mock implements GroupRepository {}
 
+/// A group repository whose group `g1` exists, archived or not (#117).
+MockGroupRepository groupsWith({bool archived = false}) {
+  final groups = MockGroupRepository();
+  when(() => groups.getGroup(any())).thenAnswer((_) async =>
+      right<Failure, Group>(testGroup().copyWith(isArchived: archived)));
+  return groups;
+}
+
 class MockSettlementRepository extends Mock implements SettlementRepository {}
 
 class MockAuthRepository extends Mock implements AuthRepository {}

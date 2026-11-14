@@ -2,6 +2,8 @@ import 'package:fpdart/fpdart.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/failures/member_failure.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
+import 'package:simsplit/domain/repositories/group_repository.dart';
+import 'package:simsplit/domain/use_cases/groups/group_guard.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
 
 class RemoveMemberParams {
@@ -18,13 +20,21 @@ class RemoveMemberParams {
 /// - [MemberFailure.hasHistory] if the member is referenced by any expense
 ///   (including soft-deleted ones), split, or settlement.
 class RemoveMember implements AsyncUseCase<Unit, RemoveMemberParams> {
-  const RemoveMember({required MemberRepository memberRepository})
-      : _memberRepository = memberRepository;
+  const RemoveMember({
+    required MemberRepository memberRepository,
+    required GroupRepository groupRepository,
+  })  : _memberRepository = memberRepository,
+        _groupRepository = groupRepository;
 
   final MemberRepository _memberRepository;
+  final GroupRepository _groupRepository;
 
   @override
   Future<Either<Failure, Unit>> call(RemoveMemberParams params) async {
+    if (await ensureGroupWritable(_groupRepository, params.groupId)
+        case Left(value: final failure)) {
+      return left(failure);
+    }
     final memberResult = await _memberRepository.getMember(params.memberId);
     switch (memberResult) {
       case Left(value: final failure):

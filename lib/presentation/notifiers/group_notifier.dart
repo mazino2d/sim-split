@@ -6,6 +6,7 @@ import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/use_cases/groups/create_group.dart';
 import 'package:simsplit/domain/use_cases/groups/delete_group.dart';
+import 'package:simsplit/domain/use_cases/groups/set_group_archived.dart';
 import 'package:simsplit/domain/use_cases/groups/set_settlement_mode.dart';
 import 'package:simsplit/domain/use_cases/groups/update_group.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
@@ -59,7 +60,6 @@ class GroupNotifier extends _$GroupNotifier {
     required String currencyCode,
     String? emoji,
     int? colorValue,
-    bool? isArchived,
   }) {
     final useCase = ref.read(updateGroupProvider);
     return _run(
@@ -70,7 +70,6 @@ class GroupNotifier extends _$GroupNotifier {
               currencyCode: currencyCode,
               emoji: emoji,
               colorValue: colorValue,
-              isArchived: isArchived,
             )));
   }
 
@@ -87,6 +86,14 @@ class GroupNotifier extends _$GroupNotifier {
               mode: mode,
               hubMemberId: hubMemberId,
             )));
+  }
+
+  Future<Either<Failure, Group>> setArchived(String groupId, bool archived) {
+    final useCase = ref.read(setGroupArchivedProvider);
+    return _run(
+        archived ? TelemetryEvent.opArchiveGroup : TelemetryEvent.opReopenGroup,
+        () => useCase(
+            SetGroupArchivedParams(groupId: groupId, archived: archived)));
   }
 
   Future<Either<Failure, Unit>> deleteGroup(String id) {

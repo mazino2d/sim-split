@@ -35,6 +35,8 @@ const _all = <Failure>[
   GroupFailure.nameTooShort(),
   GroupFailure.nameTooLong(),
   GroupFailure.collectorNotInGroup(),
+  GroupFailure.archived(),
+  GroupFailure.notOwner(),
   GroupFailure.currencyLocked(),
   InviteFailure.invalidLink(),
   MemberFailure.notFound(),

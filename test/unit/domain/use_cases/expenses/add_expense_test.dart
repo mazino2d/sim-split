@@ -24,6 +24,7 @@ void main() {
     useCase = AddExpense(
       expenseRepository: expenses,
       memberRepository: members,
+      groupRepository: groupsWith(),
       calculateSplits: const CalculateSplits(),
     );
     when(() => members.watchMembersByGroup('g1')).thenAnswer(

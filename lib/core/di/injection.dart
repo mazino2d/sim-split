@@ -70,6 +70,7 @@ import 'package:simsplit/domain/use_cases/groups/create_group.dart';
 import 'package:simsplit/domain/use_cases/groups/delete_group.dart';
 import 'package:simsplit/domain/use_cases/groups/get_group.dart';
 import 'package:simsplit/domain/use_cases/groups/list_groups.dart';
+import 'package:simsplit/domain/use_cases/groups/set_group_archived.dart';
 import 'package:simsplit/domain/use_cases/groups/set_settlement_mode.dart';
 import 'package:simsplit/domain/use_cases/groups/update_group.dart';
 import 'package:simsplit/domain/use_cases/invites/get_invite_link.dart';
@@ -271,16 +272,19 @@ ListMembers listMembers(Ref ref) =>
     ListMembers(memberRepository: ref.watch(memberRepositoryProvider));
 
 @riverpod
-AddMember addMember(Ref ref) =>
-    AddMember(memberRepository: ref.watch(memberRepositoryProvider));
+AddMember addMember(Ref ref) => AddMember(
+    groupRepository: ref.watch(groupRepositoryProvider),
+    memberRepository: ref.watch(memberRepositoryProvider));
 
 @riverpod
-RemoveMember removeMember(Ref ref) =>
-    RemoveMember(memberRepository: ref.watch(memberRepositoryProvider));
+RemoveMember removeMember(Ref ref) => RemoveMember(
+    groupRepository: ref.watch(groupRepositoryProvider),
+    memberRepository: ref.watch(memberRepositoryProvider));
 
 @riverpod
-UpdateMember updateMember(Ref ref) =>
-    UpdateMember(memberRepository: ref.watch(memberRepositoryProvider));
+UpdateMember updateMember(Ref ref) => UpdateMember(
+    groupRepository: ref.watch(groupRepositoryProvider),
+    memberRepository: ref.watch(memberRepositoryProvider));
 
 @riverpod
 CalculateSplits calculateSplits(Ref ref) => const CalculateSplits();
@@ -291,6 +295,7 @@ ListExpenses listExpenses(Ref ref) =>
 
 @riverpod
 AddExpense addExpense(Ref ref) => AddExpense(
+      groupRepository: ref.watch(groupRepositoryProvider),
       expenseRepository: ref.watch(expenseRepositoryProvider),
       memberRepository: ref.watch(memberRepositoryProvider),
       calculateSplits: ref.watch(calculateSplitsProvider),
@@ -298,14 +303,22 @@ AddExpense addExpense(Ref ref) => AddExpense(
 
 @riverpod
 EditExpense editExpense(Ref ref) => EditExpense(
+      groupRepository: ref.watch(groupRepositoryProvider),
       expenseRepository: ref.watch(expenseRepositoryProvider),
       memberRepository: ref.watch(memberRepositoryProvider),
       calculateSplits: ref.watch(calculateSplitsProvider),
     );
 
 @riverpod
-DeleteExpense deleteExpense(Ref ref) =>
-    DeleteExpense(expenseRepository: ref.watch(expenseRepositoryProvider));
+DeleteExpense deleteExpense(Ref ref) => DeleteExpense(
+    groupRepository: ref.watch(groupRepositoryProvider),
+    expenseRepository: ref.watch(expenseRepositoryProvider));
+
+@riverpod
+SetGroupArchived setGroupArchived(Ref ref) => SetGroupArchived(
+      groupRepository: ref.watch(groupRepositoryProvider),
+      authRepository: ref.watch(authRepositoryProvider),
+    );
 
 @riverpod
 SetSettlementMode setSettlementMode(Ref ref) => SetSettlementMode(
@@ -322,6 +335,7 @@ CalculateDebts calculateDebts(Ref ref) => CalculateDebts(
 
 @riverpod
 SettleDebt settleDebt(Ref ref) => SettleDebt(
+      groupRepository: ref.watch(groupRepositoryProvider),
       settlementRepository: ref.watch(settlementRepositoryProvider),
       memberRepository: ref.watch(memberRepositoryProvider),
     );
@@ -332,6 +346,7 @@ ListSettlements listSettlements(Ref ref) => ListSettlements(
 
 @riverpod
 DeleteSettlement deleteSettlement(Ref ref) => DeleteSettlement(
+    groupRepository: ref.watch(groupRepositoryProvider),
     settlementRepository: ref.watch(settlementRepositoryProvider));
 
 @riverpod

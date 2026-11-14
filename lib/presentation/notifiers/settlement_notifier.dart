@@ -50,13 +50,14 @@ class SettlementNotifier extends _$SettlementNotifier {
     return result;
   }
 
-  Future<Either<Failure, Unit>> deleteSettlement(String id) async {
+  Future<Either<Failure, Unit>> deleteSettlement(
+      String id, String groupId) async {
     state = const AsyncLoading();
     final useCase = ref.read(deleteSettlementProvider);
     final result = await trackOp(
         ref.read(trackEventProvider),
         TelemetryEvent.opDeleteSettlement,
-        () => useCase(DeleteSettlementParams(id: id)));
+        () => useCase(DeleteSettlementParams(id: id, groupId: groupId)));
     if (ref.mounted) {
       state = result.fold(
         (failure) => AsyncError(failure, StackTrace.current),

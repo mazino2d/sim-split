@@ -64,6 +64,8 @@ String failureMessage(Object? error, AppLocalizations l10n) {
     NegativeSplitValue() => l10n.errorNegativeSplitValue,
     GroupCurrencyLocked() => l10n.currencyLockedHint,
     GroupCollectorNotInGroup() => l10n.errorCollectorNotInGroup,
+    GroupArchived() => l10n.errorGroupArchived,
+    GroupNotOwner() => l10n.errorGroupNotOwner,
     MemberNotFound() => l10n.errorMemberNotFound,
     MemberNameEmpty() => l10n.errorMemberNameEmpty,
     MemberNotInGroup() => l10n.errorMemberNotInGroup,

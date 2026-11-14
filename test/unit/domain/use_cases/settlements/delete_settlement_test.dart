@@ -12,14 +12,16 @@ void main() {
 
   setUp(() {
     settlements = MockSettlementRepository();
-    useCase = DeleteSettlement(settlementRepository: settlements);
+    useCase = DeleteSettlement(
+        settlementRepository: settlements, groupRepository: groupsWith());
   });
 
   test('deletes the settlement with the given id', () async {
     when(() => settlements.deleteSettlement('s1'))
         .thenAnswer((_) async => right(unit));
 
-    final result = await useCase(const DeleteSettlementParams(id: 's1'));
+    final result =
+        await useCase(const DeleteSettlementParams(id: 's1', groupId: 'g1'));
 
     expect(result, right<Failure, Unit>(unit));
     verify(() => settlements.deleteSettlement('s1')).called(1);
@@ -30,7 +32,8 @@ void main() {
     when(() => settlements.deleteSettlement('s1'))
         .thenAnswer((_) async => left(failure));
 
-    final result = await useCase(const DeleteSettlementParams(id: 's1'));
+    final result =
+        await useCase(const DeleteSettlementParams(id: 's1', groupId: 'g1'));
 
     expect(leftOf(result), failure);
   });
