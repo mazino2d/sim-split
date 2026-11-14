@@ -118,11 +118,28 @@ jobs:
           TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
         run: |
           echo "web ($APP_ENV) version: $BUILD_NAME+$BUILD_NUMBER" | tee -a "$GITHUB_STEP_SUMMARY"
-          flutter build web --release \
+          flutter build web --release --source-maps \
             --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" \
             --dart-define=APP_ENV="$APP_ENV" \
             --dart-define=RECAPTCHA_ENTERPRISE_SITE_KEY="$RECAPTCHA_ENTERPRISE_SITE_KEY" \
             --dart-define=TELEMETRY_URL="$TELEMETRY_URL"
+
+      # The source map turns minified web error reports back into Dart
+      # (scripts/symbolize_web_stack.py, #132). It is kept per version, not
+      # served: an artifact here, and on the GitHub Release for prd
+      # (release.yml).
+      - name: Keep the source map
+        run: |
+          mkdir -p build/sourcemap
+          mv build/web/main.dart.js.map build/sourcemap/
+
+      - name: Upload source map
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-sourcemap-${{ steps.version.outputs.build-name }}
+          path: build/sourcemap/main.dart.js.map
+          if-no-files-found: error
+          retention-days: 90
 
       # web/ holds the prd files; firebase/hosting/dev/ overrides some of them
       # on the dev site (assetlinks.json for com.mazino2d.simsplit.dev).
