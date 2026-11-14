@@ -6,6 +6,8 @@ import 'package:simsplit/domain/failures/expense_failure.dart';
 import 'package:simsplit/domain/repositories/expense_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
 import 'package:simsplit/domain/value_objects/unique_id.dart';
+import 'package:simsplit/domain/repositories/group_repository.dart';
+import 'package:simsplit/domain/use_cases/groups/group_guard.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
 import 'package:simsplit/domain/use_cases/expenses/calculate_splits.dart';
 import 'package:simsplit/domain/use_cases/expenses/expense_member_validation.dart';
@@ -40,13 +42,16 @@ class AddExpense implements AsyncUseCase<Expense, AddExpenseParams> {
   const AddExpense({
     required ExpenseRepository expenseRepository,
     required MemberRepository memberRepository,
+    required GroupRepository groupRepository,
     required CalculateSplits calculateSplits,
   })  : _expenseRepository = expenseRepository,
         _memberRepository = memberRepository,
+        _groupRepository = groupRepository,
         _calculateSplits = calculateSplits;
 
   final ExpenseRepository _expenseRepository;
   final MemberRepository _memberRepository;
+  final GroupRepository _groupRepository;
   final CalculateSplits _calculateSplits;
 
   @override
@@ -59,6 +64,10 @@ class AddExpense implements AsyncUseCase<Expense, AddExpenseParams> {
     }
     if (params.amountCents <= 0) {
       return left(const ExpenseFailure.amountMustBePositive());
+    }
+    if (await ensureGroupWritable(_groupRepository, params.groupId)
+        case Left(value: final failure)) {
+      return left(failure);
     }
 
     // Payer and every participant must belong to the expense's group

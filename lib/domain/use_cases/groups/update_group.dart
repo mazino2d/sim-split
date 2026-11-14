@@ -13,7 +13,6 @@ class UpdateGroupParams {
     required this.currencyCode,
     this.emoji,
     this.colorValue,
-    this.isArchived,
   });
 
   final String id;
@@ -21,7 +20,6 @@ class UpdateGroupParams {
   final String currencyCode;
   final String? emoji;
   final int? colorValue;
-  final bool? isArchived;
 }
 
 class UpdateGroup implements AsyncUseCase<Group, UpdateGroupParams> {
@@ -51,6 +49,7 @@ class UpdateGroup implements AsyncUseCase<Group, UpdateGroupParams> {
       case Right(value: final group):
         existing = group;
     }
+    if (existing.isArchived) return left(const GroupFailure.archived());
 
     // Amounts are stored in the group's currency, so the currency is locked
     // once the group has any expense.
@@ -72,7 +71,6 @@ class UpdateGroup implements AsyncUseCase<Group, UpdateGroupParams> {
       currencyCode: params.currencyCode,
       emoji: params.emoji ?? existing.emoji,
       colorValue: params.colorValue ?? existing.colorValue,
-      isArchived: params.isArchived ?? existing.isArchived,
       updatedAt: DateTime.now(),
     );
     return _groupRepository.updateGroup(updated);

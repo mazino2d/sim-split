@@ -14,9 +14,18 @@ import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
+import 'package:simsplit/presentation/widgets/groups/archive_group.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
 
-enum _MenuAction { activity, edit, settlementMode, resetLink, leave }
+enum _MenuAction {
+  activity,
+  edit,
+  settlementMode,
+  archive,
+  reopen,
+  resetLink,
+  leave
+}
 
 /// The menu actions that change the group, behind a confirmation.
 enum _Confirmed { resetLink, leave }
@@ -79,6 +88,15 @@ class GroupAppBarActions extends ConsumerWidget {
         return;
       case _MenuAction.settlementMode:
         await showSettlementModeSheet(context, groupId);
+        return;
+      case _MenuAction.archive || _MenuAction.reopen:
+        final local = ref.read(liveGroupProvider(groupId)).value;
+        if (local == null) return;
+        if (action == _MenuAction.archive) {
+          await confirmAndArchiveGroup(context, ref, local);
+        } else {
+          await reopenGroup(context, ref, local);
+        }
         return;
       case _MenuAction.resetLink:
         await _confirmAndRun(context, ref, group!, _Confirmed.resetLink);
@@ -169,6 +187,10 @@ class GroupAppBarActions extends ConsumerWidget {
         group.ownerUid == uid &&
         group.inviteToken != null;
     final othersIn = group != null && group.memberUids.any((u) => u != uid);
+    // Archiving works offline too, so it reads the local group (#117).
+    final local = ref.watch(liveGroupProvider(groupId)).value;
+    final archived = local?.isArchived ?? false;
+    final canArchive = local != null && canArchiveGroup(ref, local);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -189,6 +211,8 @@ class GroupAppBarActions extends ConsumerWidget {
               _MenuAction.edit => TelemetryEvent.tapMenuEdit,
               _MenuAction.settlementMode =>
                 TelemetryEvent.tapMenuSettlementMode,
+              _MenuAction.archive => TelemetryEvent.tapArchiveGroup,
+              _MenuAction.reopen => TelemetryEvent.tapReopenGroup,
               _MenuAction.resetLink => TelemetryEvent.tapMenuResetLink,
               _MenuAction.leave => TelemetryEvent.tapMenuLeave,
             });
@@ -200,15 +224,22 @@ class GroupAppBarActions extends ConsumerWidget {
                 value: _MenuAction.activity,
                 child: Text(l10n.activity),
               ),
-            PopupMenuItem(
-              value: _MenuAction.edit,
-              child: Text(l10n.editGroup),
-            ),
-            PopupMenuItem(
-              value: _MenuAction.settlementMode,
-              child: Text(l10n.settlementModeTitle),
-            ),
-            if (canReset)
+            if (!archived) ...[
+              PopupMenuItem(
+                value: _MenuAction.edit,
+                child: Text(l10n.editGroup),
+              ),
+              PopupMenuItem(
+                value: _MenuAction.settlementMode,
+                child: Text(l10n.settlementModeTitle),
+              ),
+            ],
+            if (canArchive)
+              PopupMenuItem(
+                value: archived ? _MenuAction.reopen : _MenuAction.archive,
+                child: Text(archived ? l10n.reopenGroup : l10n.archiveGroup),
+              ),
+            if (canReset && !archived)
               PopupMenuItem(
                 value: _MenuAction.resetLink,
                 child: Text(l10n.resetInviteLink),

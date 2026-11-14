@@ -39,6 +39,7 @@ class SetSettlementMode
     final existing = await _groupRepository.getGroup(params.groupId);
     if (existing case Left(value: final failure)) return left(failure);
     final group = existing.toNullable()!;
+    if (group.isArchived) return left(const GroupFailure.archived());
 
     final hubMemberId =
         params.mode == SettlementMode.hub ? params.hubMemberId : null;

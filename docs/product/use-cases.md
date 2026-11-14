@@ -52,6 +52,7 @@ member of that group, on Android, iOS or the web.
 | 3.2 | Members can be added mid-trip by any member, and existing balances are unchanged. |
 | 3.3 | The group creator is linked to a member of the group (themselves) when the group is created. *(R-3)* |
 | 3.4 | A member that is not linked to an account is a normal member: expenses can be logged for them by anyone. |
+| 3.5 | When the trip is over, the group's owner can archive it: it leaves the group list for every member, stays readable under Archived with its balances and history, can't be changed or joined, and the owner can reopen it. *(R-7, [#117](https://github.com/mazino2d/sim-split/issues/117))* |
 
 ### UC-4 Record a settlement
 

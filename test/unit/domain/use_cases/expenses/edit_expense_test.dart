@@ -24,6 +24,7 @@ void main() {
     useCase = EditExpense(
       expenseRepository: expenses,
       memberRepository: members,
+      groupRepository: groupsWith(),
       calculateSplits: const CalculateSplits(),
     );
     when(() => expenses.getExpense('e1'))

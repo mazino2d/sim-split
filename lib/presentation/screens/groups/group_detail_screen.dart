@@ -29,6 +29,7 @@ import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
 import 'package:simsplit/presentation/widgets/groups/group_app_bar_actions.dart';
 import 'package:simsplit/presentation/widgets/members/who_is_me_card.dart';
+import 'package:simsplit/presentation/widgets/groups/archive_group.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
@@ -109,8 +110,11 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final group = widget.group;
-    final showFab = _tabController.index == 0;
+    // Live, so archiving or a new settlement mode shows at once.
+    final group =
+        ref.watch(liveGroupProvider(widget.group.id)).value ?? widget.group;
+    // An archived group is read-only (#117).
+    final showFab = _tabController.index == 0 && !group.isArchived;
 
     return Scaffold(
       body: NestedScrollView(
@@ -123,6 +127,8 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
               const SizedBox(width: 8),
             ],
           ),
+          if (group.isArchived)
+            SliverToBoxAdapter(child: ArchivedGroupBanner(group: group)),
           SliverToBoxAdapter(child: _GroupHeader(group: group)),
           SliverToBoxAdapter(child: WhoIsMeCard(groupId: group.id)),
           SliverPersistentHeader(
@@ -440,6 +446,17 @@ class _SwipeableExpenseTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final tile = ExpenseListTile(
+      expense: expense,
+      members: members,
+      meMember: meMember,
+      unsynced: ref.watch(unsyncedRecordIdsProvider(group.id)
+              .select((ids) => ids.value?.contains(expense.id))) ??
+          false,
+      onTap: context.tracked(TelemetryEvent.tapOpenExpense,
+          () => context.push('/groups/${group.id}/expenses/${expense.id}')),
+    );
+    if (group.isArchived) return tile;
     return Dismissible(
       key: ValueKey('expense-${expense.id}'),
       direction: DismissDirection.horizontal,
@@ -475,16 +492,7 @@ class _SwipeableExpenseTile extends ConsumerWidget {
       },
       background: const _EditBackground(),
       secondaryBackground: const _DeleteBackground(),
-      child: ExpenseListTile(
-        expense: expense,
-        members: members,
-        meMember: meMember,
-        unsynced: ref.watch(unsyncedRecordIdsProvider(group.id)
-                .select((ids) => ids.value?.contains(expense.id))) ??
-            false,
-        onTap: context.tracked(TelemetryEvent.tapOpenExpense,
-            () => context.push('/groups/${group.id}/expenses/${expense.id}')),
-      ),
+      child: tile,
     );
   }
 }
@@ -594,16 +602,27 @@ class _SettleTab extends ConsumerWidget {
                           summary.collector == null &&
                           summary.balances.any((b) => b.netAmountCents != 0)
                       ? const SizedBox.shrink()
-                      : const _SettledUpCard()
+                      : _SettledUpCard(
+                          // The trip is done: offer to archive it (#117).
+                          onArchive: context.tracked(
+                              TelemetryEvent.tapArchiveGroup,
+                              !group.isArchived &&
+                                      settlements.isNotEmpty &&
+                                      canArchiveGroup(ref, group)
+                                  ? () => confirmAndArchiveGroup(
+                                      context, ref, group)
+                                  : null),
+                        )
                   : _Panel(
                       children: [
                         for (final debt in summary.suggestions)
                           DebtCard(
                             debt: debt,
                             currencyCode: group.currencyCode,
-                            onSettle: context.tracked(
-                                TelemetryEvent.tapSettleDebt,
-                                () => _openSettle(context, debt)),
+                            onSettle: group.isArchived
+                                ? null
+                                : context.tracked(TelemetryEvent.tapSettleDebt,
+                                    () => _openSettle(context, debt)),
                           ),
                       ],
                     ),
@@ -649,6 +668,7 @@ class _SettleTab extends ConsumerWidget {
                 _SwipeableSettlementTile(
                   settlement: settlement,
                   members: members,
+                  readOnly: group.isArchived,
                 ),
           ],
         );
@@ -709,11 +729,14 @@ class _SettlementModeBar extends StatelessWidget {
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
-          TextButton(
-            onPressed: context.tracked(TelemetryEvent.tapChangeSettlementMode,
-                () => showSettlementModeSheet(context, group.id)),
-            child: Text(missing ? l10n.pickCollector : l10n.change),
-          ),
+          if (!group.isArchived)
+            TextButton(
+              onPressed: context.tracked(TelemetryEvent.tapChangeSettlementMode,
+                  () => showSettlementModeSheet(context, group.id)),
+              child: Text(missing ? l10n.pickCollector : l10n.change),
+            )
+          else
+            const SizedBox(height: 48),
         ],
       ),
     );
@@ -747,12 +770,15 @@ class _Panel extends StatelessWidget {
 }
 
 class _SettledUpCard extends StatelessWidget {
-  const _SettledUpCard();
+  const _SettledUpCard({this.onArchive});
+
+  final VoidCallback? onArchive;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
+    final l10n = AppLocalizations.of(context)!;
+    final card = Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
@@ -764,12 +790,33 @@ class _SettledUpCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              AppLocalizations.of(context)!.settledUp,
+              l10n.settledUp,
               style: theme.textTheme.titleMedium,
             ),
           ),
         ],
       ),
+    );
+    if (onArchive == null) return card;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        card,
+        const SizedBox(height: 8),
+        Text(
+          l10n.allSettledArchivePrompt,
+          style: theme.textTheme.bodyMedium
+              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: onArchive,
+            icon: const Icon(Icons.inventory_2_outlined),
+            label: Text(l10n.archiveGroup),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -872,14 +919,17 @@ class _SwipeableSettlementTile extends ConsumerWidget {
   const _SwipeableSettlementTile({
     required this.settlement,
     required this.members,
+    this.readOnly = false,
   });
 
   final Settlement settlement;
   final List<Member> members;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    if (readOnly) return _settlementTile(ref);
     return Dismissible(
       key: ValueKey('settlement-${settlement.id}'),
       direction: DismissDirection.endToStart,
@@ -894,7 +944,7 @@ class _SwipeableSettlementTile extends ConsumerWidget {
         final messenger = ScaffoldMessenger.of(context);
         final result = await ref
             .read(settlementProvider.notifier)
-            .deleteSettlement(settlement.id);
+            .deleteSettlement(settlement.id, settlement.groupId);
         result.fold(
           (failure) => messenger.showSnackBar(
             SnackBar(content: Text(failureMessage(failure, l10n))),
@@ -904,13 +954,15 @@ class _SwipeableSettlementTile extends ConsumerWidget {
         return false;
       },
       background: const _DeleteBackground(),
-      child: SettlementListTile(
+      child: _settlementTile(ref),
+    );
+  }
+
+  Widget _settlementTile(WidgetRef ref) => SettlementListTile(
         settlement: settlement,
         members: members,
         unsynced: ref.watch(unsyncedRecordIdsProvider(settlement.groupId)
                 .select((ids) => ids.value?.contains(settlement.id))) ??
             false,
-      ),
-    );
-  }
+      );
 }

@@ -25,6 +25,8 @@ class GroupListScreen extends ConsumerStatefulWidget {
 }
 
 class _GroupListScreenState extends ConsumerState<GroupListScreen> {
+  bool _showArchived = false;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +42,9 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     final groupsAsync = ref.watch(groupListProvider);
     final activeGroups =
         groupsAsync.value?.where((g) => !g.isArchived).toList() ?? const [];
+    // Closed trips stay for the record, folded away at the bottom (#117).
+    final archivedGroups =
+        groupsAsync.value?.where((g) => g.isArchived).toList() ?? const [];
 
     return Scaffold(
       body: CustomScrollView(
@@ -84,7 +89,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
                     SliverToBoxAdapter(child: SectionLabel(l10n.groupsTitle)),
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(
-                          AppTheme.gutter, 0, AppTheme.gutter, 120),
+                          AppTheme.gutter, 0, AppTheme.gutter, 16),
                       sliver: SliverList.separated(
                         itemCount: activeGroups.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -106,6 +111,32 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
               ),
             ],
           ),
+          if (archivedGroups.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
+                leading: const Icon(Icons.inventory_2_outlined),
+                title: Text(l10n.archivedGroups(archivedGroups.length)),
+                trailing:
+                    Icon(_showArchived ? Icons.expand_less : Icons.expand_more),
+                onTap: context.tracked(TelemetryEvent.tapOpenArchived,
+                    () => setState(() => _showArchived = !_showArchived)),
+              ),
+            ),
+            if (_showArchived)
+              SliverPadding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
+                sliver: SliverList.separated(
+                  itemCount: archivedGroups.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) =>
+                      GroupCard(group: archivedGroups[index]),
+                ),
+              ),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 104)),
         ],
       ),
       floatingActionButton: activeGroups.isEmpty

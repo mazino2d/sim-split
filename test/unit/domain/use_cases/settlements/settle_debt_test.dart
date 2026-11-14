@@ -22,6 +22,7 @@ void main() {
     useCase = SettleDebt(
       settlementRepository: settlements,
       memberRepository: members,
+      groupRepository: groupsWith(),
     );
     when(() => members.getMember('m1'))
         .thenAnswer((_) async => right(testMember('m1')));

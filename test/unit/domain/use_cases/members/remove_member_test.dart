@@ -14,7 +14,8 @@ void main() {
 
   setUp(() {
     members = MockMemberRepository();
-    useCase = RemoveMember(memberRepository: members);
+    useCase =
+        RemoveMember(memberRepository: members, groupRepository: groupsWith());
     when(() => members.getMember('m1'))
         .thenAnswer((_) async => right(testMember('m1')));
     when(() => members.isMemberReferenced('m1'))
