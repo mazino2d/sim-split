@@ -83,7 +83,7 @@ const activity = (uid, extra = {}) => ({
 });
 
 /** Seeds a group shared by [uids] (the first one owns it), bypassing rules. */
-async function seedGroup(uids, { owner = uids[0], inviteToken } = {}) {
+async function seedGroup(uids, { owner = uids[0], inviteToken, isArchived } = {}) {
   await env.withSecurityRulesDisabled(async (admin) => {
     const fs = admin.firestore();
     await setDoc(doc(fs, 'groups/g1'), {
@@ -93,6 +93,7 @@ async function seedGroup(uids, { owner = uids[0], inviteToken } = {}) {
       memberUids: uids,
       updatedBy: owner,
       ...(inviteToken ? { inviteToken } : {}),
+      ...(isArchived === undefined ? {} : { isArchived }),
     });
     if (inviteToken) await setDoc(doc(fs, `invites/${inviteToken}`), { groupId: 'g1' });
     await setDoc(doc(fs, 'groups/g1/members/m1'), { name: 'An', linkedUid: uids[0] });
@@ -372,5 +373,113 @@ describe('user profiles and the privacy policy agreement (R-4 AC7)', () => {
     await seedGroup(['alice', 'newcomer']);
     await setDoc(doc(db('newcomer'), 'users/newcomer'), profile());
     await assertSucceeds(getDoc(doc(db('newcomer'), 'groups/g1')));
+  });
+});
+
+describe('settlement mode (R-7 #116)', () => {
+  test('a member sets the mode and a collector who is a member of the group', async () => {
+    await seedGroup(['alice', 'bob']);
+    const fs = db('bob');
+    await assertSucceeds(updateDoc(doc(fs, 'groups/g1'), { settlementMode: 'hub', settlementHubMemberId: 'm2', ...stamp('bob') }));
+    await assertSucceeds(updateDoc(doc(fs, 'groups/g1'), { settlementMode: 'simplified', settlementHubMemberId: null, ...stamp('bob') }));
+  });
+
+  test('a new group starts in hub mode', async () => {
+    await assertSucceeds(setDoc(doc(db('alice'), 'groups/g1'), group('alice', { settlementMode: 'hub', settlementHubMemberId: null })));
+  });
+
+  test('an unknown mode or a collector outside the group is refused', async () => {
+    await seedGroup(['alice', 'bob']);
+    const fs = db('bob');
+    await assertFails(updateDoc(doc(fs, 'groups/g1'), { settlementMode: 'random', ...stamp('bob') }));
+    await assertFails(updateDoc(doc(fs, 'groups/g1'), { settlementHubMemberId: 'm9', ...stamp('bob') }));
+    await assertFails(updateDoc(doc(fs, 'groups/g1'), { settlementHubMemberId: 42, ...stamp('bob') }));
+  });
+
+  test('a group created with its collector in the same batch', async () => {
+    const fs = db('alice');
+    const batch = writeBatch(fs);
+    batch.set(doc(fs, 'groups/g1'), group('alice', { settlementMode: 'hub', settlementHubMemberId: 'm1' }));
+    batch.set(doc(fs, 'groups/g1/members/m1'), { name: 'An', linkedUid: 'alice', ...stamp('alice') });
+    await assertSucceeds(batch.commit());
+  });
+});
+
+describe('archiving a group (R-7 #117)', () => {
+  const archive = (uid, isArchived = true) =>
+    updateDoc(doc(db(uid), 'groups/g1'), { isArchived, ...stamp(uid) });
+
+  test('only the owner archives and reopens', async () => {
+    await seedGroup(['alice', 'bob'], { isArchived: false });
+    await assertFails(archive('bob'));
+    await assertSucceeds(archive('alice'));
+    await assertFails(archive('bob', false));
+    await assertSucceeds(archive('alice', false));
+  });
+
+  test('a group without the field counts as not archived', async () => {
+    await seedGroup(['alice', 'bob']);
+    await assertSucceeds(updateDoc(doc(db('bob'), 'groups/g1'), { name: 'Da Lat', isArchived: false, ...stamp('bob') }));
+    await assertFails(archive('bob'));
+  });
+
+  test('nothing in an archived group can be added or changed', async () => {
+    await seedGroup(['alice', 'bob'], { isArchived: true });
+    for (const uid of ['alice', 'bob']) {
+      const fs = db(uid);
+      await assertFails(setDoc(doc(fs, 'groups/g1/expenses/e2'), { amountCents: 1, splits: [], ...stamp(uid) }));
+      await assertFails(setDoc(doc(fs, 'groups/g1/expenses/e1'), { amountCents: 2, splits: [], ...stamp(uid) }, { merge: true }));
+      await assertFails(setDoc(doc(fs, 'groups/g1/settlements/s1'), { amountCents: 100, ...stamp(uid) }));
+      await assertFails(setDoc(doc(fs, 'groups/g1/members/m3'), { name: 'Chi', ...stamp(uid) }));
+    }
+    await assertFails(updateDoc(doc(db('bob'), 'groups/g1/members/m2'), { linkedUid: 'bob', ...stamp('bob') }));
+  });
+
+  test('the owner reopens it, and then it can be edited again', async () => {
+    await seedGroup(['alice', 'bob'], { isArchived: true });
+    await assertSucceeds(archive('alice', false));
+    await assertSucceeds(setDoc(doc(db('bob'), 'groups/g1/expenses/e2'), { amountCents: 1, splits: [], ...stamp('bob') }));
+  });
+
+  test('the history records archiving, and members can still leave or delete', async () => {
+    await seedGroup(['alice', 'bob'], { isArchived: false });
+    const fs = db('alice');
+    const batch = writeBatch(fs);
+    batch.update(doc(fs, 'groups/g1'), { isArchived: true, ...stamp('alice') });
+    batch.set(doc(fs, 'groups/g1/activity/arch'), activity('alice', { action: 'update', entityType: 'group', entityId: 'g1' }));
+    await assertSucceeds(batch.commit());
+
+    const leave = writeBatch(fs);
+    leave.update(doc(fs, 'groups/g1/members/m1'), { linkedUid: null, ...stamp('alice') });
+    leave.update(doc(fs, 'groups/g1'), { memberUids: arrayRemove('alice'), ownerUid: 'bob', ...stamp('alice') });
+    await assertSucceeds(leave.commit());
+
+    for (const path of ['members/m1', 'members/m2', 'expenses/e1', 'activity/a1']) {
+      await assertSucceeds(deleteDoc(doc(db('bob'), `groups/g1/${path}`)));
+    }
+    await assertSucceeds(deleteDoc(doc(db('bob'), 'groups/g1')));
+  });
+
+  test('an archived group cannot be joined', async () => {
+    await seedGroup(['alice'], { inviteToken: TOKEN, isArchived: true });
+    const fs = db('bob');
+    await assertFails(updateDoc(doc(fs, 'groups/g1'), { memberUids: arrayUnion('bob'), joinToken: TOKEN, ...stamp('bob') }));
+  });
+});
+
+describe('the name an account goes by (R-7 #112)', () => {
+  test('an account sets its own name, and only that field', async () => {
+    const fs = db('alice');
+    await assertSucceeds(updateDoc(doc(fs, 'users/alice'), { memberName: 'An' }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { memberName: '' }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { memberName: 'x'.repeat(81) }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { memberName: 7 }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { memberName: 'An', displayName: 'Other' }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { 'consent.policyVersion': 'other' }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { email: 'x@example.com' }));
+  });
+
+  test("nobody sets someone else's name", async () => {
+    await assertFails(updateDoc(doc(db('bob'), 'users/alice'), { memberName: 'Bob' }));
   });
 });
