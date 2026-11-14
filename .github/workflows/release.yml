@@ -85,9 +85,10 @@ jobs:
   #     destination: appstore
   #   secrets: inherit
 
+  # Waits for the web deploy too, to attach its source map (#132).
   create-github-release:
     name: Create GitHub Release
-    needs: [build-android]
+    needs: [build-android, deploy-firebase]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -99,9 +100,19 @@ jobs:
         with:
           name: simsplit-prd-release.aab
 
+      # The web build's map, for scripts/symbolize_web_stack.py; the only
+      # web-sourcemap-* artifact of this run.
+      - name: Download web source map
+        uses: actions/download-artifact@v8
+        with:
+          pattern: web-sourcemap-*
+          merge-multiple: true
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
-          files: app-prd-release.aab
+          files: |
+            app-prd-release.aab
+            main.dart.js.map
           generate_release_notes: true
           name: 'SimSplit ${{ github.ref_name }}'

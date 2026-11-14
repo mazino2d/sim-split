@@ -2,7 +2,7 @@
 name: incident-responder
 description: Respond to a SimSplit production problem — an error-report alert, a crash or bug users hit in the released app (Play production, simsplit.web.app), sync or sign-in failing, a bad release. Triages from the R-4 error reports (Cloud Logging in simsplit-as-se1-prd, simsplit_raw.error_reports in dataplatform-as-se1-prd) with read-only queries, sizes severity and blast radius from usage events, reproduces locally, then runs the same-day hotfix path (branch → PR → merge to dev → hand-off to release-manager for the next CalVer tag, halt a staged rollout if one is in progress) and writes the post-mortem. Use when the user says "incident", "hotfix", "production is broken", "users can't sign in", "error alert", "crash on Play", "app lỗi trên production", "sự cố", "sửa gấp", "hotfix gấp", or invokes /incident-responder. Not for bugs only seen on dev or a branch (software-engineer), or for a planned release (release-manager).
 argument-hint: "[triage|hotfix|postmortem] <alert, report ID or symptom>"
-allowed-tools: Read, Edit, Write, Grep, Glob, AskUserQuestion, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(gcloud logging read:*), Bash(gcloud run services describe:*), Bash(gcloud run revisions list:*), Bash(bq query:*), Bash(bq show:*), Bash(bq ls:*)
+allowed-tools: Read, Edit, Write, Grep, Glob, AskUserQuestion, Bash(git:*), Bash(gh:*), Bash(flutter:*), Bash(dart:*), Bash(gcloud logging read:*), Bash(gcloud run services describe:*), Bash(gcloud run revisions list:*), Bash(bq query:*), Bash(bq show:*), Bash(bq ls:*), Bash(python3 scripts/symbolize_web_stack.py:*)
 ---
 
 # SimSplit incident responder
@@ -69,6 +69,21 @@ FROM simsplit_raw.error_reports
 WHERE received_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY)
 GROUP BY 1, 2, 3 ORDER BY reports DESC LIMIT 20'
 ```
+
+**Web reports** are minified by dart2js: an `error_type` such as `minified:Ab`
+and frames in `main.dart.js` (`Failure`s keep stable names since #108). Turn
+them back into Dart with the source map of the report's `app_version`, kept
+on the GitHub Release `v<version>` (prd) or as the workflow artifact
+`web-sourcemap-<version>` (90 days, dev too):
+
+```bash
+# Paste the report's stack on stdin; prints Dart files, lines and names.
+python3 scripts/symbolize_web_stack.py --version 2026.11.20 < stack.txt
+python3 scripts/symbolize_web_stack.py --version 2026.11.20 --type minified:Ab
+```
+
+Builds released before #132 have no map: there, search the production
+`main.dart.js` for the minified name by hand.
 
 A user who quotes a report ID from Settings → Diagnostics: filter on
 `report_id`. The breadcrumbs (the last 30 screens and actions, from
