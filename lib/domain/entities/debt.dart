@@ -22,7 +22,18 @@ sealed class MemberBalance with _$MemberBalance {
     required Member member,
 
     /// Positive: others owe this member. Negative: this member owes others.
+    /// Always [paidCents] − [shareCents] + [settledCents].
     required int netAmountCents,
+
+    /// What the member paid for the group's expenses (#110).
+    @Default(0) int paidCents,
+
+    /// The member's part of the expenses: what the trip cost them (#110).
+    @Default(0) int shareCents,
+
+    /// Recorded settlements: what they paid back minus what they were paid
+    /// back.
+    @Default(0) int settledCents,
   }) = _MemberBalance;
 }
 

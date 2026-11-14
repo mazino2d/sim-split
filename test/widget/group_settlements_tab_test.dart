@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/debt.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/group.dart';
@@ -158,5 +159,31 @@ void main() {
       await pumpSettlementsTab(tester, settlements: const []);
       expect(find.text('Fewest transfers'), findsOneWidget);
     });
+  });
+
+  testWidgets('each balance shows paid and share, with the trip total (#110)',
+      (tester) async {
+    await pumpSettlementsTab(
+      tester,
+      settlements: const [],
+      balances: [
+        MemberBalance(
+            member: members[0],
+            netAmountCents: 80000000,
+            paidCents: 200000000,
+            shareCents: 120000000),
+        MemberBalance(
+            member: members[1],
+            netAmountCents: -80000000,
+            paidCents: 40000000,
+            shareCents: 120000000),
+      ],
+    );
+
+    expect(
+        find.text('Paid ${formatMoney(200000000, 'VND')} · '
+            'Share ${formatMoney(120000000, 'VND')}'),
+        findsOneWidget);
+    expect(find.text('Total ${formatMoney(240000000, 'VND')}'), findsOneWidget);
   });
 }

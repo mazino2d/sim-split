@@ -337,4 +337,33 @@ void main() {
     expect(summary.suggestions.single.to.id, 'm1');
     expect(summary.suggestions.single.amountCents, 6000);
   });
+
+  test('each balance is paid minus share plus settlements (#110)', () async {
+    stubMembers([m1, m2]);
+    stubExpenses([
+      _expense(
+        id: 'e1',
+        paidBy: 'm1',
+        amountCents: 20000,
+        splits: [_split('e1', 'm1', 10000), _split('e1', 'm2', 10000)],
+      ),
+      _expense(
+        id: 'e2',
+        paidBy: 'm2',
+        amountCents: 3000,
+        splits: [_split('e2', 'm1', 1500), _split('e2', 'm2', 1500)],
+      ),
+    ]);
+    stubSettlements([settlement('m2', 'm1', 4000)]);
+
+    final summary = (await useCase(params)).getOrElse((_) => throw Exception());
+    final a = summary.balances.firstWhere((b) => b.member.id == 'm1');
+    final b = summary.balances.firstWhere((b) => b.member.id == 'm2');
+
+    expect((a.paidCents, a.shareCents, a.settledCents), (20000, 11500, -4000));
+    expect((b.paidCents, b.shareCents, b.settledCents), (3000, 11500, 4000));
+    for (final x in [a, b]) {
+      expect(x.netAmountCents, x.paidCents - x.shareCents + x.settledCents);
+    }
+  });
 }
