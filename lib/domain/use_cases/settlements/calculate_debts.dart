@@ -69,6 +69,12 @@ class CalculateDebts
             final balanceMap = <String, int>{
               for (final m in members) m.id: 0,
             };
+            // The parts of each net, shown on the balances screen (#110).
+            final paid = <String, int>{};
+            final share = <String, int>{};
+            final settled = <String, int>{};
+            void part(Map<String, int> map, String id, int cents) =>
+                map[id] = (map[id] ?? 0) + cents;
 
             // Returns false if [memberId] is unknown so the caller can fail
             // instead of crashing on a missing map entry.
@@ -86,12 +92,14 @@ class CalculateDebts
               if (!add(expense.paidByMemberId, expense.amountCents)) {
                 return left(const SettlementFailure.memberNotInGroup());
               }
+              part(paid, expense.paidByMemberId, expense.amountCents);
 
               // Each participant owes their share
               for (final split in expense.splits) {
                 if (!add(split.memberId, -split.amountCents)) {
                   return left(const SettlementFailure.memberNotInGroup());
                 }
+                part(share, split.memberId, split.amountCents);
               }
             }
 
@@ -102,6 +110,8 @@ class CalculateDebts
                   !add(settlement.toMemberId, -settlement.amountCents)) {
                 return left(const SettlementFailure.memberNotInGroup());
               }
+              part(settled, settlement.fromMemberId, settlement.amountCents);
+              part(settled, settlement.toMemberId, -settlement.amountCents);
             }
 
             // 2. Build member balance list (preserves member order)
@@ -110,6 +120,9 @@ class CalculateDebts
                 MemberBalance(
                   member: m,
                   netAmountCents: balanceMap[m.id] ?? 0,
+                  paidCents: paid[m.id] ?? 0,
+                  shareCents: share[m.id] ?? 0,
+                  settledCents: settled[m.id] ?? 0,
                 ),
             ];
 

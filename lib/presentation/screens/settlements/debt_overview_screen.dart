@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/providers/settlement_providers.dart';
 import 'package:simsplit/presentation/widgets/common/error_widget.dart';
@@ -68,6 +69,16 @@ class DebtOverviewScreen extends ConsumerWidget {
                               leading: MemberAvatar(
                                   member: balance.member, size: 36),
                               title: Text(balance.member.name),
+                              subtitle: Text([
+                                l10n.balancePaid(formatMoney(
+                                    balance.paidCents, group.currencyCode)),
+                                l10n.balanceShare(formatMoney(
+                                    balance.shareCents, group.currencyCode)),
+                                if (balance.settledCents != 0)
+                                  l10n.balanceSettled(formatMoney(
+                                      balance.settledCents,
+                                      group.currencyCode)),
+                              ].join(' · ')),
                               trailing: MoneyText(
                                 balance.netAmountCents,
                                 group.currencyCode,

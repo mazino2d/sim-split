@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/debt.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/group.dart';
@@ -628,7 +629,13 @@ class _SettleTab extends ConsumerWidget {
                     ),
             ),
             if (summary.balances.isNotEmpty) ...[
-              SectionLabel(l10n.balances),
+              SectionLabel(
+                l10n.balances,
+                // What the whole trip cost (#110).
+                trailing: Text(l10n.totalSpentValue(formatMoney(
+                    summary.balances.fold<int>(0, (s, b) => s + b.shareCents),
+                    group.currencyCode))),
+              ),
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
@@ -638,6 +645,9 @@ class _SettleTab extends ConsumerWidget {
                       _MemberBalanceRow(
                         member: balance.member,
                         netCents: balance.netAmountCents,
+                        paidCents: balance.paidCents,
+                        shareCents: balance.shareCents,
+                        settledCents: balance.settledCents,
                         maxAbsCents: summary.balances.fold<int>(
                           0,
                           (m, b) => b.netAmountCents.abs() > m
@@ -829,10 +839,16 @@ class _MemberBalanceRow extends StatelessWidget {
     required this.netCents,
     required this.maxAbsCents,
     required this.currencyCode,
+    this.paidCents = 0,
+    this.shareCents = 0,
+    this.settledCents = 0,
   });
 
   final Member member;
   final int netCents;
+  final int paidCents;
+  final int shareCents;
+  final int settledCents;
   final int maxAbsCents;
   final String currencyCode;
 
@@ -903,6 +919,20 @@ class _MemberBalanceRow extends StatelessWidget {
                       half(active: netCents > 0, from: Alignment.centerLeft),
                     ],
                   ),
+                ),
+                const SizedBox(height: 6),
+                // Net = paid − share (+ settlements), so it can be checked
+                // (#110). Wraps under long amounts on a narrow phone.
+                Text(
+                  [
+                    l10n.balancePaid(formatMoney(paidCents, currencyCode)),
+                    l10n.balanceShare(formatMoney(shareCents, currencyCode)),
+                    if (settledCents != 0)
+                      l10n.balanceSettled(
+                          formatMoney(settledCents, currencyCode)),
+                  ].join(' · '),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ],
             ),
