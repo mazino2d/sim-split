@@ -6,7 +6,8 @@ rules_version = '2';
 // in `memberUids` (AC23). Every member may change anything in the group,
 // but not who is in it, except to leave. Activity entries can only be
 // created (AC28); they disappear only with a group whose last member
-// deletes it.
+// deletes it. R-7: only the owner archives or reopens a group, and an
+// archived group is read-only (#117).
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -54,11 +55,35 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys();
     }
 
-    function validGroup() {
+    function validGroup(g) {
       let data = request.resource.data;
       return data.name is string && data.name.size() > 0 && data.name.size() <= 100
         && data.currencyCode is string
-        && data.memberUids is list && data.ownerUid is string;
+        && data.memberUids is list && data.ownerUid is string
+        && data.get('settlementMode', 'simplified') in ['hub', 'simplified']
+        && validCollector(g);
+    }
+
+    // R-7 #116: the collector of "through one person" settlements is null
+    // (the owner's member) or a member of the group. Checked only when it
+    // changes, so other edits cost no extra read.
+    function validCollector(g) {
+      let after = request.resource.data.get('settlementHubMemberId', null);
+      let before = resource == null ? null : resource.data.get('settlementHubMemberId', null);
+      return after == null || after == before
+        || (after is string
+          && existsAfter(/databases/$(database)/documents/groups/$(g)/members/$(after)));
+    }
+
+    // R-7 #117: an archived group is read-only, and only its owner archives
+    // or reopens it. A group without the field is not archived.
+    function archivedAfter(g) {
+      return getAfter(groupPath(g)).data.get('isArchived', false) == true;
+    }
+
+    function archiveUnchangedOrOwner() {
+      return request.resource.data.get('isArchived', false) == resource.data.get('isArchived', false)
+        || resource.data.ownerUid == request.auth.uid;
     }
 
     // Leaving removes only yourself; an owner who leaves hands the group to
@@ -80,6 +105,7 @@ service cloud.firestore {
       let after = request.resource.data;
       let uid = request.auth.uid;
       return !(uid in before.memberUids)
+        && before.get('isArchived', false) != true
         && before.get('inviteToken', null) != null
         && after.get('joinToken', null) == before.inviteToken
         && after.memberUids == before.memberUids.concat([uid])
@@ -101,12 +127,12 @@ service cloud.firestore {
     match /groups/{g} {
       allow read: if agreed() && request.auth.uid in resource.data.memberUids;
 
-      allow create: if agreed() && stamped() && validGroup()
+      allow create: if agreed() && stamped() && validGroup(g)
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.memberUids == [request.auth.uid];
 
       allow update: if agreed() && request.auth.uid in resource.data.memberUids
-        && stamped() && validGroup() && validInviteChange()
+        && stamped() && validGroup(g) && validInviteChange() && archiveUnchangedOrOwner()
         && (!changedKeys().hasAny(['memberUids', 'ownerUid']) || leaving());
 
       allow update: if agreed() && joining();
@@ -139,9 +165,19 @@ service cloud.firestore {
             : data.amountCents is int;
       }
 
+      // Leaving an archived group still releases your own member.
+      function releasingOwnClaim() {
+        return collection == 'members' && resource != null
+          && resource.data.get('linkedUid', null) == request.auth.uid
+          && request.resource.data.get('linkedUid', null) == null
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['linkedUid', 'updatedBy', 'updatedAt']);
+      }
+
       allow read: if synced() && memberBefore(g);
       allow create, update: if synced() && (memberBefore(g) || memberAfter(g))
-        && stamped() && validRecord();
+        && stamped() && validRecord()
+        && (!archivedAfter(g) || releasingOwnClaim());
       allow delete: if synced() && soleMember(g);
     }
 
@@ -160,9 +196,15 @@ service cloud.firestore {
 
     // R-4: the account's profile and the privacy policy revision it agreed
     // to by signing in. Only the account itself can read, create or delete
-    // it, and the agreement can never be changed afterwards.
+    // it, and the agreement can never be changed afterwards. R-7 #112: the
+    // account may set the name it goes by in groups, and nothing else.
     match /users/{uid} {
       allow get, delete: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberName'])
+        && request.resource.data.memberName is string
+        && request.resource.data.memberName.size() > 0
+        && request.resource.data.memberName.size() <= 80;
       allow create: if signedIn() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['displayName', 'email', 'createdAt', 'consent'])
         && request.resource.data.createdAt == request.time
