@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simsplit/domain/entities/auth_user.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/repositories/user_profile_repository.dart';
@@ -44,6 +45,44 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
       } on FirebaseException {
         // Fall through to the original failure.
       }
+      return left(Failure.unexpected('${e.code} ${e.message}'));
+    }
+  }
+
+  // Firestore's offline cache is off, so the name is kept on the device
+  // too, per account, for forms filled offline (#112).
+  static String _cacheKey(String uid) => 'account_member_name:$uid';
+
+  @override
+  Future<Either<Failure, String?>> getMemberName() async {
+    final uid = _currentUid();
+    if (uid == null) return right(null);
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final doc = await _doc(uid).get().timeout(const Duration(seconds: 5));
+      final name = doc.data()?['memberName'] as String?;
+      if (name == null) {
+        await prefs.remove(_cacheKey(uid));
+      } else {
+        await prefs.setString(_cacheKey(uid), name);
+      }
+      return right(name);
+    } on Object {
+      // Offline or slow: the last value seen on this device.
+      return right(prefs.getString(_cacheKey(uid)));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> setMemberName(String name) async {
+    final uid = _currentUid();
+    if (uid == null) return left(const Failure.unexpected('Not signed in'));
+    try {
+      await _doc(uid).update({'memberName': name});
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cacheKey(uid), name);
+      return right(unit);
+    } on FirebaseException catch (e) {
       return left(Failure.unexpected('${e.code} ${e.message}'));
     }
   }

@@ -5,6 +5,7 @@ sealed class MemberFailure extends Failure {
 
   const factory MemberFailure.notFound() = MemberNotFound;
   const factory MemberFailure.nameEmpty() = MemberNameEmpty;
+  const factory MemberFailure.nameTooLong() = MemberNameTooLong;
   const factory MemberFailure.notInGroup() = MemberNotInGroup;
   const factory MemberFailure.hasHistory() = MemberHasHistory;
 }
@@ -28,3 +29,11 @@ final class MemberNotInGroup extends MemberFailure {
 final class MemberHasHistory extends MemberFailure {
   const MemberHasHistory() : super('member_has_history');
 }
+
+/// A member name longer than [maxMemberNameLength].
+final class MemberNameTooLong extends MemberFailure {
+  const MemberNameTooLong() : super('member_name_too_long');
+}
+
+/// The longest member name, like the Firestore rules allow.
+const maxMemberNameLength = 80;

@@ -35,6 +35,7 @@ void main() {
       final cases = <Object, String>{
         const MemberFailure.hasHistory(): l10n.errorMemberHasHistory,
         const MemberFailure.nameEmpty(): l10n.errorMemberNameEmpty,
+        const MemberFailure.nameTooLong(): l10n.errorMemberNameTooLong,
         const MemberFailure.notInGroup(): l10n.errorMemberNotInGroup,
         const MemberFailure.notFound(): l10n.errorMemberNotFound,
         const ExpenseFailure.titleEmpty(): l10n.errorExpenseTitleEmpty,

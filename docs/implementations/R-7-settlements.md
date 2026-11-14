@@ -1,6 +1,6 @@
 # R-7 Settlements — implementation plan
 
-Status: in progress (P1–P3 done)   ·   Spec: no spec document; the issues are the spec ([#116](https://github.com/mazino2d/sim-split/issues/116) settlement mode, [#117](https://github.com/mazino2d/sim-split/issues/117) archive, [#112](https://github.com/mazino2d/sim-split/issues/112) "My name")   ·   Written 2026-11-14
+Status: built (P1–P4 merged; ships to production with the next release)   ·   Spec: no spec document; the issues are the spec ([#116](https://github.com/mazino2d/sim-split/issues/116) settlement mode, [#117](https://github.com/mazino2d/sim-split/issues/117) archive, [#112](https://github.com/mazino2d/sim-split/issues/112) "My name")   ·   Written 2026-11-14
 
 How the first part of R-7 gets built. The three issues share one Firestore rules
 change, reviewed and deployed once. [#110](https://github.com/mazino2d/sim-split/issues/110)

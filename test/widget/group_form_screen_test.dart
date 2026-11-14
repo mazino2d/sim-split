@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart' hide Group;
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,7 @@ import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/use_cases/groups/create_group.dart';
 import 'package:simsplit/domain/use_cases/members/add_member.dart';
+import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/screens/groups/group_form_screen.dart';
 
 import '../helpers/mocks.dart';
@@ -99,7 +101,8 @@ void main() {
     late _MockCreateGroup createGroup;
     late _MockAddMember addMember;
 
-    Future<void> pumpForm(WidgetTester tester) async {
+    Future<void> pumpForm(WidgetTester tester,
+        {List<Override> overrides = const []}) async {
       createGroup = _MockCreateGroup();
       addMember = _MockAddMember();
       when(() => createGroup(any()))
@@ -121,6 +124,7 @@ void main() {
           overrides: [
             createGroupProvider.overrideWithValue(createGroup),
             addMemberProvider.overrideWithValue(addMember),
+            ...overrides,
           ],
           child: MaterialApp.router(
             locale: const Locale('en'),
@@ -216,6 +220,28 @@ void main() {
       await pumpForm(tester);
 
       expect(find.widgetWithText(TextFormField, 'Khoi'), findsOneWidget);
+    });
+
+    testWidgets('prefills the account\'s "My name" first (#112)',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({'my_member_name': 'Khoi'});
+      await pumpForm(tester, overrides: [
+        authAvailableProvider.overrideWithValue(true),
+        accountDisplayNameProvider.overrideWith((ref) async => 'Khoi Do'),
+        accountMemberNameProvider.overrideWith((ref) async => 'An'),
+      ]);
+
+      expect(find.widgetWithText(TextFormField, 'An'), findsOneWidget);
+    });
+
+    testWidgets('falls back to the Google name', (tester) async {
+      await pumpForm(tester, overrides: [
+        authAvailableProvider.overrideWithValue(true),
+        accountDisplayNameProvider.overrideWith((ref) async => 'Khoi Do'),
+        accountMemberNameProvider.overrideWith((ref) async => null),
+      ]);
+
+      expect(find.widgetWithText(TextFormField, 'Khoi Do'), findsOneWidget);
     });
   });
 }

@@ -6,6 +6,7 @@ import 'package:simsplit/domain/entities/auth_user.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/use_cases/use_case.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
+import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
 
 part 'auth_notifier.g.dart';
@@ -43,6 +44,14 @@ class AuthNotifier extends _$AuthNotifier {
   Future<Either<Failure, Unit>> signOut() {
     final useCase = ref.read(signOutProvider);
     return _run(TelemetryEvent.opSignOut, () => useCase(const NoParams()));
+  }
+
+  /// Saves the name the account goes by in groups (#112).
+  Future<Either<Failure, Unit>> setMyName(String name) async {
+    final useCase = ref.read(setMyNameProvider);
+    final result = await _run(TelemetryEvent.opSetMyName, () => useCase(name));
+    if (result.isRight()) ref.invalidate(accountMemberNameProvider);
+    return result;
   }
 
   Future<Either<Failure, Unit>> deleteAccount() {

@@ -71,6 +71,7 @@ import 'package:simsplit/domain/use_cases/groups/delete_group.dart';
 import 'package:simsplit/domain/use_cases/groups/get_group.dart';
 import 'package:simsplit/domain/use_cases/groups/list_groups.dart';
 import 'package:simsplit/domain/use_cases/groups/set_group_archived.dart';
+import 'package:simsplit/domain/use_cases/profile/my_name.dart';
 import 'package:simsplit/domain/use_cases/groups/set_settlement_mode.dart';
 import 'package:simsplit/domain/use_cases/groups/update_group.dart';
 import 'package:simsplit/domain/use_cases/invites/get_invite_link.dart';
@@ -313,6 +314,14 @@ EditExpense editExpense(Ref ref) => EditExpense(
 DeleteExpense deleteExpense(Ref ref) => DeleteExpense(
     groupRepository: ref.watch(groupRepositoryProvider),
     expenseRepository: ref.watch(expenseRepositoryProvider));
+
+@riverpod
+GetMyName getMyName(Ref ref) =>
+    GetMyName(userProfileRepository: ref.watch(userProfileRepositoryProvider));
+
+@riverpod
+SetMyName setMyName(Ref ref) =>
+    SetMyName(userProfileRepository: ref.watch(userProfileRepositoryProvider));
 
 @riverpod
 SetGroupArchived setGroupArchived(Ref ref) => SetGroupArchived(

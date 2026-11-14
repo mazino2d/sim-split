@@ -23,6 +23,26 @@ Stream<AuthUser?> currentUser(Ref ref) {
   );
 }
 
+/// The name this account goes by in groups (#112): set in Settings, kept
+/// with the account. Null when signed out or not set. Kept alive so forms
+/// can read it once without watching; recomputed when the account changes.
+@Riverpod(keepAlive: true)
+Future<String?> accountMemberName(Ref ref) async {
+  if (!ref.watch(authAvailableProvider)) return null;
+  final user = await ref.watch(currentUserProvider.future);
+  if (user == null) return null;
+  final result = await ref.watch(getMyNameProvider)(const NoParams());
+  return result.getOrElse((_) => null);
+}
+
+/// The Google account name, the last fallback for "me" (#112). A future,
+/// so a form can await it once even before the account stream is watched.
+@Riverpod(keepAlive: true)
+Future<String?> accountDisplayName(Ref ref) async {
+  if (!ref.watch(authAvailableProvider)) return null;
+  return (await ref.watch(currentUserProvider.future))?.displayName;
+}
+
 /// The chat or social app whose built-in browser shows the web app, where
 /// Google sign-in doesn't work (#109); `null` in a regular browser and in
 /// the native apps.

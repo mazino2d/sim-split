@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/presentation/utils/my_name_prefill.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/presentation/notifiers/invite_notifier.dart';
@@ -42,7 +43,15 @@ class _JoinGroupScreenState extends ConsumerState<JoinGroupScreen> {
       // The app may have started on this screen from the link.
       FlutterNativeSplash.remove();
       _join();
+      _prefillName();
     });
+  }
+
+  /// "Add me as a new member" starts with the name I go by (#112).
+  Future<void> _prefillName() async {
+    final name = await prefilledMyName(ref);
+    if (!mounted || name == null || _name.text.isNotEmpty) return;
+    _name.text = name;
   }
 
   @override

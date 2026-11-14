@@ -6,6 +6,7 @@ import 'package:fpdart/fpdart.dart' show Either, Unit;
 
 import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/domain/failures/member_failure.dart';
 import 'package:simsplit/domain/failures/auth_failure.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/presentation/notifiers/auth_notifier.dart';
@@ -145,6 +146,48 @@ class _AccountSection extends ConsumerWidget {
     );
   }
 
+  Future<void> _editMyName(
+      BuildContext context, WidgetRef ref, String current) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = TextEditingController(text: current);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: Text(l10n.myName),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: maxMemberNameLength,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(helperText: l10n.myNameHint),
+          onSubmitted: dCtx.trackedValue(
+              TelemetryEvent.tapDialogConfirm, (v) => Navigator.pop(dCtx, v)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: dCtx.tracked(
+                TelemetryEvent.tapDialogCancel, () => Navigator.pop(dCtx)),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: dCtx.tracked(TelemetryEvent.tapDialogConfirm,
+                () => Navigator.pop(dCtx, controller.text)),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null) return;
+    final result = await ref.read(authProvider.notifier).setMyName(name);
+    result.fold(
+      (failure) => messenger
+          .showSnackBar(SnackBar(content: Text(failureMessage(failure, l10n)))),
+      (_) {},
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -155,6 +198,7 @@ class _AccountSection extends ConsumerWidget {
     if (user == null) return const SizedBox.shrink();
 
     final name = user.displayName ?? user.email ?? '';
+    final myName = ref.watch(accountMemberNameProvider).value;
     final email = user.displayName == null ? null : user.email;
 
     return Column(
@@ -166,6 +210,22 @@ class _AccountSection extends ConsumerWidget {
               const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
           title: Text(name),
           subtitle: email == null ? null : Text(email),
+        ),
+        // The name used for "me" in new groups (#112).
+        ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
+          leading: const Icon(Icons.badge_outlined),
+          title: Text(l10n.myName),
+          subtitle: Text('${myName ?? l10n.myNameNotSet} · ${l10n.myNameHint}',
+              maxLines: 2, overflow: TextOverflow.ellipsis),
+          trailing: const Icon(Icons.edit_outlined),
+          onTap: context.tracked(
+              TelemetryEvent.tapEditMyName,
+              busy
+                  ? null
+                  : () => _editMyName(
+                      context, ref, myName ?? user.displayName ?? '')),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
