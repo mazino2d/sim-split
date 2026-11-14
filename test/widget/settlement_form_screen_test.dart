@@ -84,6 +84,27 @@ void main() {
     expect(find.text('An owes Binh'), findsOneWidget);
   });
 
+  testWidgets('VND amounts are grouped and get the 000 key (#114)',
+      (tester) async {
+    await pump(tester, currency: 'VND', from: 'a', to: 'b');
+
+    await tester.enterText(find.byType(TextFormField).first, '1250');
+    await tester.pump();
+    expect(find.text('1.250'), findsOneWidget);
+    await tester.tap(find.text('000'));
+    await tester.pump();
+    expect(find.text('1.250.000'), findsOneWidget);
+  });
+
+  testWidgets('no amount shortcuts for currencies with decimals',
+      (tester) async {
+    await pump(tester, currency: 'USD', from: 'a', to: 'b');
+
+    await tester.enterText(find.byType(TextFormField).first, '45');
+    await tester.pump();
+    expect(find.text('000'), findsNothing);
+  });
+
   testWidgets('prefills whole units for zero-decimal currencies',
       (tester) async {
     await pump(

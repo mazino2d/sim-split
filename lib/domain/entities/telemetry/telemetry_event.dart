@@ -49,6 +49,8 @@ enum TelemetryEvent {
   tapSelectAllParticipants,
   tapToggleParticipant,
   tapPickDate,
+  tapAmountSuggestion,
+  tapAppendThousand,
   tapPickCategory,
   tapSplitUneven,
   tapSplitType,
