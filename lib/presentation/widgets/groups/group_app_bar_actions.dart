@@ -16,11 +16,13 @@ import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
 import 'package:simsplit/presentation/widgets/groups/archive_group.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
+import 'package:simsplit/presentation/widgets/settlements/share_split_sheet.dart';
 
 enum _MenuAction {
   activity,
   edit,
   settlementMode,
+  shareSplit,
   archive,
   reopen,
   resetLink,
@@ -88,6 +90,10 @@ class GroupAppBarActions extends ConsumerWidget {
         return;
       case _MenuAction.settlementMode:
         await showSettlementModeSheet(context, groupId);
+        return;
+      case _MenuAction.shareSplit:
+        final local = ref.read(liveGroupProvider(groupId)).value;
+        if (local != null) await showShareSplitSheet(context, local);
         return;
       case _MenuAction.archive || _MenuAction.reopen:
         final local = ref.read(liveGroupProvider(groupId)).value;
@@ -211,6 +217,7 @@ class GroupAppBarActions extends ConsumerWidget {
               _MenuAction.edit => TelemetryEvent.tapMenuEdit,
               _MenuAction.settlementMode =>
                 TelemetryEvent.tapMenuSettlementMode,
+              _MenuAction.shareSplit => TelemetryEvent.tapMenuShareSplit,
               _MenuAction.archive => TelemetryEvent.tapArchiveGroup,
               _MenuAction.reopen => TelemetryEvent.tapReopenGroup,
               _MenuAction.resetLink => TelemetryEvent.tapMenuResetLink,
@@ -234,6 +241,11 @@ class GroupAppBarActions extends ConsumerWidget {
                 child: Text(l10n.settlementModeTitle),
               ),
             ],
+            if (local != null)
+              PopupMenuItem(
+                value: _MenuAction.shareSplit,
+                child: Text(l10n.shareSplit),
+              ),
             if (canArchive)
               PopupMenuItem(
                 value: archived ? _MenuAction.reopen : _MenuAction.archive,

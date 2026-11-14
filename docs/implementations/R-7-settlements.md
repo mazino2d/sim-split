@@ -1,11 +1,11 @@
 # R-7 Settlements — implementation plan
 
-Status: built (P1–P4 merged; ships to production with the next release)   ·   Spec: no spec document; the issues are the spec ([#116](https://github.com/mazino2d/sim-split/issues/116) settlement mode, [#117](https://github.com/mazino2d/sim-split/issues/117) archive, [#112](https://github.com/mazino2d/sim-split/issues/112) "My name")   ·   Written 2026-11-14
+Status: built (P1–P6 merged; ships to production with the next release)   ·   Spec: no spec document; the issues are the spec ([#116](https://github.com/mazino2d/sim-split/issues/116) settlement mode, [#117](https://github.com/mazino2d/sim-split/issues/117) archive, [#112](https://github.com/mazino2d/sim-split/issues/112) "My name")   ·   Written 2026-11-14
 
-How the first part of R-7 gets built. The three issues share one Firestore rules
-change, reviewed and deployed once. [#110](https://github.com/mazino2d/sim-split/issues/110)
+How R-7 gets built. #116, #117 and #112 share one Firestore rules change,
+reviewed and deployed once. [#110](https://github.com/mazino2d/sim-split/issues/110)
 (paid / share / net per member) and [#115](https://github.com/mazino2d/sim-split/issues/115)
-(share image) build on #116 and get their own plan afterwards.
+(share the split) build on #116: phases P5 and P6.
 
 ## Decisions
 
@@ -59,6 +59,8 @@ lib/presentation
 | P2 Settlement mode | #116 | 1–2 | Entity, Drift v6 migration, codec, puller, mapper; hub algorithm with unit tests (nets sum to 0; collector with positive, negative and zero net; a member at 0 gets no suggestion; collector removed → owner); `CalculateDebts` and `debtSummaryProvider` take the mode; new groups created with `hub`; balances header and picker; group settings; activity labels; events `tapChangeSettlementMode`, `tapPickCollector`; EN and VI | 2 days |
 | P3 Archive | #117 | 1–2 | `SetGroupArchived` (owner only); archived checks in the write use cases with `GroupFailure.archived` and EN/VI messages; app bar menu (owner), confirm dialog with the unsettled warning, archived banner with Reopen, read-only screens; "Archived (n)" on the group list; the "All settled" prompt after a settlement; join screen message; events `tapArchiveGroup`, `tapReopenGroup`, `tapOpenArchived`; tests for archive and reopen through sync, the list, and refused writes; a UC-3 success criterion in `docs/product/use-cases.md` through `product-owner` | 2–3 days |
 | P4 My name | #112 | 1 | `UserProfileRepository.watchMemberName` / `setMemberName` with the local cache; Settings field; prefill order on the group form and the join screen; event `tapSaveMyName` already exists, reuse if it fits, otherwise `tapSaveAccountName`; widget tests for the order; `docs-writer` check of the privacy policy | 1 day |
+| P5 Paid and share | #110 | 1 | `MemberBalance.paidCents`, `shareCents`, `settledCents` from `CalculateDebts`; each balance shows "Paid · Share (· Settled)" and the section the trip total | 0.5 day |
+| P6 Share the split | #115 | 1 | `SplitReport` built from the expenses and the debt summary (the last row follows the settlement mode); images drawn on the device with `dart:ui` (a summary card 1080 px wide, then expense pages of at most 30 rows and 5 member columns, with column totals); a plain-text variant; shared through the system share sheet (text is copied on the web); events `tapShareSplit`, `tapMenuShareSplit`, `tapShareSplitImage`, `tapShareSplitText` | 1.5 days |
 
 P1 merges first, so dev has the new rules while P2–P4 are built against them. P2, P3 and
 P4 are independent of each other after P1. All four ship to production in one release:
