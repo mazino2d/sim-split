@@ -7,7 +7,9 @@ import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/presentation/notifiers/settlement_notifier.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/utils/amount_input_formatter.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
+import 'package:simsplit/presentation/widgets/common/amount_shortcuts.dart';
 import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
@@ -169,6 +171,7 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen>
                   keyboardType: TextInputType.numberWithOptions(
                     decimal: currencyHasDecimals(group.currencyCode),
                   ),
+                  inputFormatters: [AmountInputFormatter(group.currencyCode)],
                   decoration: InputDecoration(
                     labelText: '${l10n.amount} (${group.currencyCode})',
                   ),
@@ -177,6 +180,11 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen>
                     if (cents == null || cents <= 0) return l10n.invalidAmount;
                     return null;
                   },
+                ),
+                const SizedBox(height: 8),
+                AmountShortcuts(
+                  controller: _amountController,
+                  currencyCode: group.currencyCode,
                 ),
                 const SizedBox(height: 12),
                 TextField(

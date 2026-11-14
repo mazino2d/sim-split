@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/expense_split.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
@@ -42,6 +43,10 @@ void main() {
     List<Expense> expenses = const [],
     Widget form = const ExpenseFormScreen(groupId: 'g1'),
   }) async {
+    // Tall enough that the whole form sits above the bottom Save bar.
+    tester.view.physicalSize = const Size(800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final addExpense = _MockAddExpense();
     when(() => addExpense(any())).thenAnswer(
       (_) async => right<Failure, Expense>(testExpense()),
@@ -91,6 +96,37 @@ void main() {
     await tester.enterText(find.byType(TextFormField).first, '1250000');
     await tester.pump();
     expect(find.text('1.250.000'), findsOneWidget);
+  });
+
+  group('amount shortcuts (#114)', () {
+    testWidgets('tapping a suggestion saves that exact amount', (tester) async {
+      final addExpense = await pump(tester);
+
+      await tester.enterText(find.byType(TextFormField).first, '45');
+      await tester.pump();
+      expect(find.text(formatMoney(45000000, 'VND')), findsOneWidget);
+      expect(find.text(formatMoney(450000000, 'VND')), findsOneWidget);
+
+      await tester.tap(find.text(formatMoney(4500000, 'VND')));
+      await tester.pump();
+      expect(find.text('45.000'), findsOneWidget);
+      // Typed zeros: the suggestions are gone.
+      expect(find.text(formatMoney(45000000, 'VND')), findsNothing);
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(savedParams(addExpense).amountCents, 4500000);
+    });
+
+    testWidgets('000 appends three zeros', (tester) async {
+      await pump(tester);
+
+      await tester.enterText(find.byType(TextFormField).first, '1250');
+      await tester.pump();
+      await tester.tap(find.text('000'));
+      await tester.pump();
+      expect(find.text('1.250.000'), findsOneWidget);
+    });
   });
 
   testWidgets(

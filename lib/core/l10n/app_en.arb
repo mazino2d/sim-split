@@ -213,6 +213,7 @@
   "errorMemberNameEmpty": "Member name can't be empty",
   "errorMemberNotInGroup": "A selected member isn't part of this group",
   "errorMemberHasHistory": "This member has expenses or settlements and can't be removed",
+  "appendThousand": "Add three zeros",
   "errorExpenseTitleEmpty": "Expense title can't be empty",
   "errorExpenseTitleTooLong": "Expense title is too long",
   "errorDuplicateParticipant": "Each member can only appear once in a split",
