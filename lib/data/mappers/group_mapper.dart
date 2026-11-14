@@ -14,6 +14,9 @@ class GroupMapper {
         colorValue: row.colorValue,
         currencyCode: row.currencyCode,
         isArchived: row.isArchived,
+        settlementMode: SettlementMode.values.asNameMap()[row.settlementMode] ??
+            SettlementMode.simplified,
+        settlementHubMemberId: row.settlementHubMemberId,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
         ownerUid: row.ownerUid,
@@ -29,6 +32,8 @@ class GroupMapper {
         colorValue: Value(entity.colorValue),
         currencyCode: Value(entity.currencyCode),
         isArchived: Value(entity.isArchived),
+        settlementMode: Value(entity.settlementMode.name),
+        settlementHubMemberId: Value(entity.settlementHubMemberId),
         createdAt: Value(entity.createdAt),
         updatedAt: Value(entity.updatedAt),
       );

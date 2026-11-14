@@ -7,6 +7,7 @@ sealed class GroupFailure extends Failure {
   const factory GroupFailure.nameTooShort() = GroupNameTooShort;
   const factory GroupFailure.nameTooLong() = GroupNameTooLong;
   const factory GroupFailure.currencyLocked() = GroupCurrencyLocked;
+  const factory GroupFailure.collectorNotInGroup() = GroupCollectorNotInGroup;
 }
 
 final class GroupNotFound extends GroupFailure {
@@ -24,4 +25,9 @@ final class GroupNameTooLong extends GroupFailure {
 /// The group's currency cannot change once it has expenses.
 final class GroupCurrencyLocked extends GroupFailure {
   const GroupCurrencyLocked() : super('group_currency_locked');
+}
+
+/// The member picked to collect settlements is not in the group (#116).
+final class GroupCollectorNotInGroup extends GroupFailure {
+  const GroupCollectorNotInGroup() : super('group_collector_not_in_group');
 }

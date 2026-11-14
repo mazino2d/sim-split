@@ -49,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -89,6 +89,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 5) {
             // R-4: error reports and usage events waiting to be sent.
             await m.createTable(telemetryQueue);
+          }
+          if (from < 6) {
+            // R-7 #116: settlement mode.
+            await m.addColumn(groups, groups.settlementMode);
+            await m.addColumn(groups, groups.settlementHubMemberId);
           }
         },
         beforeOpen: (details) async {

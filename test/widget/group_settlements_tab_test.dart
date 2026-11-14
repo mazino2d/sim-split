@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/entities/debt.dart';
 import 'package:simsplit/domain/entities/expense.dart';
+import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:simsplit/presentation/providers/expense_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
@@ -34,6 +36,9 @@ void main() {
     WidgetTester tester, {
     required List<Settlement> settlements,
     List<Debt> suggestions = const [],
+    List<MemberBalance> balances = const [],
+    SettlementMode mode = SettlementMode.simplified,
+    Member? collector,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -48,8 +53,10 @@ void main() {
             (ref) async => DebtSummary(
               groupId: 'g1',
               currencyCode: 'VND',
-              balances: const [],
+              balances: balances,
               suggestions: suggestions,
+              mode: mode,
+              collector: collector,
             ),
           ),
         ],
@@ -109,5 +116,47 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(find.text('Binh paid An'), findsOneWidget);
+  });
+
+  group('settlement mode (#116)', () {
+    testWidgets('names the collector in hub mode', (tester) async {
+      await pumpSettlementsTab(
+        tester,
+        settlements: const [],
+        mode: SettlementMode.hub,
+        collector: members[0],
+        suggestions: [
+          Debt(
+            from: members[1],
+            to: members[0],
+            amountCents: 5000000,
+            currencyCode: 'VND',
+          ),
+        ],
+      );
+      expect(find.text('Settling through An'), findsOneWidget);
+      expect(find.text('Change'), findsOneWidget);
+    });
+
+    testWidgets('asks for a collector instead of claiming all is settled',
+        (tester) async {
+      await pumpSettlementsTab(
+        tester,
+        settlements: const [],
+        mode: SettlementMode.hub,
+        balances: [
+          MemberBalance(member: members[0], netAmountCents: 5000000),
+          MemberBalance(member: members[1], netAmountCents: -5000000),
+        ],
+      );
+      expect(find.text('Pick who collects the money to see who pays whom'),
+          findsOneWidget);
+      expect(find.text('All settled up!'), findsNothing);
+    });
+
+    testWidgets('says fewest transfers otherwise', (tester) async {
+      await pumpSettlementsTab(tester, settlements: const []);
+      expect(find.text('Fewest transfers'), findsOneWidget);
+    });
   });
 }

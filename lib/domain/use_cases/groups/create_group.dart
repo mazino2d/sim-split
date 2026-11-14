@@ -40,6 +40,8 @@ class CreateGroup implements AsyncUseCase<Group, CreateGroupParams> {
       id: UniqueId.generate().value,
       name: params.name.trim(),
       emoji: params.emoji,
+      // New groups settle through one person (#116).
+      settlementMode: SettlementMode.hub,
       colorValue: params.colorValue,
       currencyCode: params.currencyCode,
       createdAt: now,

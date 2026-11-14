@@ -216,12 +216,17 @@ class ActivityText {
         'note' => l10n.fieldNote,
         'emoji' => l10n.fieldEmoji,
         'linkedUid' => l10n.fieldClaimed,
+        'settlementMode' => l10n.settlementModeTitle,
+        'settlementHubMemberId' => l10n.collector,
         _ => key,
       };
 
   String _value(
       ActivityEntityType type, String key, Object? value, String currency) {
     if (key == 'linkedUid') return value == null ? l10n.valueNo : l10n.valueYes;
+    if (key == 'settlementHubMemberId') {
+      return value == null ? l10n.groupOwner : member(value);
+    }
     if (value == null || value == '') return '—';
     return switch (key) {
       'amountCents' => formatMoney(value as int, currency),
@@ -238,6 +243,8 @@ class ActivityText {
           'shares' => l10n.splitShares,
           _ => '$value',
         },
+      'settlementMode' =>
+        value == 'hub' ? l10n.settleThroughOne : l10n.settleFewestTransfers,
       _ => '$value',
     };
   }

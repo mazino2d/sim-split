@@ -6,6 +6,7 @@ import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/use_cases/groups/create_group.dart';
 import 'package:simsplit/domain/use_cases/groups/delete_group.dart';
+import 'package:simsplit/domain/use_cases/groups/set_settlement_mode.dart';
 import 'package:simsplit/domain/use_cases/groups/update_group.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
@@ -70,6 +71,21 @@ class GroupNotifier extends _$GroupNotifier {
               emoji: emoji,
               colorValue: colorValue,
               isArchived: isArchived,
+            )));
+  }
+
+  Future<Either<Failure, Group>> setSettlementMode({
+    required String groupId,
+    required SettlementMode mode,
+    String? hubMemberId,
+  }) {
+    final useCase = ref.read(setSettlementModeProvider);
+    return _run(
+        TelemetryEvent.opSetSettlementMode,
+        () => useCase(SetSettlementModeParams(
+              groupId: groupId,
+              mode: mode,
+              hubMemberId: hubMemberId,
             )));
   }
 

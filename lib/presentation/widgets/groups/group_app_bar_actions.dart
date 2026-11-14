@@ -14,8 +14,9 @@ import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
+import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
 
-enum _MenuAction { activity, edit, resetLink, leave }
+enum _MenuAction { activity, edit, settlementMode, resetLink, leave }
 
 /// The menu actions that change the group, behind a confirmation.
 enum _Confirmed { resetLink, leave }
@@ -75,6 +76,9 @@ class GroupAppBarActions extends ConsumerWidget {
         return;
       case _MenuAction.edit:
         await context.push('/groups/$groupId/edit');
+        return;
+      case _MenuAction.settlementMode:
+        await showSettlementModeSheet(context, groupId);
         return;
       case _MenuAction.resetLink:
         await _confirmAndRun(context, ref, group!, _Confirmed.resetLink);
@@ -183,6 +187,8 @@ class GroupAppBarActions extends ConsumerWidget {
             context.track(switch (action) {
               _MenuAction.activity => TelemetryEvent.tapMenuActivity,
               _MenuAction.edit => TelemetryEvent.tapMenuEdit,
+              _MenuAction.settlementMode =>
+                TelemetryEvent.tapMenuSettlementMode,
               _MenuAction.resetLink => TelemetryEvent.tapMenuResetLink,
               _MenuAction.leave => TelemetryEvent.tapMenuLeave,
             });
@@ -197,6 +203,10 @@ class GroupAppBarActions extends ConsumerWidget {
             PopupMenuItem(
               value: _MenuAction.edit,
               child: Text(l10n.editGroup),
+            ),
+            PopupMenuItem(
+              value: _MenuAction.settlementMode,
+              child: Text(l10n.settlementModeTitle),
             ),
             if (canReset)
               PopupMenuItem(

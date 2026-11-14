@@ -34,6 +34,7 @@ const _all = <Failure>[
   GroupFailure.notFound(),
   GroupFailure.nameTooShort(),
   GroupFailure.nameTooLong(),
+  GroupFailure.collectorNotInGroup(),
   GroupFailure.currencyLocked(),
   InviteFailure.invalidLink(),
   MemberFailure.notFound(),

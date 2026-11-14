@@ -48,6 +48,7 @@ void main() {
             l10n.errorAmountMustBePositive,
         const SettlementFailure.memberNotInGroup(): l10n.errorMemberNotInGroup,
         const GroupFailure.currencyLocked(): l10n.currencyLockedHint,
+        const GroupFailure.collectorNotInGroup(): l10n.errorCollectorNotInGroup,
       };
       cases.forEach((failure, message) {
         expect(failureMessage(failure, l10n), message, reason: '$failure');

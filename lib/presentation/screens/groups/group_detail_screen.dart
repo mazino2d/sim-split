@@ -30,6 +30,7 @@ import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
 import 'package:simsplit/presentation/widgets/groups/group_app_bar_actions.dart';
 import 'package:simsplit/presentation/widgets/members/who_is_me_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
+import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
@@ -583,10 +584,17 @@ class _SettleTab extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: 48),
           children: [
             SectionLabel(l10n.whoPaysWhom),
+            _SettlementModeBar(group: group, summary: summary),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
               child: summary.suggestions.isEmpty
-                  ? const _SettledUpCard()
+                  // In hub mode without a collector the bar above asks
+                  // for one; nothing is settled yet.
+                  ? summary.mode == SettlementMode.hub &&
+                          summary.collector == null &&
+                          summary.balances.any((b) => b.netAmountCents != 0)
+                      ? const SizedBox.shrink()
+                      : const _SettledUpCard()
                   : _Panel(
                       children: [
                         for (final debt in summary.suggestions)
@@ -664,6 +672,52 @@ class _SettleTab extends ConsumerWidget {
           'amountCents': debt.amountCents,
         },
       );
+}
+
+/// How the suggestions are worked out, with a way to change it (#116).
+class _SettlementModeBar extends StatelessWidget {
+  const _SettlementModeBar({required this.group, required this.summary});
+
+  final Group group;
+  final DebtSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final collector = summary.collector;
+    final hub = summary.mode == SettlementMode.hub;
+    final missing = hub && collector == null;
+    final text = !hub
+        ? l10n.settleFewestTransfers
+        : missing
+            ? l10n.pickCollectorHint
+            : l10n.settlingThrough(collector!.isMe
+                ? '${collector.name} ${l10n.meLabel}'
+                : collector.name);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppTheme.gutter, 0, 8, 4),
+      child: Row(
+        children: [
+          Icon(hub ? Icons.hub_outlined : Icons.swap_horiz_rounded,
+              size: 18, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+          TextButton(
+            onPressed: context.tracked(TelemetryEvent.tapChangeSettlementMode,
+                () => showSettlementModeSheet(context, group.id)),
+            child: Text(missing ? l10n.pickCollector : l10n.change),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Rounded surface grouping rows, separated by hairlines.
