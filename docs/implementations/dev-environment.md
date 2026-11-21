@@ -1,4 +1,4 @@
-# Dev environment — implementation plan
+# R-5 Dev environment — implementation plan
 
 Status: done (`main` ships to dev, `v*` tags to prd; first production release through it: 2026.11.21)   ·   Spec: none (engineering change)   ·   Written 2026-10-24
 
