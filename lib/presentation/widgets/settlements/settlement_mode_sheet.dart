@@ -125,6 +125,77 @@ class SettlementModeSheet extends ConsumerWidget {
   }
 }
 
+/// "How to settle up" in Edit group: the group's mode and collector, which
+/// open [SettlementModeSheet] to change them.
+class SettlementModeTile extends ConsumerWidget {
+  const SettlementModeTile({super.key, required this.groupId});
+
+  final String groupId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final group = ref.watch(liveGroupProvider(groupId)).value;
+    if (group == null) return const SizedBox.shrink();
+    final hub = group.settlementMode == SettlementMode.hub;
+    final collector = hub
+        ? ref
+            .watch(debtSummaryProvider(groupId, group.currencyCode))
+            .value
+            ?.collector
+        : null;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(hub ? Icons.hub_outlined : Icons.swap_horiz_rounded),
+      title: Text(hub ? l10n.settleThroughOne : l10n.settleFewestTransfers),
+      subtitle: Text(!hub
+          ? l10n.settleFewestTransfersHint
+          : collector == null
+              ? l10n.pickCollectorHint
+              : l10n.settlingThrough(collector.labelInSentence(l10n))),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: context.tracked(TelemetryEvent.tapOpenSettlementMode,
+          () => showSettlementModeSheet(context, groupId)),
+    );
+  }
+}
+
+/// The settlement mode picked while creating a group: "Through one person"
+/// (the default, with the creator as collector) or "Fewest transfers".
+class NewGroupSettlementModePicker extends StatelessWidget {
+  const NewGroupSettlementModePicker({
+    super.key,
+    required this.mode,
+    required this.onChanged,
+  });
+
+  final SettlementMode mode;
+  final ValueChanged<SettlementMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      children: [
+        _ModeTile(
+          selected: mode == SettlementMode.hub,
+          title: l10n.settleThroughOne,
+          subtitle: l10n.settleThroughOneHint,
+          onTap: context.trackedCall(TelemetryEvent.tapPickSettlementMode,
+              () => onChanged(SettlementMode.hub)),
+        ),
+        _ModeTile(
+          selected: mode == SettlementMode.simplified,
+          title: l10n.settleFewestTransfers,
+          subtitle: l10n.settleFewestTransfersHint,
+          onTap: context.trackedCall(TelemetryEvent.tapPickSettlementMode,
+              () => onChanged(SettlementMode.simplified)),
+        ),
+      ],
+    );
+  }
+}
+
 class _ModeTile extends StatelessWidget {
   const _ModeTile({
     required this.selected,

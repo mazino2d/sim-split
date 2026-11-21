@@ -13,7 +13,6 @@ import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/entities/split_report.dart';
 import 'package:simsplit/domain/use_cases/settlements/calculate_debts.dart';
 import 'package:simsplit/presentation/share/split_image.dart';
-import 'package:simsplit/presentation/share/split_text.dart';
 
 import '../../../helpers/mocks.dart';
 
@@ -118,20 +117,11 @@ void main() {
     expect(money.keeps, 10000000);
   });
 
-  test('the text lists shares and who sends what to the collector', () {
-    final text =
-        splitReportText(_report(expenses, mode: SettlementMode.hub), l10n);
-    expect(text, contains('🏕️ Đà Lạt: expense split'));
-    expect(text, contains('Bình: share 65.000 đ, paid 30.000 đ'));
-    expect(text, contains('Send to An:'));
-    expect(text, contains('  Chi: 65.000 đ'));
-    expect(text, isNot(contains('₫')));
-  });
-
-  testWidgets('renders a summary card and the expense pages', (tester) async {
+  testWidgets('renders the summary and the expenses as one image',
+      (tester) async {
     final r = _report(expenses, mode: SettlementMode.hub);
     final images = (await tester.runAsync(() => renderSplitImages(r, l10n)))!;
-    expect(images, hasLength(2));
+    expect(images, hasLength(1));
     final preview = Platform.environment['SPLIT_PREVIEW_DIR'];
     for (final (i, png) in images.indexed) {
       final codec =
@@ -142,15 +132,27 @@ void main() {
     }
   });
 
-  testWidgets('many expenses and members are split into readable images',
-      (tester) async {
+  testWidgets('a long trip stays in one tall image', (tester) async {
     final many = [
-      for (var i = 0; i < 31; i++)
+      for (var i = 0; i < 60; i++)
         _expense('$i', _an, 300, {_an: 100, _binh: 100, _chi: 100}),
     ];
     final r = _report(many, mode: SettlementMode.simplified);
     final images = (await tester.runAsync(() => renderSplitImages(r, l10n)))!;
-    // The summary, then 31 rows on two pages of at most 30.
-    expect(images, hasLength(3));
+    expect(images, hasLength(1));
+    final codec =
+        (await tester.runAsync(() => ui.instantiateImageCodec(images.single)))!;
+    final frame = (await tester.runAsync(codec.getNextFrame))!;
+    expect(frame.image.height, greaterThan(frame.image.width * 2));
+  });
+
+  testWidgets('only a split too tall for one image goes on', (tester) async {
+    final many = [
+      for (var i = 0; i < 400; i++)
+        _expense('$i', _an, 300, {_an: 100, _binh: 100, _chi: 100}),
+    ];
+    final r = _report(many, mode: SettlementMode.simplified);
+    final images = (await tester.runAsync(() => renderSplitImages(r, l10n)))!;
+    expect(images.length, greaterThan(1));
   });
 }

@@ -15,27 +15,14 @@ import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
 import 'package:simsplit/presentation/widgets/groups/archive_group.dart';
-import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
-import 'package:simsplit/presentation/widgets/settlements/share_split_sheet.dart';
 
-enum _MenuAction {
-  activity,
-  edit,
-  settlementMode,
-  shareSplit,
-  archive,
-  reopen,
-  resetLink,
-  leave
-}
-
-/// The menu actions that change the group, behind a confirmation.
-enum _Confirmed { resetLink, leave }
+enum _MenuAction { activity, edit, archive, reopen, leave }
 
 /// App bar actions for a group: Share group (R-3 AC9) and a More menu that
 /// keeps the less frequent actions out of the bar — Activity (AC25), Edit
-/// group, Reset invite link (owner only, AC13) and Leave group (when other
-/// accounts are in it, AC14). Without accounts, the menu only offers Edit.
+/// group (which holds the settlement mode and Reset invite link), Archive
+/// and Leave group (when other accounts are in it, AC14). Without accounts,
+/// the menu offers Edit and Archive.
 class GroupAppBarActions extends ConsumerWidget {
   const GroupAppBarActions({super.key, required this.groupId});
 
@@ -88,13 +75,6 @@ class GroupAppBarActions extends ConsumerWidget {
       case _MenuAction.edit:
         await context.push('/groups/$groupId/edit');
         return;
-      case _MenuAction.settlementMode:
-        await showSettlementModeSheet(context, groupId);
-        return;
-      case _MenuAction.shareSplit:
-        final local = ref.read(liveGroupProvider(groupId)).value;
-        if (local != null) await showShareSplitSheet(context, local);
-        return;
       case _MenuAction.archive || _MenuAction.reopen:
         final local = ref.read(liveGroupProvider(groupId)).value;
         if (local == null) return;
@@ -104,34 +84,24 @@ class GroupAppBarActions extends ConsumerWidget {
           await reopenGroup(context, ref, local);
         }
         return;
-      case _MenuAction.resetLink:
-        await _confirmAndRun(context, ref, group!, _Confirmed.resetLink);
       case _MenuAction.leave:
-        await _confirmAndRun(context, ref, group!, _Confirmed.leave);
+        await _confirmAndLeave(context, ref, group!);
     }
   }
 
-  Future<void> _confirmAndRun(
+  Future<void> _confirmAndLeave(
     BuildContext context,
     WidgetRef ref,
     Group group,
-    _Confirmed action,
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
-    final (title, message, confirm) = switch (action) {
-      _Confirmed.resetLink => (
-          l10n.resetInviteLinkConfirmTitle,
-          l10n.resetInviteLinkConfirmMessage,
-          l10n.resetInviteLinkConfirm,
-        ),
-      _Confirmed.leave => (
-          l10n.leaveGroupConfirmTitle,
-          l10n.leaveGroupConfirmMessage,
-          l10n.leaveGroupConfirm,
-        ),
-    };
+    final (title, message, confirm) = (
+      l10n.leaveGroupConfirmTitle,
+      l10n.leaveGroupConfirmMessage,
+      l10n.leaveGroupConfirm,
+    );
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dCtx) => AlertDialog(
@@ -158,25 +128,13 @@ class GroupAppBarActions extends ConsumerWidget {
     );
     if (confirmed != true) return;
 
-    final notifier = ref.read(inviteProvider.notifier);
-    switch (action) {
-      case _Confirmed.resetLink:
-        final result = await notifier.resetInviteLink(group.id);
-        messenger.showSnackBar(SnackBar(
-          content: Text(result.fold(
-            (failure) => failureMessage(failure, l10n),
-            (_) => l10n.inviteLinkResetDone,
-          )),
-        ));
-      case _Confirmed.leave:
-        final result = await notifier.leaveGroup(group.id);
-        result.fold(
-          (failure) => messenger.showSnackBar(
-            SnackBar(content: Text(failureMessage(failure, l10n))),
-          ),
-          (_) => router.go('/'),
-        );
-    }
+    final result = await ref.read(inviteProvider.notifier).leaveGroup(group.id);
+    result.fold(
+      (failure) => messenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(failure, l10n))),
+      ),
+      (_) => router.go('/'),
+    );
   }
 
   @override
@@ -188,10 +146,6 @@ class GroupAppBarActions extends ConsumerWidget {
     // Keeps the notifier alive while an action runs.
     final busy = synced && ref.watch(inviteProvider).isLoading;
 
-    final canReset = group != null &&
-        uid != null &&
-        group.ownerUid == uid &&
-        group.inviteToken != null;
     final othersIn = group != null && group.memberUids.any((u) => u != uid);
     // Archiving works offline too, so it reads the local group (#117).
     final local = ref.watch(liveGroupProvider(groupId)).value;
@@ -215,12 +169,8 @@ class GroupAppBarActions extends ConsumerWidget {
             context.track(switch (action) {
               _MenuAction.activity => TelemetryEvent.tapMenuActivity,
               _MenuAction.edit => TelemetryEvent.tapMenuEdit,
-              _MenuAction.settlementMode =>
-                TelemetryEvent.tapMenuSettlementMode,
-              _MenuAction.shareSplit => TelemetryEvent.tapMenuShareSplit,
               _MenuAction.archive => TelemetryEvent.tapArchiveGroup,
               _MenuAction.reopen => TelemetryEvent.tapReopenGroup,
-              _MenuAction.resetLink => TelemetryEvent.tapMenuResetLink,
               _MenuAction.leave => TelemetryEvent.tapMenuLeave,
             });
             _onMenu(context, ref, groupId, group, action);
@@ -231,30 +181,15 @@ class GroupAppBarActions extends ConsumerWidget {
                 value: _MenuAction.activity,
                 child: Text(l10n.activity),
               ),
-            if (!archived) ...[
+            if (!archived)
               PopupMenuItem(
                 value: _MenuAction.edit,
                 child: Text(l10n.editGroup),
-              ),
-              PopupMenuItem(
-                value: _MenuAction.settlementMode,
-                child: Text(l10n.settlementModeTitle),
-              ),
-            ],
-            if (local != null)
-              PopupMenuItem(
-                value: _MenuAction.shareSplit,
-                child: Text(l10n.shareSplit),
               ),
             if (canArchive)
               PopupMenuItem(
                 value: archived ? _MenuAction.reopen : _MenuAction.archive,
                 child: Text(archived ? l10n.reopenGroup : l10n.archiveGroup),
-              ),
-            if (canReset && !archived)
-              PopupMenuItem(
-                value: _MenuAction.resetLink,
-                child: Text(l10n.resetInviteLink),
               ),
             if (othersIn)
               PopupMenuItem(

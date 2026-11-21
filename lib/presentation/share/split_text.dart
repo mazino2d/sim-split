@@ -57,21 +57,3 @@ List<String> settleLines(SplitReport r, AppLocalizations l10n) {
           t.from.name, t.to.name, shareMoney(t.amountCents, currency)),
   ];
 }
-
-/// The split as plain text, for chats that compress images (#115).
-String splitReportText(SplitReport r, AppLocalizations l10n) {
-  final currency = r.group.currencyCode;
-  return [
-    splitTitle(r, l10n),
-    l10n.splitSubtitle(shareMoney(r.totalCents, currency), r.rows.length),
-    '',
-    for (final b in r.balances)
-      l10n.splitTextMember(
-        b.member.name,
-        shareMoney(b.shareCents, currency),
-        shareMoney(b.paidCents, currency),
-      ),
-    '',
-    ...settleLines(r, l10n),
-  ].join('\n');
-}

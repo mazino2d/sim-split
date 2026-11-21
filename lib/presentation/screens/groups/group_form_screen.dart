@@ -10,6 +10,7 @@ import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/presentation/utils/my_name_prefill.dart';
 import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/use_cases/members/update_member.dart';
 import 'package:simsplit/presentation/notifiers/group_notifier.dart';
@@ -24,6 +25,8 @@ import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
+import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
+import 'package:simsplit/presentation/widgets/groups/reset_invite_link.dart';
 
 const _currencies = ['VND', 'USD', 'EUR', 'SGD', 'THB'];
 
@@ -106,6 +109,8 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
   String _currency = 'VND';
   String? _emoji;
   int _colorValue = 0xFF1976D2;
+  // Create mode: new groups settle through one person unless changed (#116).
+  SettlementMode _settlementMode = SettlementMode.hub;
   bool _isLoading = false;
   bool _isDirty = false;
 
@@ -391,6 +396,14 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
           groupId: groupId,
           name: name,
           emoji: draft.emoji,
+        );
+        failure ??= result.fold<Failure?>((f) => f, (_) => null);
+      }
+
+      if (_settlementMode != SettlementMode.hub) {
+        final result = await groupNotifier.setSettlementMode(
+          groupId: groupId,
+          mode: _settlementMode,
         );
         failure ??= result.fold<Failure?>((f) => f, (_) => null);
       }
@@ -743,6 +756,27 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
                               }),
                             ),
                     ),
+
+                    // ── How to settle up (#116) ───────────────────────
+                    SectionLabel(l10n.settlementModeTitle),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: isEdit ? AppTheme.gutter : 0),
+                      child: isEdit
+                          ? SettlementModeTile(groupId: widget.editGroupId!)
+                          : NewGroupSettlementModePicker(
+                              mode: _settlementMode,
+                              onChanged: (mode) => setState(() {
+                                // telemetry: tracked by the picker
+                                _settlementMode = mode;
+                                _isDirty = true;
+                              }),
+                            ),
+                    ),
+
+                    // ── Invite link (owner, R-3 AC13) ─────────────────
+                    if (isEdit)
+                      ResetInviteLinkSection(groupId: widget.editGroupId!),
                   ],
                 ),
               ),

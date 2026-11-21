@@ -8,6 +8,7 @@ import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/widgets/groups/group_app_bar_actions.dart';
+import 'package:simsplit/presentation/widgets/groups/reset_invite_link.dart';
 
 import '../helpers/mocks.dart';
 
@@ -59,7 +60,9 @@ void main() {
     expect(find.text('Activity'), findsNothing);
   });
 
-  testWidgets('lets the owner reset an existing link', (tester) async {
+  testWidgets(
+      'keeps settling, sharing the split and the link reset out of the menu',
+      (tester) async {
     await pump(
         tester,
         testGroup().copyWith(
@@ -67,8 +70,56 @@ void main() {
 
     await tester.tap(find.byTooltip('More'));
     await tester.pumpAndSettle();
-    expect(find.text('Reset invite link'), findsOneWidget);
+    // They live in Edit group and on the Settlements tab now.
+    expect(find.text('Reset invite link'), findsNothing);
+    expect(find.text('How to settle up'), findsNothing);
+    expect(find.text('Share the split'), findsNothing);
     expect(find.text('Leave group'), findsNothing);
+  });
+
+  group('Reset invite link in Edit group', () {
+    Future<void> pumpSection(WidgetTester tester, Group group,
+        {String uid = 'alice'}) async {
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          authAvailableProvider.overrideWithValue(true),
+          currentUserProvider
+              .overrideWith((ref) => Stream.value(AuthUser(uid: uid))),
+          liveGroupProvider('g1').overrideWith((ref) => Stream.value(group)),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: ResetInviteLinkSection(groupId: 'g1')),
+        ),
+      ));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('is offered to the owner of a group with a link',
+        (tester) async {
+      await pumpSection(
+          tester,
+          testGroup().copyWith(
+              ownerUid: 'alice', memberUids: ['alice'], inviteToken: 't'));
+      expect(find.text('Reset invite link'), findsOneWidget);
+    });
+
+    testWidgets('is hidden from other members and before a link exists',
+        (tester) async {
+      await pumpSection(
+          tester,
+          testGroup().copyWith(
+              ownerUid: 'alice',
+              memberUids: ['alice', 'bob'],
+              inviteToken: 't'),
+          uid: 'bob');
+      expect(find.text('Reset invite link'), findsNothing);
+      await pumpSection(tester,
+          testGroup().copyWith(ownerUid: 'alice', memberUids: ['alice']));
+      expect(find.text('Reset invite link'), findsNothing);
+    });
   });
 
   testWidgets('lets a member leave when others are in the group',

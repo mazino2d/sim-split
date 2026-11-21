@@ -314,6 +314,8 @@ void main() {
     await tester.openGroupWhenPulled();
 
     await tester.tapAndWait(find.byTooltip('More'));
+    await tester.tapAndWait(find.text('Edit Group'));
+    await tester.scrollUntilVisible(find.text('Reset invite link'), 200);
     await tester.tapAndWait(find.text('Reset invite link'));
     await tester.tapAndWait(find.text('Reset').last);
     await tester.waitFor(find.text('Invite link reset'));
