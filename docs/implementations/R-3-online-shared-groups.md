@@ -1,6 +1,6 @@
 # R-3 Co-worked groups — implementation plan
 
-Status: in progress (P0–P7, P9 and P10 done; P8 on hold)   ·   Spec: [R-3 Co-worked groups](../product/specs/R-3-online-shared-groups.md)   ·   Written 2026-10-03
+Status: pending (P0–P7, P9 and P10 done; P8 iOS on hold)   ·   Spec: [R-3 Co-worked groups](../product/specs/R-3-online-shared-groups.md)   ·   Written 2026-10-03
 
 How R-3 gets built: the architecture, the phases (one or two PRs each) and the decisions
 behind them. The spec defines *what* must be true. This plan defines *how* and in what
