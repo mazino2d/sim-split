@@ -59,6 +59,10 @@ dependencies:
   http: ^1.6.0
   package_info_plus: ^10.2.2
 
+  # Saving the shared split image: photo library on Android/iOS, download on the web (#115)
+  gal: ^3.0.1
+  web: ^1.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

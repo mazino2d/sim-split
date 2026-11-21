@@ -16,6 +16,10 @@
 		<string>6.0</string>
 		<key>CFBundleName</key>
 		<string>simsplit</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>SimSplit saves the split image you choose to your Photos.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>SimSplit saves the split image you choose to the SimSplit album in Photos.</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>

@@ -12,6 +12,7 @@ import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/entities/split_report.dart';
 import 'package:simsplit/domain/use_cases/settlements/calculate_debts.dart';
+import 'package:simsplit/presentation/share/split_file_name.dart';
 import 'package:simsplit/presentation/share/split_image.dart';
 
 import '../../../helpers/mocks.dart';
@@ -117,42 +118,65 @@ void main() {
     expect(money.keeps, 10000000);
   });
 
-  testWidgets('renders the summary and the expenses as one image',
+  Future<ui.Image> decode(WidgetTester tester, SplitImagePart part) async {
+    final codec =
+        (await tester.runAsync(() => ui.instantiateImageCodec(part.png)))!;
+    return (await tester.runAsync(codec.getNextFrame))!.image;
+  }
+
+  testWidgets('renders the summary, who pays whom and the expenses apart',
       (tester) async {
     final r = _report(expenses, mode: SettlementMode.hub);
-    final images = (await tester.runAsync(() => renderSplitImages(r, l10n)))!;
-    expect(images, hasLength(1));
+    final parts = (await tester.runAsync(() => renderSplitImages(r, l10n)))!;
+    expect(parts.map((p) => p.label), ['Summary', 'Who pays whom', 'Expenses']);
     final preview = Platform.environment['SPLIT_PREVIEW_DIR'];
-    for (final (i, png) in images.indexed) {
-      final codec =
-          (await tester.runAsync(() => ui.instantiateImageCodec(png)))!;
-      final frame = (await tester.runAsync(codec.getNextFrame))!;
-      expect(frame.image.width, greaterThanOrEqualTo(1080));
-      if (preview != null) File('$preview/split-$i.png').writeAsBytesSync(png);
+    for (final (i, part) in parts.indexed) {
+      expect((await decode(tester, part)).width, greaterThanOrEqualTo(1080));
+      if (preview != null) {
+        File('$preview/split-$i.png').writeAsBytesSync(part.png);
+      }
     }
   });
 
-  testWidgets('a long trip stays in one tall image', (tester) async {
+  testWidgets('a long trip keeps its expenses in one tall image',
+      (tester) async {
     final many = [
       for (var i = 0; i < 60; i++)
         _expense('$i', _an, 300, {_an: 100, _binh: 100, _chi: 100}),
     ];
     final r = _report(many, mode: SettlementMode.simplified);
-    final images = (await tester.runAsync(() => renderSplitImages(r, l10n)))!;
-    expect(images, hasLength(1));
-    final codec =
-        (await tester.runAsync(() => ui.instantiateImageCodec(images.single)))!;
-    final frame = (await tester.runAsync(codec.getNextFrame))!;
-    expect(frame.image.height, greaterThan(frame.image.width * 2));
+    final parts = (await tester.runAsync(() => renderSplitImages(r, l10n)))!;
+    expect(parts, hasLength(3));
+    final last = await decode(tester, parts.last);
+    expect(last.height, greaterThan(last.width * 2));
   });
 
-  testWidgets('only a split too tall for one image goes on', (tester) async {
+  testWidgets('only expenses too tall for one image go on', (tester) async {
     final many = [
       for (var i = 0; i < 400; i++)
         _expense('$i', _an, 300, {_an: 100, _binh: 100, _chi: 100}),
     ];
     final r = _report(many, mode: SettlementMode.simplified);
-    final images = (await tester.runAsync(() => renderSplitImages(r, l10n)))!;
-    expect(images.length, greaterThan(1));
+    final parts = (await tester.runAsync(() => renderSplitImages(r, l10n)))!;
+    expect(parts.length, greaterThan(3));
+    expect(parts.skip(2).map((p) => p.label).toSet(), {'Expenses'});
+  });
+
+  group('file names', () {
+    final at = DateTime(2026, 11, 21, 16, 7);
+
+    test('carry the group without marks and the time', () {
+      expect(splitFileName('Chuyến du lịch 10 người!', at),
+          'simsplit-chuyen-du-lich-10-nguoi-20261121-1607.png');
+      expect(splitFileName('Đà Lạt', at, part: 2, parts: 3),
+          'simsplit-da-lat-20261121-1607-2.png');
+    });
+
+    test('drop decomposed marks and cut long names', () {
+      // "Huế" typed with a separate combining mark.
+      expect(fileSlug('Hue\u0302\u0301'), 'hue');
+      expect(fileSlug('a' * 60).length, 40);
+      expect(splitFileName('🎉', at), 'simsplit-20261121-1607.png');
+    });
   });
 }

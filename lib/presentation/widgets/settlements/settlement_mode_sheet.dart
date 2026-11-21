@@ -69,54 +69,79 @@ class SettlementModeSheet extends ConsumerWidget {
       child: ConstrainedBox(
         constraints:
             BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(0, 16, 0, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(l10n.settlementModeTitle,
-                  style: theme.textTheme.titleMedium),
-            ),
-            _ModeTile(
-              selected: hub,
-              title: l10n.settleThroughOne,
-              subtitle: l10n.settleThroughOneHint,
-              onTap: context.tracked(
-                  TelemetryEvent.tapPickSettlementMode,
-                  () => _set(context, ref, SettlementMode.hub,
-                      group.settlementHubMemberId)),
-            ),
-            if (hub) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(72, 4, 16, 4),
-                child: Text(l10n.collector,
-                    style: theme.textTheme.labelMedium
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text(l10n.settlementModeTitle,
+                        style: theme.textTheme.titleMedium),
+                  ),
+                  _ModeTile(
+                    selected: hub,
+                    title: l10n.settleThroughOne,
+                    subtitle: l10n.settleThroughOneHint,
+                    onTap: context.tracked(
+                        TelemetryEvent.tapPickSettlementMode,
+                        () => _set(context, ref, SettlementMode.hub,
+                            group.settlementHubMemberId)),
+                  ),
+                  if (hub) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(72, 4, 16, 4),
+                      child: Text(l10n.collector,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant)),
+                    ),
+                    for (final member in members)
+                      ListTile(
+                        contentPadding:
+                            const EdgeInsets.only(left: 56, right: 16),
+                        leading: MemberAvatar(member: member, size: 32),
+                        title: Text(name(member),
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: member.linkedUid != null &&
+                                member.linkedUid == group.ownerUid
+                            ? Text(l10n.groupOwner)
+                            : null,
+                        trailing: member.id == collector?.id
+                            ? const Icon(Icons.check_rounded)
+                            : null,
+                        onTap: context.tracked(
+                            TelemetryEvent.tapPickCollector,
+                            () => _set(
+                                context, ref, SettlementMode.hub, member.id)),
+                      ),
+                  ],
+                  _ModeTile(
+                    selected: !hub,
+                    title: l10n.settleFewestTransfers,
+                    subtitle: l10n.settleFewestTransfersHint,
+                    onTap: context.tracked(
+                        TelemetryEvent.tapPickSettlementMode,
+                        () => _set(
+                            context, ref, SettlementMode.simplified, null)),
+                  ),
+                ],
               ),
-              for (final member in members)
-                ListTile(
-                  contentPadding: const EdgeInsets.only(left: 56, right: 16),
-                  leading: MemberAvatar(member: member, size: 32),
-                  title: Text(name(member),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: member.linkedUid != null &&
-                          member.linkedUid == group.ownerUid
-                      ? Text(l10n.groupOwner)
-                      : null,
-                  trailing: member.id == collector?.id
-                      ? const Icon(Icons.check_rounded)
-                      : null,
-                  onTap: context.tracked(TelemetryEvent.tapPickCollector,
-                      () => _set(context, ref, SettlementMode.hub, member.id)),
+            ),
+            // Each choice is saved at once; Done only closes the sheet.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: context.tracked(
+                      TelemetryEvent.tapCloseSettlementMode,
+                      () => Navigator.of(context).pop()),
+                  child: Text(l10n.done),
                 ),
-            ],
-            _ModeTile(
-              selected: !hub,
-              title: l10n.settleFewestTransfers,
-              subtitle: l10n.settleFewestTransfersHint,
-              onTap: context.tracked(TelemetryEvent.tapPickSettlementMode,
-                  () => _set(context, ref, SettlementMode.simplified, null)),
+              ),
             ),
           ],
         ),
