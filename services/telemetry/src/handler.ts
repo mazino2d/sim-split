@@ -1,7 +1,7 @@
 // Request handling for the telemetry endpoint, free of Firebase and BigQuery so
 // it can be tested with fakes. server.ts wires the real dependencies.
 
-import { DailyLimiter } from './limits.ts';
+import { AddressKey, DailyLimiter } from './limits.ts';
 import {
   InvalidPayload,
   MAX_BODY_BYTES,
@@ -30,6 +30,8 @@ export interface Deps {
   log: (entry: Record<string, unknown>) => void;
   now: () => Date;
   allowedOrigins: string[];
+  // Tests pass a fixed salt; production gets a random one per start.
+  addressKey?: AddressKey;
 }
 
 export interface Request {
@@ -47,10 +49,20 @@ export interface Response {
 
 export const ERROR_REPORTS_PER_DAY = 50;
 export const USAGE_EVENTS_PER_DAY = 5000;
+// R-8 P3: report IDs are chosen by the client, so the per-report cap alone
+// doesn't bound one client. Each address may send this many reports a day,
+// and the whole instance takes at most the global ceilings.
+export const ERROR_REPORTS_PER_ADDRESS_PER_DAY = 200;
+export const ERROR_REPORTS_TOTAL_PER_DAY = 2000;
+export const USAGE_EVENTS_TOTAL_PER_DAY = 200000;
 
 export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
   const reportLimiter = new DailyLimiter(ERROR_REPORTS_PER_DAY, deps.now);
   const eventLimiter = new DailyLimiter(USAGE_EVENTS_PER_DAY, deps.now);
+  const addressLimiter = new DailyLimiter(ERROR_REPORTS_PER_ADDRESS_PER_DAY, deps.now);
+  const totalReports = new DailyLimiter(ERROR_REPORTS_TOTAL_PER_DAY, deps.now);
+  const totalEvents = new DailyLimiter(USAGE_EVENTS_TOTAL_PER_DAY, deps.now);
+  const addressKey = deps.addressKey ?? new AddressKey();
 
   return async (req) => {
     const cors = corsHeaders(req.headers.origin, deps.allowedOrigins);
@@ -90,7 +102,14 @@ export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
     try {
       if (req.path === '/v1/errors') {
         const rows = parseErrorReports(body, receivedAt, scrub);
-        const kept = rows.filter((row) => reportLimiter.take(row.report_id, 1) === 1);
+        // Address and global caps first: a capped client gets 429, so the
+        // app keeps its reports queued and tries again later.
+        const address = addressKey.of(req.headers['x-forwarded-for']);
+        const allowed = totalReports.take('all', addressLimiter.take(address, rows.length));
+        if (rows.length > 0 && allowed === 0) return reject(429, 'too many error reports today');
+        const kept = rows
+          .slice(0, allowed)
+          .filter((row) => reportLimiter.take(row.report_id, 1) === 1);
         if (kept.length > 0) {
           await deps.sink.writeErrorReports(kept);
           for (const row of kept) deps.log(errorLogEntry(row));
@@ -108,7 +127,9 @@ export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
       }
       const rows = parseUsageEvents(body, receivedAt);
       if (rows.some((row) => row.uid !== uid)) return reject(403, 'events belong to another account');
-      const kept = rows.slice(0, eventLimiter.take(uid, rows.length));
+      const granted = totalEvents.take('all', eventLimiter.take(uid, rows.length));
+      if (rows.length > 0 && granted === 0) return reject(429, 'too many usage events today');
+      const kept = rows.slice(0, granted);
       if (kept.length > 0) await deps.sink.writeUsageEvents(kept);
       return reply(202, { accepted: kept.length, dropped: rows.length - kept.length });
     } catch (e) {
