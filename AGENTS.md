@@ -106,3 +106,4 @@ the matching `SKILL.md` before starting the task.
 | App icon, splash, Play Store and App Store graphics, landing page images | [`uiux-designer`](.claude/skills/uiux-designer/SKILL.md) — SVG masters in `design/`, one pipeline in `design/build.py` |
 | A production error or outage: triage, severity, same-day hotfix | [`incident-responder`](.claude/skills/incident-responder/SKILL.md) — R-4 error reports, read-only queries, hand-off to `release-manager` |
 | Telemetry endpoint, tracked events, usage questions to the warehouse | [`telemetry-analyst`](.claude/skills/telemetry-analyst/SKILL.md) — `services/telemetry/`, event schema, privacy rules, read-only BigQuery |
+| Review security risk: a full scan or one PR — rules, auth, telemetry endpoint, app, hosting, CI and dependencies | [`security-reviewer`](.claude/skills/security-reviewer/SKILL.md) — threat model, checklist per area, severity-ranked findings, emulator-only testing |
