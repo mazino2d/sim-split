@@ -13,8 +13,10 @@ follows once the Apple Developer account is active.
 
 - **Groups** — Create groups for trips, shared housing, or any shared expense
 - **4 split types** — Equal / Percentage / Exact amount / Shares ratio
-- **Automatic debt simplification** — Minimizes the number of transactions needed to settle
-- **Settlement recording** — Track payment history
+- **Two ways to settle up** — Through one collector who pays everyone back, or the fewest transfers
+- **Per-member summary** — Each member's share, what they paid and what's left to settle
+- **Settlement recording** — Track payment history; archive a group when the trip is over
+- **Share the split** — Send the summary, who pays whom and every expense as images to any chat app, or save them to your photos
 - **Shared groups** — Sign in with Google, invite friends with a link, see changes live
 - **Activity history** — Who added, edited or deleted what, with old → new values
 - **Offline after sign-in** — Changes apply at once and sync when the connection is back

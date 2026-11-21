@@ -4,8 +4,10 @@ FEATURES:
 • Create groups for trips, households, or any shared expense
 • Invite friends with a link — everyone in the group can add and edit expenses
 • Add expenses and split them equally, by percentage, by exact amount, or by shares
-• See who owes whom at a glance with automatic debt simplification
-• Record settlements when debts are paid
+• Settle up your way: through one friend who collects and pays back, or in the fewest transfers
+• One card per member: their share, what they paid and what's left to settle
+• Record settlements when debts are paid, and archive the group when the trip is over
+• Share the split to any chat app as images, or save them to your photos
 • Activity history: who added, edited or deleted what, with old and new values
 • Supports VND, USD, EUR, and more
 • Available in Vietnamese and English

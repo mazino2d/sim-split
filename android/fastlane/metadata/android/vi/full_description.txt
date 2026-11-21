@@ -4,8 +4,10 @@ TÍNH NĂNG:
 • Tạo nhóm cho các chuyến đi, chia sẻ phòng, hoặc bất kỳ chi tiêu chung nào
 • Mời bạn bè bằng link — mọi người trong nhóm đều có thể thêm và sửa chi tiêu
 • Thêm chi tiêu và chia theo 4 kiểu: đều nhau, theo %, số tiền cụ thể, hoặc tỉ lệ
-• Xem ai nợ ai ngay lập tức với thuật toán tối giản giao dịch
-• Ghi nhận khi các khoản nợ đã được thanh toán
+• Thanh toán theo cách của nhóm: qua một người thu rồi trả lại, hoặc ít lần chuyển nhất
+• Mỗi thành viên một thẻ: phần của mình, đã trả bao nhiêu và còn lại bao nhiêu
+• Ghi nhận khi các khoản nợ đã được thanh toán, và lưu trữ nhóm khi chuyến đi kết thúc
+• Chia sẻ bảng chia tiền vào bất kỳ app chat nào bằng ảnh, hoặc lưu vào thư viện ảnh
 • Lịch sử thay đổi: ai đã thêm, sửa hay xoá gì, kèm giá trị cũ và mới
 • Hỗ trợ VND, USD, EUR và nhiều loại tiền tệ khác
 • Có sẵn bằng Tiếng Việt và Tiếng Anh

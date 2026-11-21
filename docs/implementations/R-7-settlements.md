@@ -66,6 +66,19 @@ P1 merges first, so dev has the new rules while P2–P4 are built against them. 
 P4 are independent of each other after P1. All four ship to production in one release:
 `firebase_deploy` deploys the rules to prd together with the web app.
 
+### Follow-ups from review on dev
+
+Changes after P1–P6 merged, from reviewing the dev build on a phone. They ship in the
+same release.
+
+| PR | What changed |
+| --- | --- |
+| #153 | Expense rows, "Who pays whom" and the balances give each amount its own line so long names fit at 360 dp; the viewer's member reads "You" / "Bạn" everywhere instead of "<name> (me)" (`MemberLabel`) |
+| #154 | The home screen's group card puts my balance on its own line under the name |
+| #155 | "How to settle up" moves into Create and Edit group (new groups still default to `hub`); Reset invite link moves into Edit group; "Share the split" becomes the Settlements tab's floating button |
+| #156 | The Settlements tab merges who pays whom and the balances into one card per member (`MemberSettleCard`: share, paid, settled, to settle, then the member's transfers with Settle or who they wait for; you first, settled members last); Archive and Delete group sit at the end of Edit group; Share the split opens a preview first (`/groups/:groupId/share`); the unused debt overview screen and its `/debts` route are removed |
+| #157 | P6's images are replaced: the split is three images (summary, who pays whom, expenses), the expenses always a list (no member columns, at any group size), number columns sized to their longest amount, a colour legend instead of parentheses, a part too big for one image (12 000 px or 16 M px) continuing in the next. The text variant is removed. The preview swipes between the images and adds Save image (photo library through `gal` on Android and iOS, a download on the web); files are named `simsplit-<group>-<yyyyMMdd>-<HHmm>[-n].png`. The settlement mode sheet gets a Done button. Events: `tapSaveSplitImage`, `tapZoomSplitImage`, `tapOpenSavedImages`, `tapCloseSettlementMode`, `gestureSwipeSplitImage`, `tapOpenSettlementMode`, `tapResetInviteLink` |
+
 ## Manual steps
 
 - None in the console: the rules ship through `firebase_deploy`, and no new index is
