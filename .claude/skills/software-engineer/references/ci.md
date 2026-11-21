@@ -31,8 +31,10 @@ concurrency group per package, `play-com.mazino2d.simsplit` or
 `play-com.mazino2d.simsplit.dev`, never cancelled in progress. GitHub keeps only the
 newest pending job per group, so a queued job can be replaced by a newer one.
 
-Third-party actions are pinned to a commit SHA with a `# vX.Y.Z` comment
-(Dependabot bumps both); `firebase-tools` is pinned to an exact version.
+Every action, GitHub's own included, is pinned to a commit SHA with a `# vX.Y.Z`
+comment (Dependabot bumps both); only the maintainer's reusable workflows in
+`mazino2d/github-workflows` use a tag (`@v1`). `firebase-tools` is pinned to an
+exact version.
 
 Shared logic comes from [mazino2d/github-workflows](https://github.com/mazino2d/github-workflows) (`@v1`): `pages`, `codeql` and the actionlint job of `pr_validate` call its reusable workflows, and `.github/actions/flutter-setup` pins the Flutter version for its shared `flutter-setup` action.
 

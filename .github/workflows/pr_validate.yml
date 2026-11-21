@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/flutter-setup
         with:
           codegen: "false"
@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/flutter-setup
       - name: Analyze
         run: flutter analyze --fatal-infos
@@ -94,7 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/flutter-setup
       - name: Run tests with coverage
         run: flutter test --coverage
@@ -112,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Offline: text lengths, image sizes and screenshot counts (stdlib only).
       - name: Check store metadata
         run: python3 scripts/play_metadata.py check
@@ -126,7 +126,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install test dependencies
         run: npm ci --prefix firebase/test
       - name: Test rules on the Firestore emulator
@@ -143,8 +143,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "26"
           cache: npm
@@ -152,6 +152,9 @@ jobs:
       - run: npm ci --prefix services/telemetry
       - run: npm --prefix services/telemetry run typecheck
       - run: npm --prefix services/telemetry test
+      # R-8 P5: no known high or critical vulnerability in what the endpoint
+      # runs (dev dependencies are build tools, not shipped).
+      - run: npm audit --prefix services/telemetry --omit=dev --audit-level=high
 
   # Workflow files are otherwise only exercised after merge (or on a tag), so
   # lint them here: syntax, expressions, action inputs, and shellcheck on run:.
