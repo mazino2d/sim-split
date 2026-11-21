@@ -145,7 +145,7 @@ enum TelemetryEvent {
   opMuteGroup,
   opUnmuteGroup,
   opRegisterDevice,
-  // R-9: a tapped notification; the result is `<category>__<messageId>`.
+  // R-9: a tapped notification; the result is its category.
   opNotificationOpened;
 
   /// The snake_case wire name, e.g. `op_create_group`.

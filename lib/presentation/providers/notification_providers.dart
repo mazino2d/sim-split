@@ -123,17 +123,12 @@ void notificationOpenRunner(Ref ref) {
   ref.onDispose(opens.cancel);
 }
 
-/// The usage event's result for a tapped notification:
-/// `<category>__<messageId>`, in the endpoint's name format (lowercase
-/// letters, digits and `_`, at most 64 characters).
-String notificationOpenedResult(NotificationOpen open) {
-  final category = open.category?.id ?? 'unknown';
-  final id = (open.messageId ?? '')
-      .toLowerCase()
-      .replaceAll(RegExp('[^a-z0-9_]'), '_');
-  final result = id.isEmpty ? category : '${category}__$id';
-  return result.length <= 64 ? result : result.substring(0, 64);
-}
+/// The usage event's result for a tapped notification: its category id,
+/// or `unknown`. The message ID is left out: the sender's IDs embed a group
+/// ID (`group-activity-<groupId>-<time>`), and usage events never carry real
+/// IDs (R-4 AC3). Per-message opens need an ID-free field from the sender.
+String notificationOpenedResult(NotificationOpen open) =>
+    open.category?.id ?? 'unknown';
 
 String notificationCategoryName(
         NotificationCategory category, AppLocalizations l10n) =>

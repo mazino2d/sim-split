@@ -291,25 +291,16 @@ void main() {
     });
   });
 
-  test('a tapped notification is recorded in the endpoint name format', () {
+  test('a tapped notification is recorded by category, without IDs', () {
     const open = NotificationOpen(
-      messageId: '7C9E6679-7425-40de-944b-e07fc1f90ae7',
+      messageId: 'group-activity-0b6f1c2e-4a5d-4e8f-9a1b-2c3d4e5f6a7b-1',
       category: NotificationCategory.groupActivity,
       route: null,
     );
-    final result = notificationOpenedResult(open);
-    expect(result, 'group_activity__7c9e6679_7425_40de_944b_e07fc1f90ae7');
-    expect(result, matches(RegExp(r'^[a-z][a-z0-9_]{0,63}$')));
+    expect(notificationOpenedResult(open), 'group_activity');
     expect(
         notificationOpenedResult(const NotificationOpen(
             messageId: null, category: null, route: null)),
         'unknown');
-    expect(
-        notificationOpenedResult(NotificationOpen(
-                messageId: 'x' * 100,
-                category: NotificationCategory.updates,
-                route: null))
-            .length,
-        64);
   });
 }

@@ -4,6 +4,7 @@
 //   node src/cli.ts render   [--dir …]                 Markdown preview of every message
 //   node src/cli.ts plan     [--dir …] --base <dir>    what changes against another copy (main)
 //   node src/cli.ts compile  [--dir …] --out config.json --version <git sha>
+//   node src/cli.ts check-traits [--dir …] --table <project.dataset.table>   catalog vs the dbt table
 
 import { writeFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -11,6 +12,7 @@ import { parseArgs } from 'node:util';
 import { loadConfig, type Problem } from './config/load.ts';
 import { checkConfig } from './config/check.ts';
 import { renderAll, renderPlan } from './preview.ts';
+import { compareTraits } from './traits_check.ts';
 import type { Config } from './config/schema.ts';
 
 const { positionals, values } = parseArgs({
@@ -20,6 +22,7 @@ const { positionals, values } = parseArgs({
     base: { type: 'string' },
     out: { type: 'string' },
     version: { type: 'string', default: 'local' },
+    table: { type: 'string' },
   },
 });
 
@@ -65,7 +68,29 @@ switch (command) {
     console.log(`wrote ${values.out} (${values.version})`);
     break;
   }
+  case 'check-traits': {
+    if (!values.table) throw new Error('--table is required');
+    const config = load(values.dir);
+    const { BigQuery } = await import('@google-cloud/bigquery');
+    const [project, dataset, name] = values.table.split('.');
+    const table = new BigQuery({ projectId: project }).dataset(dataset).table(name);
+    const [exists] = await table.exists();
+    if (!exists) {
+      // The first deploy can come before dbt's first run.
+      console.log(`::warning::${values.table} does not exist yet; trait catalog not checked`);
+      break;
+    }
+    const [meta] = await table.getMetadata();
+    const columns = new Map<string, string>(
+      (meta.schema?.fields ?? []).map((f: { name: string; type: string }) => [f.name, f.type]),
+    );
+    const problems = compareTraits(config.traits, columns);
+    for (const p of problems) console.error(`error crm/traits.yaml: ${p}`);
+    if (problems.length) process.exit(1);
+    console.log(`trait catalog matches ${values.table}`);
+    break;
+  }
   default:
-    console.error('usage: crm <validate|render|plan|compile> [--dir crm] [--base dir] [--out file] [--version sha]');
+    console.error('usage: crm <validate|render|plan|compile|check-traits> [--dir crm] [--base dir] [--out file] [--version sha]');
     process.exit(2);
 }
