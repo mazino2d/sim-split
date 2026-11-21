@@ -45,7 +45,7 @@ dependencies:
   uuid: ^4.6.0
 
   # UI extras
-  flutter_slidable: ^4.0.3
+  flutter_slidable: ^5.2.0
   intl: ^0.20.2
   shared_preferences: ^2.5.6
   share_plus: ^13.3.1
