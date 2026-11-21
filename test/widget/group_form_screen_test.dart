@@ -14,6 +14,10 @@ import 'package:simsplit/domain/failures/core_failure.dart';
 import 'package:simsplit/domain/use_cases/groups/create_group.dart';
 import 'package:simsplit/domain/use_cases/members/add_member.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
+import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/providers/expense_providers.dart';
+import 'package:simsplit/domain/entities/expense.dart';
+import 'package:simsplit/domain/entities/auth_user.dart';
 import 'package:simsplit/presentation/screens/groups/group_form_screen.dart';
 
 import '../helpers/mocks.dart';
@@ -242,6 +246,57 @@ void main() {
       ]);
 
       expect(find.widgetWithText(TextFormField, 'Khoi Do'), findsOneWidget);
+    });
+  });
+
+  group('editing a group', () {
+    Future<void> pumpEdit(WidgetTester tester, Group group,
+        {String uid = 'alice'}) async {
+      tester.view.physicalSize = const Size(800, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authAvailableProvider.overrideWithValue(true),
+            currentUserProvider
+                .overrideWith((ref) => Stream.value(AuthUser(uid: uid))),
+            groupDetailProvider('g1').overrideWith((ref) async => group),
+            liveGroupProvider('g1').overrideWith((ref) => Stream.value(group)),
+            memberListProvider('g1').overrideWith(
+                (ref) => Stream.value([testMember('m', name: 'An')])),
+            expenseListProvider('g1')
+                .overrideWith((ref) => Stream.value(const <Expense>[])),
+          ],
+          child: MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const GroupFormScreen(editGroupId: 'g1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('puts Archive and Delete at the end, not in the title bar',
+        (tester) async {
+      await pumpEdit(tester,
+          testGroup().copyWith(ownerUid: 'alice', memberUids: ['alice']));
+      expect(find.byTooltip('Delete group'), findsNothing);
+      expect(find.text('Archive group'), findsOneWidget);
+      expect(find.text('Delete group'), findsOneWidget);
+      // Below the other sections, just above Save.
+      expect(tester.getTopLeft(find.text('Delete group')).dy,
+          greaterThan(tester.getTopLeft(find.text('How to settle up')).dy));
+    });
+
+    testWidgets('offers Archive only to the owner', (tester) async {
+      await pumpEdit(tester,
+          testGroup().copyWith(ownerUid: 'alice', memberUids: ['alice', 'bob']),
+          uid: 'bob');
+      expect(find.text('Archive group'), findsNothing);
+      expect(find.text('Delete group'), findsOneWidget);
     });
   });
 }

@@ -20,8 +20,9 @@ bool canArchiveGroup(WidgetRef ref, Group group) {
 }
 
 /// Asks, then archives [group]. The dialog says what happens and warns when
-/// someone still owes money, but archiving is still allowed.
-Future<void> confirmAndArchiveGroup(
+/// someone still owes money, but archiving is still allowed. Returns whether
+/// the group was archived.
+Future<bool> confirmAndArchiveGroup(
   BuildContext context,
   WidgetRef ref,
   Group group,
@@ -36,7 +37,7 @@ Future<void> confirmAndArchiveGroup(
   } on Object {
     owing = 0;
   }
-  if (!context.mounted) return;
+  if (!context.mounted) return false;
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dCtx) => AlertDialog(
@@ -69,7 +70,7 @@ Future<void> confirmAndArchiveGroup(
       ],
     ),
   );
-  if (confirmed != true) return;
+  if (confirmed != true) return false;
   final result =
       await ref.read(groupProvider.notifier).setArchived(group.id, true);
   messenger.showSnackBar(SnackBar(
@@ -78,6 +79,7 @@ Future<void> confirmAndArchiveGroup(
       (_) => l10n.groupArchived,
     )),
   ));
+  return result.isRight();
 }
 
 /// Reopens an archived group, so it can be changed again.

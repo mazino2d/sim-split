@@ -30,7 +30,7 @@ import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
 import 'package:simsplit/presentation/widgets/groups/group_app_bar_actions.dart';
 import 'package:simsplit/presentation/widgets/members/who_is_me_card.dart';
 import 'package:simsplit/presentation/widgets/groups/archive_group.dart';
-import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
+import 'package:simsplit/presentation/widgets/settlements/member_settle_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
 import 'package:simsplit/presentation/widgets/settlements/share_split_button.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
@@ -608,68 +608,47 @@ class _SettleTab extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.only(bottom: 96),
           children: [
-            SectionLabel(l10n.whoPaysWhom),
-            _SettlementModeBar(group: group, summary: summary),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
-              child: summary.suggestions.isEmpty
-                  // In hub mode without a collector the bar above asks
-                  // for one; nothing is settled yet.
-                  ? summary.mode == SettlementMode.hub &&
-                          summary.collector == null &&
-                          summary.balances.any((b) => b.netAmountCents != 0)
-                      ? const SizedBox.shrink()
-                      : _SettledUpCard(
-                          // The trip is done: offer to archive it (#117).
-                          onArchive: context.tracked(
-                              TelemetryEvent.tapArchiveGroup,
-                              !group.isArchived &&
-                                      settlements.isNotEmpty &&
-                                      canArchiveGroup(ref, group)
-                                  ? () => confirmAndArchiveGroup(
-                                      context, ref, group)
-                                  : null),
-                        )
-                  : _Panel(
-                      children: [
-                        for (final debt in summary.suggestions)
-                          DebtCard(
-                            debt: debt,
-                            currencyCode: group.currencyCode,
-                            onSettle: group.isArchived
-                                ? null
-                                : context.tracked(TelemetryEvent.tapSettleDebt,
-                                    () => _openSettle(context, debt)),
-                          ),
-                      ],
-                    ),
+            SectionLabel(
+              l10n.whoPaysWhom,
+              // What the whole trip cost (#110).
+              trailing: summary.balances.isEmpty
+                  ? null
+                  : Text(l10n.totalSpentValue(formatMoney(
+                      summary.balances.fold<int>(0, (s, b) => s + b.shareCents),
+                      group.currencyCode))),
             ),
-            if (summary.balances.isNotEmpty) ...[
-              SectionLabel(
-                l10n.balances,
-                // What the whole trip cost (#110).
-                trailing: Text(l10n.totalSpentValue(formatMoney(
-                    summary.balances.fold<int>(0, (s, b) => s + b.shareCents),
-                    group.currencyCode))),
+            _SettlementModeBar(group: group, summary: summary),
+            // Everyone is even: say so, and offer to archive the trip (#117).
+            // In hub mode without a collector the bar above asks for one
+            // instead; nothing is settled yet.
+            if (summary.suggestions.isEmpty &&
+                !(summary.mode == SettlementMode.hub &&
+                    summary.collector == null &&
+                    summary.balances.any((b) => b.netAmountCents != 0)))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppTheme.gutter, 0, AppTheme.gutter, 12),
+                child: _SettledUpCard(
+                  onArchive: context.tracked(
+                      TelemetryEvent.tapArchiveGroup,
+                      !group.isArchived &&
+                              settlements.isNotEmpty &&
+                              canArchiveGroup(ref, group)
+                          ? () => confirmAndArchiveGroup(context, ref, group)
+                          : null),
+                ),
               ),
+            if (summary.balances.isNotEmpty)
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
                 child: _Panel(
                   children: [
-                    for (final balance in summary.balances)
-                      _MemberBalanceRow(
-                        member: balance.member,
-                        netCents: balance.netAmountCents,
-                        paidCents: balance.paidCents,
-                        shareCents: balance.shareCents,
-                        settledCents: balance.settledCents,
-                        currencyCode: group.currencyCode,
-                      ),
+                    for (final balance in orderForSettling(summary))
+                      _memberCard(context, summary, balance),
                   ],
                 ),
               ),
-            ],
             SectionLabel(l10n.settlementHistory),
             if (settlementsAsync.isLoading)
               const AppLoadingWidget()
@@ -701,6 +680,40 @@ class _SettleTab extends ConsumerWidget {
             () => ref
                 .invalidate(debtSummaryProvider(group.id, group.currencyCode))),
       ),
+    );
+  }
+
+  Widget _memberCard(
+      BuildContext context, DebtSummary summary, MemberBalance balance) {
+    final id = balance.member.id;
+    final isCollector =
+        summary.mode == SettlementMode.hub && summary.collector?.id == id;
+    final outgoing = [
+      for (final d in summary.suggestions)
+        if (d.from.id == id) d,
+    ];
+    final incoming = [
+      for (final d in summary.suggestions)
+        if (d.to.id == id) d,
+    ];
+    return MemberSettleCard(
+      balance: balance,
+      currencyCode: group.currencyCode,
+      outgoing: outgoing,
+      // The collector's line already says what they collect.
+      waitingFor: isCollector || balance.netAmountCents <= 0
+          ? const []
+          : [for (final d in incoming) d.from],
+      collector: isCollector
+          ? (
+              collects: incoming.fold(0, (s, d) => s + d.amountCents),
+              paysBack: outgoing.fold(0, (s, d) => s + d.amountCents),
+            )
+          : null,
+      onSettle: group.isArchived
+          ? null
+          : context.trackedValue(TelemetryEvent.tapSettleDebt,
+              (Debt debt) => _openSettle(context, debt)),
     );
   }
 
@@ -835,103 +848,6 @@ class _SettledUpCard extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// A member's net balance with a centred bar: right of centre when they are
-/// owed, left of centre when they owe, scaled to the largest balance.
-/// One member's trip summary: what their share was, what they paid for the
-/// group, and what is left to settle. Each figure has a line of its own so
-/// long names and VND amounts never cut each other on a phone.
-class _MemberBalanceRow extends StatelessWidget {
-  const _MemberBalanceRow({
-    required this.member,
-    required this.netCents,
-    required this.currencyCode,
-    this.paidCents = 0,
-    this.shareCents = 0,
-    this.settledCents = 0,
-  });
-
-  final Member member;
-  final int netCents;
-  final int paidCents;
-  final int shareCents;
-  final int settledCents;
-  final String currencyCode;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final labelStyle =
-        theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant);
-    final valueStyle = theme.textTheme.bodyMedium;
-
-    Widget line(String label, Widget value) => Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(
-            children: [
-              Expanded(child: Text(label, style: labelStyle)),
-              const SizedBox(width: 12),
-              value,
-            ],
-          ),
-        );
-
-    // Left to settle is the balance seen from the member's side: ↑ (red)
-    // means they still pay, ↓ (green) means they wait to be paid back.
-    final toSettle = -netCents;
-    final color = context.money.forSign(netCents, cs);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            member.label(l10n),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyLarge
-                ?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          line(l10n.balanceRowShare,
-              MoneyText(shareCents, currencyCode, style: valueStyle)),
-          line(l10n.balanceRowPaid,
-              MoneyText(paidCents, currencyCode, style: valueStyle)),
-          if (settledCents != 0)
-            line(l10n.balanceRowSettled,
-                MoneyText(settledCents, currencyCode, style: valueStyle)),
-          line(
-            l10n.balanceRowToSettle,
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (toSettle != 0)
-                  Icon(
-                    toSettle > 0
-                        ? Icons.arrow_upward_rounded
-                        : Icons.arrow_downward_rounded,
-                    size: 16,
-                    color: color,
-                    semanticLabel: toSettle > 0
-                        ? l10n.balanceStillPays
-                        : l10n.balanceWaitsToBePaid,
-                  ),
-                MoneyText(
-                  toSettle.abs(),
-                  currencyCode,
-                  color: color,
-                  style: theme.textTheme.titleSmall,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

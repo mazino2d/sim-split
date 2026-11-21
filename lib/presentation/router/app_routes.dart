@@ -9,8 +9,8 @@ abstract final class AppRoutes {
   static const editExpense = '/groups/:groupId/expenses/:expenseId/edit';
   static const expenseDetail = '/groups/:groupId/expenses/:expenseId';
   static const addMember = '/groups/:groupId/members/add';
-  static const debts = '/groups/:groupId/debts';
   static const settle = '/groups/:groupId/settle';
+  static const shareSplit = '/groups/:groupId/share';
   static const join = '/join/:token';
   static const activity = '/groups/:groupId/activity';
   static const diagnostics = '/settings/diagnostics';

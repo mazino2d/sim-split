@@ -41,8 +41,8 @@ void main() {
         '/groups/g1/expenses/e1/edit',
         '/groups/g1/members/add',
         '/groups/g1/members/m1/edit',
-        '/groups/g1/debts',
         '/groups/g1/settle',
+        '/groups/g1/share',
       ];
       for (final location in locations) {
         final matches = appRouter.configuration.findMatch(Uri.parse(location));

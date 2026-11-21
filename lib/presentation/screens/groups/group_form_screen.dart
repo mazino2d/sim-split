@@ -27,6 +27,7 @@ import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
 import 'package:simsplit/presentation/widgets/groups/reset_invite_link.dart';
+import 'package:simsplit/presentation/widgets/groups/archive_group.dart';
 
 const _currencies = ['VND', 'USD', 'EUR', 'SGD', 'THB'];
 
@@ -421,6 +422,14 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
     }
   }
 
+  Future<void> _archive(Group group) async {
+    final archived = await confirmAndArchiveGroup(context, ref, group);
+    if (!archived || !mounted) return;
+    // Back to the group, now read-only; edits not saved are dropped.
+    _isDirty = false;
+    context.pop();
+  }
+
   Future<void> _confirmDeleteGroup() async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -557,16 +566,6 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
               onPressed: context.tracked(TelemetryEvent.tapCloseForm,
                   () => Navigator.maybePop(context))),
           title: Text(isEdit ? l10n.editGroup : l10n.newGroup),
-          actions: [
-            if (isEdit)
-              IconButton(
-                icon: const Icon(Icons.delete_outline),
-                tooltip: l10n.deleteGroup,
-                onPressed: context.tracked(TelemetryEvent.tapDeleteGroup,
-                    saving ? null : _confirmDeleteGroup),
-              ),
-            const SizedBox(width: 8),
-          ],
         ),
         body: Form(
           key: _formKey,
@@ -777,6 +776,17 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
                     // ── Invite link (owner, R-3 AC13) ─────────────────
                     if (isEdit)
                       ResetInviteLinkSection(groupId: widget.editGroupId!),
+
+                    // ── Archive / delete, at the end (#117) ───────────
+                    if (isEdit)
+                      _GroupActionsSection(
+                        groupId: widget.editGroupId!,
+                        onArchive: context.trackedValue(
+                            TelemetryEvent.tapArchiveGroup,
+                            saving ? null : _archive),
+                        onDelete: context.tracked(TelemetryEvent.tapDeleteGroup,
+                            saving ? null : _confirmDeleteGroup),
+                      ),
                   ],
                 ),
               ),
@@ -795,6 +805,60 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen>
 }
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
+
+/// Archive (owner only, #117) and Delete group, at the end of Edit group.
+class _GroupActionsSection extends ConsumerWidget {
+  const _GroupActionsSection({
+    required this.groupId,
+    required this.onArchive,
+    required this.onDelete,
+  });
+
+  final String groupId;
+  final ValueChanged<Group>? onArchive;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final error = Theme.of(context).colorScheme.error;
+    final group = ref.watch(liveGroupProvider(groupId)).value;
+    final archive = onArchive;
+    final canArchive = group != null &&
+        !group.isArchived &&
+        archive != null &&
+        canArchiveGroup(ref, group);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionLabel(l10n.groupActionsSection),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
+          child: Column(
+            children: [
+              if (canArchive)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.inventory_2_outlined),
+                  title: Text(l10n.archiveGroup),
+                  subtitle: Text(l10n.archiveGroupHint),
+                  onTap: () =>
+                      archive(group), // telemetry: tracked by the caller
+                ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.delete_outline, color: error),
+                title: Text(l10n.deleteGroup, style: TextStyle(color: error)),
+                subtitle: Text(l10n.deleteGroupHint),
+                onTap: onDelete,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 /// One-tap emoji choice for the group icon; tapping the selected one clears
 /// it.
