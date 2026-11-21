@@ -1,6 +1,7 @@
 // Loads a web build (served locally or deployed) in headless Chromium, waits
 // for the first screen and fails on uncaught errors, console errors from the
-// page's own origin, or failed requests. Writes a screenshot.
+// page's own origin, failed requests, or Content-Security-Policy violations
+// (report-only ones too). Writes a screenshot.
 // Usage: node scripts/smoke_web.cjs <url> <screenshot.png> (see smoke_web.sh)
 const { chromium } = require('playwright');
 
@@ -10,6 +11,17 @@ const [url, shot] = process.argv.slice(2);
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 412, height: 900 } });
   const errors = [];
+  // R-8 P4: a CSP violation fires securitypolicyviolation whether the policy is
+  // enforced or report-only, so a report-only policy fails here before it is
+  // enforced anywhere.
+  await page.addInitScript(() => {
+    window.__cspViolations = [];
+    document.addEventListener('securitypolicyviolation', (e) => {
+      window.__cspViolations.push(
+        `${e.disposition} ${e.effectiveDirective}: ${e.blockedURI || 'inline'} (${e.sourceFile}:${e.lineNumber})`,
+      );
+    });
+  });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   // Console errors from other origins' frames are not ours: on the deployed
   // site the invisible reCAPTCHA iframe (App Check) logs
@@ -36,6 +48,7 @@ const [url, shot] = process.argv.slice(2);
   await page.waitForSelector('flutter-view', { timeout: 30000 });
   await page.waitForTimeout(8000);
   await page.screenshot({ path: shot });
+  for (const v of await page.evaluate(() => window.__cspViolations)) errors.push(`CSP: ${v}`);
   await browser.close();
 
   if (errors.length) {

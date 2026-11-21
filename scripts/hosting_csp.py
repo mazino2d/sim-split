@@ -9,6 +9,8 @@ Check, Google Fonts, the environment's telemetry endpoint, and Firebase Cloud
 Messaging for web push (R-9: the service worker loads the SDK from gstatic and
 registers through fcmregistrations and firebaseinstallations). Inline scripts
 in index.html are allowed by hash, so no 'unsafe-inline' is needed for them.
+The Firebase JS SDK is loaded by web/firebase_sdk.js (a file of our own, so
+'self'), which stops FlutterFire from injecting an inline script per service.
 
   scripts/hosting_csp.py --telemetry-url URL --project ID [--report-only]
 

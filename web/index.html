@@ -135,7 +135,11 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async=""></script>
+  <!--
+    firebase_sdk.js loads the Firebase JS SDK, then flutter_bootstrap.js, so
+    FlutterFire never injects inline scripts (R-8 P4, the CSP).
+  -->
+  <script type="module" src="firebase_sdk.js"></script>
 
 
 </body></html>

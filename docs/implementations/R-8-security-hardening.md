@@ -42,7 +42,10 @@ Done so far: P1 in everything-as-code #255 and #256 (dev), #257 and #258 (prd), 
 P4 in #170 (headers on dev; the CSP report-only), P5 in #171, P6 in this repo's skills
 and `SECURITY.md`. The CSP ran report-only on dev from 2026-11-21; its reports were
 clean through sign-in, reCAPTCHA, sharing, saving images and web push, so it is
-enforced on dev and prd since 2026-11-22. P2–P4 and the enforced CSP reach prd with
+enforced on dev and prd since 2026-11-22. The first enforced deploy blocked the inline
+scripts FlutterFire injects for the Firebase JS SDK (the reports had been missed);
+`web/firebase_sdk.js` now loads the SDK as a file of our own, and the smoke test
+fails on any CSP violation, report-only included. P2–P4 and the enforced CSP reach prd with
 the next release.
 
 P2–P6 are independent of each other. P2 changes what released clients may write;
