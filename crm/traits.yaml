@@ -1,3 +1,59 @@
-# Trait catalog: the columns of the dbt model simsplit_crm.user_traits
-# (data-platform) that audiences may use. Filled in R-9 P4.
-[]
+# Trait catalog: columns of the dbt model simsplit_crm.user_traits
+# (mazino2d/data-platform), refreshed daily. Audiences may only use these.
+# `column` must match the model's contract.
+- name: platform
+  type: choice
+  column: platform
+  label: Platform of the latest session
+  values: [android, web]
+
+- name: language
+  type: choice
+  column: language
+  label: App language
+  values: [en, vi]
+
+- name: app_version
+  type: version
+  column: app_version
+  label: App version
+
+- name: signup_days
+  type: days_ago
+  column: signup_days
+  label: Signed up
+
+- name: last_active_days
+  type: days_ago
+  column: last_active_days
+  label: Last active
+
+- name: sessions_30d
+  type: number
+  column: sessions_30d
+  label: Sessions in the last 30 days
+
+- name: open_groups
+  type: number
+  column: open_groups
+  label: Open groups
+
+- name: shared_groups
+  type: number
+  column: shared_groups
+  label: Open groups with friends
+
+- name: owes_groups
+  type: number
+  column: owes_groups
+  label: Groups where they owe money
+
+- name: owed_groups
+  type: number
+  column: owed_groups
+  label: Groups where they are owed money
+
+- name: oldest_unsettled_days
+  type: days_ago
+  column: oldest_unsettled_days
+  label: Oldest unsettled debt

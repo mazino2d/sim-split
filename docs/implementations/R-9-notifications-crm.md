@@ -1,6 +1,6 @@
 # R-9 Notifications and CRM as code — implementation plan
 
-Status: in progress (P1 done, P2 and P3 under way)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
+Status: in progress (P1 and P3 done; P2 and P4 under way)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
 
 How R-9 gets built. One new service, `services/crm`, sends every message. Its config
 lives in `crm/` in this repo. The traits that audiences select on come from a dbt model
@@ -124,7 +124,10 @@ Done so far: P1 infrastructure in everything-as-code #259 (dev and prd), P1 code
 this repo (`crm/`, `services/crm`, the CRM config check and `crm_deploy.yml`). P3 in
 everything-as-code #260 (Firestore and FCM roles) and this repo: group activity batched
 per group, sent to the other members' devices, held back in quiet hours; the money
-format is shared with the app through `services/crm/test/money_vectors.json`.
+format is shared with the app through `services/crm/test/money_vectors.json`. P4 in
+everything-as-code #261 (dataset `simsplit_crm`, grants, error alert), data-platform
+(`user_traits`) and this repo: the trait catalog, the audience compiler (parameterised
+BigQuery), the catalog check in the dev deploy and the 36-hour freshness rule.
 
 P2 must ship to production before any production send is configured. P3 needs P1 and
 P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.
