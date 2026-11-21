@@ -66,7 +66,7 @@ member of that group, on Android, iOS or the web.
 
 | # | Success criterion |
 | --- | --- |
-| 5.1 | A plain-text or image summary of balances can be sent to any messaging app, for friends who do not install the app. *(R-7, [#115](https://github.com/mazino2d/sim-split/issues/115): made on the device; the last row follows the group's settlement mode.)* |
+| 5.1 | An image of the balances and every expense can be sent to any messaging app, for friends who do not install the app. *(R-7, [#115](https://github.com/mazino2d/sim-split/issues/115): made on the device as one long image with nothing cut; the last row follows the group's settlement mode.)* |
 
 ### UC-6 Manage settings
 
