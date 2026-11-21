@@ -5,6 +5,7 @@ import 'package:simsplit/domain/failures/expense_failure.dart';
 import 'package:simsplit/domain/failures/group_failure.dart';
 import 'package:simsplit/domain/failures/invite_failure.dart';
 import 'package:simsplit/domain/failures/member_failure.dart';
+import 'package:simsplit/domain/failures/notification_failure.dart';
 import 'package:simsplit/domain/failures/settlement_failure.dart';
 import 'package:simsplit/domain/failures/sync_failure.dart';
 
@@ -75,6 +76,7 @@ String failureMessage(Object? error, AppLocalizations l10n) {
     AuthCancelled() || AuthSignInFailed() => l10n.signInFailed,
     SyncUnsyncedChanges() => l10n.errorUnsyncedChanges,
     SyncNoConnection() => l10n.errorNoConnection,
+    NotificationTooManyMutedGroups() => l10n.errorTooManyMutedGroups,
     SyncServerError() => l10n.errorSyncFailed,
     InviteInvalidLink() => l10n.errorInviteLinkInvalid,
     // Wildcard keeps this compiling when new Failure variants are added.

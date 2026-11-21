@@ -62,6 +62,11 @@ dependencies:
   gal: ^3.0.1
   web: ^1.1.2
 
+  # Push notifications on Android and the web app, and the device's time zone
+  # for quiet hours (R-9; used by lib/data/notifications)
+  firebase_messaging: ^17.1.0
+  flutter_timezone: ^5.1.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -81,6 +86,7 @@ dev_dependencies:
   # Testing
   mocktail: ^1.0.5
   fake_cloud_firestore: ^4.5.0
+  yaml: ^3.1.4
 
 flutter:
   uses-material-design: true

@@ -15,12 +15,18 @@ void main() {
   late MockLocalDataRepository localData;
   late MockSyncRepository sync;
   late MockUserProfileRepository profiles;
+  late MockNotificationRepository notifications;
 
   setUp(() {
     auth = MockAuthRepository();
     localData = MockLocalDataRepository();
     sync = MockSyncRepository();
     profiles = MockUserProfileRepository();
+    notifications = MockNotificationRepository();
+    when(() => notifications.unregisterDevice())
+        .thenAnswer((_) async => right<Failure, Unit>(unit));
+    when(() => notifications.deleteAllDevices())
+        .thenAnswer((_) async => right<Failure, Unit>(unit));
     when(() => profiles.deleteProfile())
         .thenAnswer((_) async => right<Failure, Unit>(unit));
     when(() => localData.clearAll())
@@ -36,6 +42,7 @@ void main() {
         authRepository: auth,
         localDataRepository: localData,
         syncRepository: sync,
+        notificationRepository: notifications,
       );
 
   DeleteAccount deleteAccount() => DeleteAccount(
@@ -43,6 +50,7 @@ void main() {
         localDataRepository: localData,
         syncRepository: sync,
         userProfileRepository: profiles,
+        notificationRepository: notifications,
       );
 
   group('SignOut', () {
@@ -54,8 +62,26 @@ void main() {
 
       expect(result.isRight(), isTrue);
       verifyInOrder([
+        () => notifications.unregisterDevice(),
         () => sync.stop(),
         () => localData.clearAll(),
+        () => auth.signOut(),
+      ]);
+    });
+
+    test('removes this device from push before signing out (R-9 AC23)',
+        () async {
+      when(() => auth.signOut())
+          .thenAnswer((_) async => right<Failure, Unit>(unit));
+      when(() => notifications.unregisterDevice()).thenAnswer(
+          (_) async => left<Failure, Unit>(const Failure.unexpected('x')));
+
+      final result = await signOut()(const NoParams());
+
+      // A device that cannot be removed doesn't keep the user signed in.
+      expect(result.isRight(), isTrue);
+      verifyInOrder([
+        () => notifications.unregisterDevice(),
         () => auth.signOut(),
       ]);
     });
@@ -105,6 +131,7 @@ void main() {
       expect(result.isRight(), isTrue);
       verifyInOrder([
         () => sync.deleteCloudData(),
+        () => notifications.deleteAllDevices(),
         () => profiles.deleteProfile(),
         () => auth.deleteAccount(),
         () => localData.clearAll(),
@@ -121,6 +148,18 @@ void main() {
       expect(result.getLeft().toNullable(), isA<SyncNoConnection>());
       verifyNever(() => auth.deleteAccount());
       verifyNever(() => localData.clearAll());
+    });
+
+    test('keeps the account when its devices cannot be removed (R-9 AC23)',
+        () async {
+      when(() => notifications.deleteAllDevices()).thenAnswer(
+          (_) async => left<Failure, Unit>(const Failure.unexpected('x')));
+
+      final result = await deleteAccount()(const NoParams());
+
+      expect(result.isLeft(), isTrue);
+      verifyNever(() => profiles.deleteProfile());
+      verifyNever(() => auth.deleteAccount());
     });
 
     test('keeps the data when the user cancels the confirmation', () async {

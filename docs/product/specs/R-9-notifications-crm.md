@@ -48,9 +48,10 @@ code in the repo, reviewed in a pull request like the rest of the app.
 ### Permission and settings
 
 - **AC1** Given a signed-in user who has never been asked, when they first open a group
-  that has another member, then the app shows one line explaining group activity
-  notifications and the system permission prompt; it is never shown on launch or before
-  sign-in.
+  that has another member, then the group shows an inline, dismissible line (not a
+  dialog) explaining group activity notifications, with Turn on, which shows the system
+  permission prompt, and Not now. Whatever the answer, the line never shows again on
+  that device; it is never shown on launch or before sign-in.
 - **AC2** Given the user refused the permission, then the app never asks again on its own;
   Settings → Notifications says notifications are off and how to turn them on in the
   system settings.

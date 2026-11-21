@@ -67,17 +67,21 @@ void Function(TelemetryEvent) _safe(TrackEvent Function() track) => (event) {
 
 /// Runs a use case and records it as an operation with its result
 /// (`success`, or the failure type in snake_case) and duration (AC8).
+/// [successResult] names a success more precisely, from the fixed values of
+/// the use case (`granted`, `group_activity_on`), never from free text.
 Future<Either<Failure, T>> trackOp<T>(
   TrackEvent track,
   TelemetryEvent event,
-  Future<Either<Failure, T>> Function() action,
-) async {
+  Future<Either<Failure, T>> Function() action, {
+  String Function(T value)? successResult,
+}) async {
   final watch = Stopwatch()..start();
   final result = await action();
   track(
     BreadcrumbKind.op,
     event.wireName,
-    result: result.fold((f) => failureName(f), (_) => 'success'),
+    result: result.fold(
+        (f) => failureName(f), (v) => successResult?.call(v) ?? 'success'),
     duration: watch.elapsed,
   );
   return result;

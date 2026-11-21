@@ -108,20 +108,24 @@ jobs:
       # App Check on web (R-3 P9). The reCAPTCHA Enterprise site key is public
       # and comes from the environment; while it is unset, App Check stays off
       # on web. TELEMETRY_URL is the environment's own endpoint (each accepts
-      # App Check tokens from its own project only).
+      # App Check tokens from its own project only). FCM_VAPID_KEY is the
+      # project's public Web Push key (R-9); while it is unset, the web app
+      # does not register for push.
       - name: Build web
         env:
           BUILD_NAME: ${{ steps.version.outputs.build-name }}
           BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
           RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.RECAPTCHA_ENTERPRISE_SITE_KEY }}
           TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
+          FCM_VAPID_KEY: ${{ vars.FCM_VAPID_KEY }}
         run: |
           echo "web ($APP_ENV) version: $BUILD_NAME+$BUILD_NUMBER" | tee -a "$GITHUB_STEP_SUMMARY"
           flutter build web --release --source-maps \
             --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER" \
             --dart-define=APP_ENV="$APP_ENV" \
             --dart-define=RECAPTCHA_ENTERPRISE_SITE_KEY="$RECAPTCHA_ENTERPRISE_SITE_KEY" \
-            --dart-define=TELEMETRY_URL="$TELEMETRY_URL"
+            --dart-define=TELEMETRY_URL="$TELEMETRY_URL" \
+            --dart-define=FCM_VAPID_KEY="$FCM_VAPID_KEY"
 
       # The source map turns minified web error reports back into Dart
       # (scripts/symbolize_web_stack.py, #132). It is kept per version, not

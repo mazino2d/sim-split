@@ -29,6 +29,8 @@ import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
 import 'package:simsplit/presentation/widgets/groups/group_app_bar_actions.dart';
 import 'package:simsplit/presentation/widgets/members/who_is_me_card.dart';
+import 'package:simsplit/presentation/widgets/notifications/notification_prompt_card.dart';
+import 'package:simsplit/presentation/providers/notification_providers.dart';
 import 'package:simsplit/presentation/widgets/groups/archive_group.dart';
 import 'package:simsplit/presentation/widgets/settlements/member_settle_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
@@ -131,7 +133,14 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
             pinned: true,
-            title: _GroupTitle('${group.emoji ?? ''} ${group.name}'.trim()),
+            title: Row(
+              children: [
+                Flexible(
+                    child: _GroupTitle(
+                        '${group.emoji ?? ''} ${group.name}'.trim())),
+                _MutedMark(groupId: group.id),
+              ],
+            ),
             actions: [
               GroupAppBarActions(groupId: group.id),
               const SizedBox(width: 8),
@@ -141,6 +150,7 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
             SliverToBoxAdapter(child: ArchivedGroupBanner(group: group)),
           SliverToBoxAdapter(child: _GroupHeader(group: group)),
           SliverToBoxAdapter(child: WhoIsMeCard(groupId: group.id)),
+          SliverToBoxAdapter(child: NotificationPromptCard(groupId: group.id)),
           SliverPersistentHeader(
             pinned: true,
             delegate: _TabBarDelegate(
@@ -207,6 +217,30 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_TabBarDelegate oldDelegate) =>
       tabBar != oldDelegate.tabBar || background != oldDelegate.background;
+}
+
+/// A small bell-off after the group name while its notifications are
+/// muted (R-9 AC4).
+class _MutedMark extends ConsumerWidget {
+  const _MutedMark({required this.groupId});
+
+  final String groupId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final muted =
+        ref.watch(notificationPrefsProvider).value?.isMuted(groupId) ?? false;
+    if (!muted) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: Icon(
+        Icons.notifications_off_outlined,
+        size: 18,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        semanticLabel: AppLocalizations.of(context)!.groupMuted,
+      ),
+    );
+  }
 }
 
 /// The group name in the app bar: one line when it fits, otherwise two

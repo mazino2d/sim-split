@@ -4,6 +4,9 @@
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
+    <!-- R-9: push notifications. Android 13+ asks only when the user taps
+         "Turn on" in the app, never on launch. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
         android:requestLegacyExternalStorage="true"
         android:label="${appLabel}"
@@ -43,6 +46,11 @@
                 <data android:scheme="https" android:host="${appLinkHost}" android:pathPrefix="/join/"/>
             </intent-filter>
         </activity>
+        <!-- R-9: the small icon of push notifications (monochrome). Each
+             message names its channel, one per category (MainActivity.kt). -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_launcher_monochrome" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

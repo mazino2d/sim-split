@@ -75,6 +75,8 @@ run the app with `--dart-define-from-file=.env.local`:
 - `APP_CHECK_DEBUG_TOKEN` — lets debug builds pass App Check, which is
   enforced: without it, Firestore and Auth reject a debug build.
 - `FIREBASE_EMULATOR_HOST` — `localhost` to use the local emulators.
+- `FCM_VAPID_KEY` — the project's public Web Push key (R-9); empty skips
+  push registration on web. Android doesn't need it.
 
 A new `--dart-define` goes into `.env.example` with a comment, and into the CI
 workflow that builds the release, never into a committed `.env.local`.

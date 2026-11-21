@@ -429,5 +429,22 @@
   "platformLabel": "Nền tảng",
   "errorReportsWaiting": "Báo cáo đang chờ gửi",
   "signInAgreementPrefix": "Khi tiếp tục, bạn đồng ý với ",
-  "privacyPolicyLink": "Chính sách quyền riêng tư"
+  "privacyPolicyLink": "Chính sách quyền riêng tư",
+  "notifications": "Thông báo",
+  "notificationCategoryGroupActivity": "Hoạt động nhóm",
+  "notificationCategoryGroupActivityDescription": "Khi bạn bè thêm, sửa hoặc thanh toán khoản chi trong nhóm của bạn",
+  "notificationCategorySettleReminder": "Nhắc thanh toán",
+  "notificationCategorySettleReminderDescription": "Nhắc mỗi tuần khi bạn còn nợ quá hai tuần",
+  "notificationCategoryUpdates": "Cập nhật",
+  "notificationCategoryUpdatesDescription": "Tin hiếm hoi về SimSplit, như bản mới sửa lỗi bạn từng gặp",
+  "notificationPrompt": "Nhận thông báo khi bạn bè thêm hoặc thanh toán khoản chi trong nhóm này?",
+  "notificationTurnOn": "Bật",
+  "notificationsOffOnDevice": "Thông báo đang tắt trên thiết bị này.",
+  "notificationsBlockedAndroid": "Thông báo đang bị chặn. Để nhận, hãy cho phép SimSplit gửi thông báo trong Cài đặt → Ứng dụng của điện thoại.",
+  "notificationsBlockedWeb": "Thông báo đang bị chặn. Để nhận, hãy cho phép trang này gửi thông báo trong phần cài đặt trang web của trình duyệt.",
+  "notificationsUnsupported": "Thiết bị này chưa nhận được thông báo. Lựa chọn của bạn áp dụng cho các thiết bị khác.",
+  "muteNotifications": "Tắt thông báo nhóm",
+  "unmuteNotifications": "Bật lại thông báo nhóm",
+  "groupMuted": "Đã tắt thông báo",
+  "errorTooManyMutedGroups": "Bạn chỉ tắt thông báo được tối đa 200 nhóm."
 }
