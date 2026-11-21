@@ -126,18 +126,18 @@ void main() {
     await tester.openGroup();
     await tester.tapAndWait(find.byTooltip('More'));
     await tester.tapAndWait(find.text('Activity'));
-    await tester.waitFor(find.text('Khoi (me) deleted “Hotpot”'));
-    expect(find.text('Khoi (me) edited “Hotpot”'), findsOneWidget);
-    expect(find.text('Khoi (me) added “Hotpot”'), findsOneWidget);
+    await tester.waitFor(find.text('You deleted “Hotpot”'));
+    expect(find.text('You edited “Hotpot”'), findsOneWidget);
+    expect(find.text('You added “Hotpot”'), findsOneWidget);
 
-    await tester.tapAndWait(find.text('Khoi (me) edited “Hotpot”'));
+    await tester.tapAndWait(find.text('You edited “Hotpot”'));
     await tester.waitFor(find.text('Changes'));
     expect(find.textContaining('300.000'), findsWidgets);
     expect(find.textContaining('360.000'), findsWidgets);
 
     // R-3 AC27: a deleted expense keeps its details.
     await tester.pageBack();
-    await tester.tapAndWait(find.text('Khoi (me) deleted “Hotpot”'));
+    await tester.tapAndWait(find.text('You deleted “Hotpot”'));
     await tester.waitFor(find.text('Details when deleted'));
     expect(find.textContaining('360.000'), findsWidgets);
   });

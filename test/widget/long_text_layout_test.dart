@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/debt.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
@@ -91,9 +92,8 @@ void main() {
         expect(_lines(tester, find.text(_groupName)), 2);
       });
 
-      testWidgets(
-          'debt card puts payer and receiver on their own lines '
-          '($label)', (tester) async {
+      testWidgets('debt card shows both long names in full ($label)',
+          (tester) async {
         await pump(
           tester,
           DebtCard(
@@ -107,12 +107,32 @@ void main() {
             onSettle: () {},
           ),
         );
-        // Each name has a line of its own instead of half of a shared row.
-        final payer = find.text(_payer);
-        final receiver = find.text(_receiver);
-        expect(tester.getTopLeft(receiver).dy,
-            greaterThanOrEqualTo(tester.getBottomLeft(payer).dy));
-        expect(_lines(tester, payer), lessThanOrEqualTo(2));
+        // "Payer → Receiver" wraps as one paragraph instead of cutting
+        // either name, and the amount row with Settle sits below it.
+        final names = find.textContaining(_receiver, findRichText: true);
+        expect(find.textContaining(_payer, findRichText: true), findsOneWidget);
+        expect(tester.renderObject<RenderParagraph>(names).didExceedMaxLines,
+            isFalse);
+        expect(tester.getTopLeft(find.byType(FilledButton)).dy,
+            greaterThanOrEqualTo(tester.getBottomLeft(names).dy));
+      });
+
+      testWidgets('expense row puts payer and total on one line ($label)',
+          (tester) async {
+        await pump(
+          tester,
+          ExpenseListTile(
+            expense:
+                testExpense(amountCents: _bigAmount).copyWith(title: _title),
+            members: _members,
+          ),
+        );
+        final total = find.text(formatMoney(_bigAmount, 'VND'));
+        final payer = find.textContaining(_payer);
+        expect(
+            tester.getCenter(total).dy, closeTo(tester.getCenter(payer).dy, 4));
+        expect(tester.getTopLeft(payer).dy,
+            greaterThanOrEqualTo(tester.getBottomLeft(find.text(_title)).dy));
       });
 
       testWidgets('settlement row shows both long names ($label)',

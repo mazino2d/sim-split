@@ -10,6 +10,7 @@ import 'package:simsplit/presentation/providers/settlement_providers.dart';
 import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
 import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
+import 'package:simsplit/presentation/utils/member_label.dart';
 
 /// Opens the choice of how a group settles up (#116).
 Future<void> showSettlementModeSheet(BuildContext context, String groupId) =>
@@ -62,7 +63,7 @@ class SettlementModeSheet extends ConsumerWidget {
         ?.collector;
     final hub = group.settlementMode == SettlementMode.hub;
 
-    String name(Member m) => m.isMe ? '${m.name} ${l10n.meLabel}' : m.name;
+    String name(Member m) => m.label(l10n);
 
     return SafeArea(
       child: ConstrainedBox(

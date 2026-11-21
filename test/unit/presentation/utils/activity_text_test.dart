@@ -85,7 +85,7 @@ void main() {
               actor: 'alice',
               before: expense(),
               after: expense(amount: 36000000))),
-          'Khoi (me) edited “Hotpot”');
+          'You edited “Hotpot”');
       expect(
           t.summary(entry(ActivityAction.delete, ActivityEntityType.settlement,
               before: {

@@ -161,7 +161,42 @@ void main() {
     });
   });
 
-  testWidgets('each balance shows paid and share, with the trip total (#110)',
+  testWidgets(
+      'each balance shows share, paid and what is left to settle, '
+      'with the trip total (#110)', (tester) async {
+    await pumpSettlementsTab(
+      tester,
+      settlements: const [],
+      balances: [
+        MemberBalance(
+            member: members[0],
+            netAmountCents: 70000000,
+            paidCents: 200000000,
+            shareCents: 120000000,
+            settledCents: -10000000),
+        MemberBalance(
+            member: members[1],
+            netAmountCents: -70000000,
+            paidCents: 40000000,
+            shareCents: 120000000,
+            settledCents: 10000000),
+      ],
+    );
+
+    expect(find.text('Share'), findsNWidgets(2));
+    expect(find.text('Paid'), findsNWidgets(2));
+    expect(find.text('Settled'), findsNWidgets(2));
+    expect(find.text('To settle'), findsNWidgets(2));
+    expect(find.text(formatMoney(120000000, 'VND')), findsNWidgets(2));
+    expect(find.text(formatMoney(200000000, 'VND')), findsOneWidget);
+    // ↓ waits to be paid back, ↑ still pays.
+    expect(find.text(formatMoney(70000000, 'VND')), findsNWidgets(2));
+    expect(find.byIcon(Icons.arrow_downward_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
+    expect(find.text('Total ${formatMoney(240000000, 'VND')}'), findsOneWidget);
+  });
+
+  testWidgets('a balance without settlements hides the settled line',
       (tester) async {
     await pumpSettlementsTab(
       tester,
@@ -180,10 +215,7 @@ void main() {
       ],
     );
 
-    expect(
-        find.text('Paid ${formatMoney(200000000, 'VND')} · '
-            'Share ${formatMoney(120000000, 'VND')}'),
-        findsOneWidget);
+    expect(find.text('Settled'), findsNothing);
     expect(find.text('Total ${formatMoney(240000000, 'VND')}'), findsOneWidget);
   });
 }
