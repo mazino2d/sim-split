@@ -40,7 +40,7 @@ Work spans this repo and `mazino2d/everything-as-code` (infrastructure).
 Done so far: P1 in everything-as-code #255 and #256 (dev), #257 and #258 (prd), applied
 2026-11-21 after sign-in and sync were checked on dev and prd; P2 in #167, P3 in #169,
 P4 in #170 (headers on dev; the CSP report-only), P5 in #171, P6 in this repo's skills
-and `SECURITY.md`. P2–P4 reach prd with the next release. Left: enforce the CSP, and add
+and `SECURITY.md`. P2–P4 reach prd in 2026.11.22. Left: enforce the CSP, and add
 it to prd, once dev has run clean for a week.
 
 P2–P6 are independent of each other. P2 changes what released clients may write;
