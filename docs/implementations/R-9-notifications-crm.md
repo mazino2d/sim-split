@@ -184,5 +184,5 @@ P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.
 | Eventarc delivers twice or out of order | Pending items keyed by the activity entry ID, which the event names; a batch reads the entries from Firestore, not event payloads |
 | Notifications hurt Calm (users mute everything) | Group activity batched, others opt-in, quiet hours; success check tracks mute rate; adjust defaults before widening |
 | Cross-project BigQuery access leaks more than traits | Grant on the `simsplit_crm` dataset only; the traits model has no names or emails; R-8 security review in PR mode for P1 and P4 |
-| CSP enforcement (R-8 follow-up) blocks web push | P2 adds FCM origins to the report-only CSP and watches reports before R-8 enforces it |
+| CSP enforcement (R-8 follow-up) blocks web push | P2 added the FCM origins to the CSP while it was report-only; web push was among the flows checked before R-8 enforced it |
 | Old app builds have no device registration | They get nothing; banners and push start with the release that ships P2 |
