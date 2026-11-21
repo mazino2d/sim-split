@@ -63,6 +63,8 @@ enum TelemetryEvent {
   tapSettleDebt,
   tapChangeSettlementMode,
   tapPickSettlementMode,
+  tapOpenSettlementMode,
+  tapResetInviteLink,
   tapPickCollector,
   tapMenuSettlementMode,
   tapArchiveGroup,

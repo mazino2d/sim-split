@@ -32,7 +32,7 @@ import 'package:simsplit/presentation/widgets/members/who_is_me_card.dart';
 import 'package:simsplit/presentation/widgets/groups/archive_group.dart';
 import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_mode_sheet.dart';
-import 'package:simsplit/presentation/widgets/settlements/share_split_sheet.dart';
+import 'package:simsplit/presentation/widgets/settlements/share_split_button.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
@@ -115,8 +115,16 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
     // Live, so archiving or a new settlement mode shows at once.
     final group =
         ref.watch(liveGroupProvider(widget.group.id)).value ?? widget.group;
-    // An archived group is read-only (#117).
-    final showFab = _tabController.index == 0 && !group.isArchived;
+    // An archived group is read-only (#117), but its split can be shared.
+    final onExpenses = _tabController.index == 0;
+    final showAdd = onExpenses && !group.isArchived;
+    // Send the split to the chat, for friends without the app (#115).
+    final canShare = ref
+            .watch(expenseListProvider(group.id))
+            .value
+            ?.any((e) => !e.isDeleted) ??
+        false;
+    final showShare = !onExpenses && canShare;
 
     return Scaffold(
       body: NestedScrollView(
@@ -158,16 +166,23 @@ class _GroupDetailBodyState extends ConsumerState<_GroupDetailBody>
           ],
         ),
       ),
-      floatingActionButton: AnimatedScale(
-        scale: showFab ? 1 : 0,
+      floatingActionButton: AnimatedSwitcher(
         duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        child: FloatingActionButton.extended(
-          onPressed: context.tracked(
-              TelemetryEvent.tapAddExpense, showFab ? _addExpense : null),
-          icon: const Icon(Icons.add),
-          label: Text(l10n.addExpense),
-        ),
+        transitionBuilder: (child, animation) =>
+            ScaleTransition(scale: animation, child: child),
+        child: showAdd
+            ? FloatingActionButton.extended(
+                key: const ValueKey('addExpense'),
+                heroTag: 'addExpense',
+                onPressed:
+                    context.tracked(TelemetryEvent.tapAddExpense, _addExpense),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.addExpense),
+              )
+            : showShare
+                ? ShareSplitButton(
+                    key: const ValueKey('shareSplit'), group: group)
+                : const SizedBox.shrink(key: ValueKey('none')),
       ),
     );
   }
@@ -591,7 +606,7 @@ class _SettleTab extends ConsumerWidget {
       data: (summary) {
         final settlements = settlementsAsync.value ?? const <Settlement>[];
         return ListView(
-          padding: const EdgeInsets.only(bottom: 48),
+          padding: const EdgeInsets.only(bottom: 96),
           children: [
             SectionLabel(l10n.whoPaysWhom),
             _SettlementModeBar(group: group, summary: summary),
@@ -629,21 +644,6 @@ class _SettleTab extends ConsumerWidget {
                       ],
                     ),
             ),
-            // Send the split to the chat, for friends without the app (#115).
-            if (summary.balances.any((b) => b.shareCents != 0))
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    AppTheme.gutter, 8, AppTheme.gutter, 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    onPressed: context.tracked(TelemetryEvent.tapShareSplit,
-                        () => showShareSplitSheet(context, group)),
-                    icon: const Icon(Icons.ios_share_rounded),
-                    label: Text(l10n.shareSplit),
-                  ),
-                ),
-              ),
             if (summary.balances.isNotEmpty) ...[
               SectionLabel(
                 l10n.balances,

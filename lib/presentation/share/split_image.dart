@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -8,13 +9,16 @@ import 'package:simsplit/domain/entities/split_report.dart';
 import 'package:simsplit/presentation/share/split_text.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 
-// The shared split as images, drawn on the device (#115): nothing leaves it
-// until the user shares. A summary card readable at phone width comes first,
-// then the expenses, at most [_rowsPerPage] rows and [_membersPerBand]
-// member columns per image so no image has to be zoomed in a chat.
+// The shared split as one long image, drawn on the device (#115): nothing
+// leaves it until the user shares. The summary comes first, then every
+// expense. No text is cut: long names and titles wrap and their row grows.
+// Expense tables take at most [_membersPerBand] member columns so the image
+// stays readable at phone width; more members get another table below.
+// Only a split taller than [_maxImageHeight] continues in a second image,
+// because phones cannot draw an image of any size.
 
-const _rowsPerPage = 30;
 const _membersPerBand = 5;
+const _maxImageHeight = 12000.0;
 const _margin = 60.0;
 const _cellPad = 14.0;
 
@@ -60,74 +64,112 @@ TextStyle _style(double size, {bool bold = false, Color color = _ink}) =>
       fontFeatures: const [ui.FontFeature.tabularFigures()],
     );
 
+/// Text laid out to [maxWidth], wrapping onto as many lines as it needs.
 TextPainter _layout(String text, TextStyle style, double maxWidth,
-        {int? maxLines = 1, TextAlign align = TextAlign.left}) =>
+        {TextAlign align = TextAlign.left}) =>
     TextPainter(
       text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
       textAlign: align,
-      maxLines: maxLines,
-      ellipsis: maxLines == null ? null : '…',
     )..layout(maxWidth: maxWidth);
 
-/// One table image: a title, a subtitle, a header row, rows and notes.
-Future<Uint8List> _tableImage({
-  required String title,
-  required String subtitle,
-  required List<double> widths,
-  required List<bool> numeric,
-  required List<String> header,
-  required List<_Row> rows,
-  List<String> notes = const [],
-}) async {
-  final width = _margin * 2 + widths.fold(0.0, (a, b) => a + b);
-  final inner = width - _margin * 2;
-  final titlePainter = _layout(title, _style(44, bold: true), inner);
-  final subtitlePainter =
-      _layout(subtitle, _style(28, color: _muted), inner, maxLines: 2);
-  final notePainters = [
-    for (final n in notes) _layout(n, _style(26), inner, maxLines: null),
-  ];
-  const headerHeight = 64.0;
-  double rowHeight(_Row r) => r.cells.any((c) => c.sub != null) ? 84 : 60;
+/// A piece of the image, drawn top to bottom.
+abstract class _Block {
+  double get height;
+  void paint(Canvas canvas, double y);
+}
 
-  final height = _margin +
-      titlePainter.height +
-      8 +
-      subtitlePainter.height +
-      32 +
-      headerHeight +
-      rows.fold(0.0, (sum, r) => sum + rowHeight(r)) +
-      (notes.isEmpty ? 0 : 24) +
-      notePainters.fold(0.0, (sum, p) => sum + p.height + 10) +
-      48 +
-      _margin;
+class _Gap implements _Block {
+  const _Gap(this.height);
 
-  final recorder = ui.PictureRecorder();
-  final canvas = Canvas(recorder)
-    ..drawRect(Rect.fromLTWH(0, 0, width, height), Paint()..color = _paper);
+  @override
+  final double height;
 
-  var y = _margin;
-  titlePainter.paint(canvas, Offset(_margin, y));
-  y += titlePainter.height + 8;
-  subtitlePainter.paint(canvas, Offset(_margin, y));
-  y += subtitlePainter.height + 32;
+  @override
+  void paint(Canvas canvas, double y) {}
+}
 
-  void paintCells(List<_Cell> cells, double top, double rowH,
-      {required Color ink, bool bold = false, double size = 28}) {
-    var x = _margin;
-    for (var i = 0; i < cells.length; i++) {
-      final cell = cells[i];
+class _TextBlock implements _Block {
+  _TextBlock(String text, TextStyle style, double width, {this.gapAfter = 0})
+      : painter = _layout(text, style, width);
+
+  final TextPainter painter;
+  final double gapAfter;
+
+  @override
+  double get height => painter.height + gapAfter;
+
+  @override
+  void paint(Canvas canvas, double y) =>
+      painter.paint(canvas, Offset(_margin, y));
+}
+
+/// One table row; its height follows its tallest cell.
+class _RowBlock implements _Block {
+  _RowBlock(
+    this.widths,
+    this.numeric,
+    _Row row, {
+    required Color background,
+    Color ink = _ink,
+    double size = 28,
+    double minHeight = 60,
+    this.header,
+  })  : _background = background,
+        _highlight = row.highlight {
+    for (var i = 0; i < row.cells.length; i++) {
+      final cell = row.cells[i];
       final w = widths[i] - _cellPad * 2;
       final align = numeric[i] ? TextAlign.right : TextAlign.left;
-      final main = _layout(cell.text,
-          _style(size, bold: bold || cell.bold, color: cell.color ?? ink), w,
-          align: align);
-      final sub = cell.sub == null
+      _main.add(_layout(
+          cell.text,
+          _style(size, bold: row.bold || cell.bold, color: cell.color ?? ink),
+          w,
+          align: align));
+      _sub.add(cell.sub == null
           ? null
-          : _layout(cell.sub!, _style(22, color: _muted), w, align: align);
+          : _layout(cell.sub!, _style(22, color: _muted), w, align: align));
+    }
+    var content = 0.0;
+    for (var i = 0; i < _main.length; i++) {
+      content = math.max(content,
+          _main[i].height + (_sub[i] == null ? 0 : _sub[i]!.height + 2));
+    }
+    height = math.max(minHeight, content + 2 * 16);
+  }
+
+  final List<double> widths;
+  final List<bool> numeric;
+
+  /// The table's header row, repeated when the table continues in the next
+  /// image; null for the header itself.
+  final _RowBlock? header;
+  final Color _background;
+  final Color? _highlight;
+  final _main = <TextPainter>[];
+  final _sub = <TextPainter?>[];
+
+  @override
+  late final double height;
+
+  double get width => widths.fold(0.0, (a, b) => a + b);
+
+  @override
+  void paint(Canvas canvas, double y) {
+    canvas.drawRect(
+        Rect.fromLTWH(_margin, y, width, height), Paint()..color = _background);
+    if (_highlight case final color?) {
+      canvas.drawRect(
+          Rect.fromLTWH(_margin + width - widths.last, y, widths.last, height),
+          Paint()..color = color);
+    }
+    var x = _margin;
+    for (var i = 0; i < _main.length; i++) {
+      final w = widths[i] - _cellPad * 2;
+      final main = _main[i];
+      final sub = _sub[i];
       final contentH = main.height + (sub == null ? 0 : sub.height + 2);
-      var ty = top + (rowH - contentH) / 2;
+      var ty = y + (height - contentH) / 2;
       double dx(TextPainter p) => x + _cellPad + (numeric[i] ? w - p.width : 0);
       main.paint(canvas, Offset(dx(main), ty));
       if (sub != null) {
@@ -137,44 +179,79 @@ Future<Uint8List> _tableImage({
       x += widths[i];
     }
   }
+}
 
-  canvas.drawRect(Rect.fromLTWH(_margin, y, inner, headerHeight),
-      Paint()..color = _headerBg);
-  paintCells([for (final h in header) _Cell(h)], y, headerHeight,
-      ink: _headerInk, bold: true, size: 24);
-  y += headerHeight;
+/// A table as blocks: the header, then one block per row.
+List<_RowBlock> _table({
+  required List<double> widths,
+  required List<bool> numeric,
+  required List<String> header,
+  required List<_Row> rows,
+}) {
+  final head = _RowBlock(
+      widths, numeric, _Row([for (final h in header) _Cell(h)]),
+      background: _headerBg, ink: _headerInk, size: 24, minHeight: 64);
+  return [
+    head,
+    for (final (i, row) in rows.indexed)
+      _RowBlock(widths, numeric, row,
+          background: row.background ?? (i.isOdd ? _zebra : _paper),
+          header: head),
+  ];
+}
 
-  for (final (i, row) in rows.indexed) {
-    final h = rowHeight(row);
-    final bg = row.background ?? (i.isOdd ? _zebra : _paper);
-    canvas.drawRect(Rect.fromLTWH(_margin, y, inner, h), Paint()..color = bg);
-    if (row.highlight case final color?) {
-      canvas.drawRect(
-          Rect.fromLTWH(width - _margin - widths.last, y, widths.last, h),
-          Paint()..color = color);
+/// Spreads [blocks] over as few images as fit [_maxImageHeight], repeating
+/// a table's header when it continues in the next image.
+List<List<_Block>> _paginate(List<_Block> blocks) {
+  const room = _maxImageHeight - _margin * 2 - 48;
+  final pages = <List<_Block>>[[]];
+  var used = 0.0;
+  for (final (i, block) in blocks.indexed) {
+    // Keep a header together with the first row under it.
+    final needed = block is _RowBlock && block.header == null
+        ? block.height + (i + 1 < blocks.length ? blocks[i + 1].height : 0)
+        : block.height;
+    if (used + needed > room && pages.last.isNotEmpty) {
+      pages.add([]);
+      used = 0;
+      final head = block is _RowBlock ? block.header : null;
+      if (head != null) {
+        pages.last.add(head);
+        used += head.height;
+      }
     }
-    paintCells(row.cells, y, h, ink: _ink, bold: row.bold);
-    y += h;
+    pages.last.add(block);
+    used += block.height;
   }
+  return pages;
+}
 
-  if (notes.isNotEmpty) y += 24;
-  for (final p in notePainters) {
-    p.paint(canvas, Offset(_margin, y));
-    y += p.height + 10;
+Future<Uint8List> _draw(List<_Block> blocks, double width) async {
+  final contentHeight = blocks.fold(0.0, (sum, b) => sum + b.height);
+  final height = _margin + contentHeight + 48 + _margin;
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder)
+    ..drawRect(Rect.fromLTWH(0, 0, width, height), Paint()..color = _paper);
+  var y = _margin;
+  for (final block in blocks) {
+    block.paint(canvas, y);
+    y += block.height;
   }
-  final brand = _layout('SimSplit', _style(22, color: _muted), inner);
-  brand.paint(canvas, Offset(width - _margin - brand.width, height - _margin));
-
+  final brand =
+      _layout('SimSplit', _style(22, color: _muted), width - _margin * 2);
+  brand.paint(
+      canvas, Offset(width - _margin - brand.width, height - _margin - 24));
   final image =
-      await recorder.endRecording().toImage(width.ceil(), (height + 32).ceil());
+      await recorder.endRecording().toImage(width.ceil(), height.ceil());
   final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
   image.dispose();
   return bytes!.buffer.asUint8List();
 }
 
-/// The summary card: each member's share, what they paid, and what they
-/// send to (or get back from) the collector, or their net.
-Future<Uint8List> _summaryImage(SplitReport r, AppLocalizations l10n) {
+/// The summary: each member's share, what they paid, and what they send to
+/// (or get back from) the collector, or their net; then the notes.
+({List<_RowBlock> table, List<String> notes}) _summary(
+    SplitReport r, AppLocalizations l10n) {
   final currency = r.group.currencyCode;
   String money(int cents) => shareMoney(cents, currency);
   final collector = r.mode == SettlementMode.hub ? r.collector : null;
@@ -224,26 +301,26 @@ Future<Uint8List> _summaryImage(SplitReport r, AppLocalizations l10n) {
 
   final totalShare = r.balances.fold(0, (s, b) => s + b.shareCents);
   final totalPaid = r.balances.fold(0, (s, b) => s + b.paidCents);
-  return _tableImage(
-    title: splitTitle(r, l10n),
-    subtitle: l10n.splitSubtitle(money(r.totalCents), r.rows.length),
-    widths: widths,
-    numeric: [false, for (var i = 1; i < widths.length; i++) true],
-    header: header,
-    rows: [
-      for (var i = 0; i < r.balances.length; i++) memberRow(i),
-      _Row(
-        [
-          _Cell(l10n.splitRowTotalShare),
-          _Cell(money(totalShare)),
-          _Cell(money(totalPaid)),
-          if (settled) const _Cell(''),
-          const _Cell(''),
-        ],
-        background: _totalBg,
-        bold: true,
-      ),
-    ],
+  return (
+    table: _table(
+      widths: widths,
+      numeric: [false, for (var i = 1; i < widths.length; i++) true],
+      header: header,
+      rows: [
+        for (var i = 0; i < r.balances.length; i++) memberRow(i),
+        _Row(
+          [
+            _Cell(l10n.splitRowTotalShare),
+            _Cell(money(totalShare)),
+            _Cell(money(totalPaid)),
+            if (settled) const _Cell(''),
+            const _Cell(''),
+          ],
+          background: _totalBg,
+          bold: true,
+        ),
+      ],
+    ),
     notes: collector == null
         ? settleLines(r, l10n)
         : [
@@ -260,27 +337,15 @@ Future<Uint8List> _summaryImage(SplitReport r, AppLocalizations l10n) {
 }
 
 /// The expenses: one row each, one column per member with their part, and
-/// the column totals on the last page so every column can be checked.
-Future<List<Uint8List>> _detailImages(
-    SplitReport r, AppLocalizations l10n) async {
+/// the column totals so every column can be checked.
+List<List<_RowBlock>> _expenseTables(SplitReport r, AppLocalizations l10n) {
   if (r.rows.isEmpty) return const [];
   final currency = r.group.currencyCode;
   String money(int cents) => shareMoney(cents, currency);
-  final bands = pagesOf(r.balances, _membersPerBand);
-  final pages =
-      pagesOf([for (final (i, row) in r.rows.indexed) (i, row)], _rowsPerPage);
-  final total = bands.length * pages.length;
-  final images = <Uint8List>[];
-  var n = 0;
-  for (final band in bands) {
-    for (final (p, page) in pages.indexed) {
-      n++;
-      final widths = [70.0, 420.0, 200.0, for (final _ in band) 190.0];
-      images.add(await _tableImage(
-        title: l10n.splitDetailTitle(
-            '${r.group.emoji ?? ''} ${r.group.name}'.trim(), n, total),
-        subtitle: l10n.splitSubtitle(money(r.totalCents), r.rows.length),
-        widths: widths,
+  return [
+    for (final band in pagesOf(r.balances, _membersPerBand))
+      _table(
+        widths: [70.0, 420.0, 200.0, for (final _ in band) 190.0],
         numeric: [false, false, true, for (final _ in band) true],
         header: [
           '#',
@@ -289,7 +354,7 @@ Future<List<Uint8List>> _detailImages(
           for (final b in band) b.member.name,
         ],
         rows: [
-          for (final (i, row) in page)
+          for (final (i, row) in r.rows.indexed)
             _Row([
               _Cell('${i + 1}', color: _muted),
               _Cell(row.title, sub: l10n.splitPaidBy(row.paidBy.name)),
@@ -303,32 +368,59 @@ Future<List<Uint8List>> _detailImages(
                   color: row.shares[b.member.id] == null ? _muted : null,
                 ),
             ]),
-          if (p == pages.length - 1) ...[
-            _Row([
-              const _Cell(''),
-              _Cell(l10n.splitRowTotalShare),
-              _Cell(money(r.totalCents)),
-              for (final b in band) _Cell(money(b.shareCents)),
-            ], background: _totalBg, bold: true),
-            _Row([
-              const _Cell(''),
-              _Cell(l10n.splitRowPaid),
-              const _Cell(''),
-              for (final b in band)
-                _Cell(b.paidCents == 0 ? '–' : money(b.paidCents)),
-            ], background: _totalBg, bold: true),
-          ],
+          _Row([
+            const _Cell(''),
+            _Cell(l10n.splitRowTotalShare),
+            _Cell(money(r.totalCents)),
+            for (final b in band) _Cell(money(b.shareCents)),
+          ], background: _totalBg, bold: true),
+          _Row([
+            const _Cell(''),
+            _Cell(l10n.splitRowPaid),
+            const _Cell(''),
+            for (final b in band)
+              _Cell(b.paidCents == 0 ? '–' : money(b.paidCents)),
+          ], background: _totalBg, bold: true),
         ],
-      ));
-    }
-  }
-  return images;
+      ),
+  ];
 }
 
-/// The split as PNG images: the summary card, then the expenses.
+/// The split as PNG: one long image with the summary and every expense, or
+/// more only when it is too tall for one.
 Future<List<Uint8List>> renderSplitImages(
-        SplitReport report, AppLocalizations l10n) async =>
-    [
-      await _summaryImage(report, l10n),
-      ...await _detailImages(report, l10n),
-    ];
+    SplitReport report, AppLocalizations l10n) async {
+  final summary = _summary(report, l10n);
+  final expenses = _expenseTables(report, l10n);
+  final tableWidth = [summary.table, ...expenses]
+      .map((t) => t.first.width)
+      .fold(0.0, math.max);
+  final width = _margin * 2 + math.max(tableWidth, 960);
+  final inner = width - _margin * 2;
+  final currency = report.group.currencyCode;
+  final blocks = <_Block>[
+    _TextBlock(splitTitle(report, l10n), _style(44, bold: true), inner,
+        gapAfter: 8),
+    _TextBlock(
+        l10n.splitSubtitle(
+            shareMoney(report.totalCents, currency), report.rows.length),
+        _style(28, color: _muted),
+        inner,
+        gapAfter: 32),
+    ...summary.table,
+    if (summary.notes.isNotEmpty) const _Gap(24),
+    for (final n in summary.notes)
+      _TextBlock(n, _style(26), inner, gapAfter: 10),
+    if (expenses.isNotEmpty) ...[
+      const _Gap(40),
+      _TextBlock(l10n.expenses, _style(36, bold: true), inner, gapAfter: 16),
+      for (final (i, table) in expenses.indexed) ...[
+        if (i > 0) const _Gap(32),
+        ...table,
+      ],
+    ],
+  ];
+  return [
+    for (final page in _paginate(blocks)) await _draw(page, width),
+  ];
+}
