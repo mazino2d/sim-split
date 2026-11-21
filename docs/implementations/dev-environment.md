@@ -1,6 +1,6 @@
 # Dev environment — implementation plan
 
-Status: in progress (app and CI ready; waiting for infrastructure)   ·   Spec: none (engineering change)   ·   Written 2026-10-24
+Status: done (`main` ships to dev, `v*` tags to prd; first production release through it: 2026.11.21)   ·   Spec: none (engineering change)   ·   Written 2026-10-24
 
 Until now every merge to `main` shipped straight to production: the web app at
 `simsplit.web.app`, Firestore rules and indexes, and an internal-track build of the
