@@ -1,6 +1,6 @@
 # R-9 Notifications and CRM as code — implementation plan
 
-Status: in progress (P1)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
+Status: in progress (P1 done, P2 and P3 under way)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
 
 How R-9 gets built. One new service, `services/crm`, sends every message. Its config
 lives in `crm/` in this repo. The traits that audiences select on come from a dbt model
@@ -114,14 +114,17 @@ device document before Auth signs out (AC23).
 | --- | --- | --- | --- | --- |
 | P1 Foundation | sim-split, everything-as-code | `crm/` schemas and starter files; `services/crm` CLI (`validate`, `render`, `plan`) with tests; PR check and comment; `crm_deploy.yml` (dev on merge, then prd behind `crm-prd`); the service skeleton (`/events`, `/flush`, `/tick` return 204, kill switch). Infra on dev and prd: Cloud Run service (min 0, max 1), service account, Eventarc triggers, Cloud Tasks queue, Scheduler tick, `crm-prd` environment and WIF binding | AC15–AC17, AC18 (dev) | 3 days |
 | P2 Devices and settings | sim-split | `firebase_messaging` on Android and web; device registration and token refresh; permission timing (AC1–AC2); Settings → Notifications; group Mute; Android channels; tap → deep link; usage events; rules and emulator tests for `devices` and prefs. Privacy policy, Data safety and strategy updated in the same release (AC25) | AC1–AC5, AC8, AC23, AC25 | 3 days |
-| P3 Group activity | sim-split | Trigger on activity entries for expenses and settlements (create, edit, delete); batching; recipients (members except actor, not muted, not archived); localisation and money formatting shared with the app's rules (golden tests against `MoneyFormatter` output); FCM send, removal of invalid tokens; quiet hours and ledger; `crm_sends` rows | AC6–AC10, AC14, AC19 | 3 days |
+| P3 Group activity | sim-split | Trigger on activity entries for expenses and settlements (create, edit, delete); batching; recipients (members except actor, not muted, not archived); localisation and money formatting shared with the app's rules (golden tests against `MoneyFormatter` output); FCM send, removal of invalid tokens; quiet hours (held back in `crm_deferred`, delivered by the tick) and ledger | AC6–AC10, AC14, AC19 | 3 days |
 | P4 Traits and audiences | data-platform, sim-split, everything-as-code | dbt `user_traits` (platform, language, app version, signup days, last active days, sessions 30 d, open groups, multi-member groups, owes / owed, oldest unsettled days, prefs); dataset `simsplit_crm` and its grant; `traits.yaml`; audience compiler with tests; freshness guard and alert | AC20–AC22 | 2.5 days |
-| P5 Campaigns | sim-split | Campaigns over `/tick` (dev: next tick, prd: `send_at`); in-app banner (home screen, one at a time, dismiss syncs per account); push campaigns under the weekly cap; `fct_crm_sends` + Evidence page | AC12, AC13, AC18, AC24 | 2.5 days |
+| P5 Campaigns | sim-split | Campaigns over `/tick` (dev: next tick, prd: `send_at`); in-app banner (home screen, one at a time, dismiss syncs per account); push campaigns under the weekly cap; `simsplit_raw.crm_sends` rows; `fct_crm_sends` + Evidence page | AC12, AC13, AC18, AC24 | 2.5 days |
 | P6 Settle reminders | sim-split | `settle-reminder` schedule (Sunday 19:00 device time), audience `owes-14d`, total and count across groups, tap → settle screen | AC11 | 1 day |
 | P7 Email | sim-split, everything-as-code | Account and policy emails only, once the sender is chosen (spec open question) | — | 2 days |
 
 Done so far: P1 infrastructure in everything-as-code #259 (dev and prd), P1 code in
-this repo (`crm/`, `services/crm`, the CRM config check and `crm_deploy.yml`).
+this repo (`crm/`, `services/crm`, the CRM config check and `crm_deploy.yml`). P3 in
+everything-as-code #260 (Firestore and FCM roles) and this repo: group activity batched
+per group, sent to the other members' devices, held back in quiet hours; the money
+format is shared with the app through `services/crm/test/money_vectors.json`.
 
 P2 must ship to production before any production send is configured. P3 needs P1 and
 P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.

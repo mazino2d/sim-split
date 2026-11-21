@@ -1,0 +1,12 @@
+[
+  { "cents": 50000000, "currency": "VND", "text": "500.000 ₫" },
+  { "cents": 100, "currency": "VND", "text": "1 ₫" },
+  { "cents": 0, "currency": "VND", "text": "0 ₫" },
+  { "cents": 123456789000, "currency": "VND", "text": "1.234.567.890 ₫" },
+  { "cents": 1250, "currency": "USD", "text": "12,50 $" },
+  { "cents": 123456, "currency": "EUR", "text": "1.234,56 €" },
+  { "cents": 5, "currency": "SGD", "text": "0,05 S$" },
+  { "cents": 99900, "currency": "jpy", "text": "999 ¥" },
+  { "cents": 100000, "currency": "CHF", "text": "1.000,00 CHF" },
+  { "cents": -150, "currency": "USD", "text": "-1,50 $" }
+]
