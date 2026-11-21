@@ -8,13 +8,14 @@ import { formatMoney } from './money.ts';
 import { renderCopy } from './templates.ts';
 import { localMinutes, nextLocalTime } from './time.ts';
 import type { Config, Locale, Trigger } from './config/schema.ts';
-import type { Device, FlushScheduler, Log, PendingItem, Pusher, Store } from './ports.ts';
+import type { Device, FlushScheduler, Log, PendingItem, Pusher, SendLog, Store } from './ports.ts';
 
 export interface ActivityDeps {
   config: Config;
   store: Store;
   pusher: Pusher;
   scheduler: FlushScheduler;
+  sends: SendLog;
   log: Log;
   now: () => Date;
 }
@@ -164,6 +165,17 @@ const deliver = async (
     title: rendered.title,
     body: rendered.body,
     tag: `${trigger.id}-${groupId}`,
+  });
+  deps.sends.record({
+    sent_at: deps.now().toISOString(),
+    message_id: messageId,
+    source: 'trigger',
+    source_id: trigger.id,
+    category: trigger.category,
+    uid,
+    platform: device.platform,
+    locale: device.locale,
+    result,
   });
   if (result === 'invalid_token') await deps.store.deleteDevice(uid, device.id);
   if (result !== 'sent') deps.log({ severity: 'WARNING', kind: 'send_failed', result, platform: device.platform });

@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { loadConfig } from '../src/config/load.ts';
 import { campaignDue, reminderValues, runCampaigns, runSchedules, scheduleOccurrence, type BroadcastDeps } from '../src/broadcast.ts';
 import type { Device } from '../src/ports.ts';
-import { FakeAudiences, FakePusher, FakeStore } from './fakes.ts';
+import { FakeAudiences, FakePusher, FakeSendLog, FakeStore } from './fakes.ts';
 
 const { config } = loadConfig(resolve(import.meta.dirname, '../../../crm'));
 
@@ -31,6 +31,7 @@ const setup = (now = SUNDAY_EVENING, env: 'dev' | 'prd' = 'prd') => {
     store,
     pusher,
     audiences,
+    sends: new FakeSendLog(),
     traitsTable: 'dataplatform-as-se1-dev.simsplit_crm.user_traits',
     log: () => {},
     now: () => clock,

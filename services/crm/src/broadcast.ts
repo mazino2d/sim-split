@@ -12,13 +12,14 @@ import { localMinutes } from './time.ts';
 import { traitsFresh } from './traits_check.ts';
 import type { AudienceSource } from './adapters/bigquery.ts';
 import type { Campaign, Config, Schedule, Template } from './config/schema.ts';
-import type { BroadcastStore, Debt, Device, Log, Prefs, Pusher, Store } from './ports.ts';
+import type { BroadcastStore, Debt, Device, Log, Prefs, Pusher, SendLog, SendRow, Store } from './ports.ts';
 
 export interface BroadcastDeps {
   config: Config;
   store: Store & BroadcastStore;
   pusher: Pusher;
   audiences: AudienceSource;
+  sends: SendLog;
   traitsTable: string;
   log: Log;
   now: () => Date;
@@ -84,12 +85,25 @@ const sendOne = async (
   template: Template,
   values: Record<string, string | number>,
   route: string,
+  source: SendRow['source'],
+  sourceId: string,
 ): Promise<boolean> => {
   if (!template.push || quietNow(deps, device)) return false;
   if (!(await deps.store.takeWeeklySlot(uid, messageId, deps.now()))) return false;
   if (!(await deps.store.claimSend(messageId, uid, device.id))) return false;
   const copy = renderCopy(template.push[device.locale], device.locale, values);
   const result = await deps.pusher.send(device, { messageId, category, route, ...copy, tag: messageId });
+  deps.sends.record({
+    sent_at: deps.now().toISOString(),
+    message_id: messageId,
+    source,
+    source_id: sourceId,
+    category,
+    uid,
+    platform: device.platform,
+    locale: device.locale,
+    result,
+  });
   if (result === 'invalid_token') await deps.store.deleteDevice(uid, device.id);
   return result === 'sent';
 };
@@ -109,7 +123,7 @@ export const runCampaigns = async (deps: BroadcastDeps): Promise<void> => {
       const prefs = await deps.store.getPrefs(uid);
       if (!prefs[PREF_OF[c.category] ?? 'updates']) continue;
       for (const device of await deps.store.getDevices(uid)) {
-        if (await sendOne(deps, uid, device, `campaign-${c.id}`, c.category, template, {}, '/')) sent++;
+        if (await sendOne(deps, uid, device, `campaign-${c.id}`, c.category, template, {}, '/', 'campaign', c.id)) sent++;
       }
     }
     deps.log({ severity: 'INFO', kind: 'campaign', campaign: c.id, candidates: uids.length, sent });
@@ -152,7 +166,7 @@ export const runSchedules = async (deps: BroadcastDeps): Promise<void> => {
       const reminder = s.kind === 'settle_reminder' ? reminderValues(await deps.store.debtsOf(uid)) : undefined;
       if (!reminder) continue;
       for (const { device, key } of due) {
-        if (await sendOne(deps, uid, device, `${s.id}-${uid}-${key}`, s.category, template, reminder.values, reminder.route)) sent++;
+        if (await sendOne(deps, uid, device, `${s.id}-${uid}-${key}`, s.category, template, reminder.values, reminder.route, 'schedule', s.id)) sent++;
       }
     }
     deps.log({ severity: 'INFO', kind: 'schedule', schedule: s.id, candidates: uids.length, sent });
