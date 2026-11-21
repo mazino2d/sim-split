@@ -151,16 +151,17 @@ jobs:
         run: cp -R firebase/hosting/dev/. build/web/
 
       # R-8 P4: a Content-Security-Policy built for this build (inline script
-      # hashes, this environment's telemetry endpoint). Report-only on dev for
-      # now: browsers only log what it would block, and the smoke test below
-      # fails on those logs. Enforced, and added to prd, once dev stays clean.
-      - name: Add the Content-Security-Policy (report-only, dev)
-        if: env.APP_ENV == 'dev'
+      # hashes, this environment's telemetry endpoint), enforced on dev and prd.
+      # It ran report-only on dev from 2026-11-21 until its reports were clean
+      # through sign-in, reCAPTCHA, sharing, saving images and web push; the
+      # smoke test below fails on anything it blocks. Rollback: add
+      # --report-only back.
+      - name: Add the Content-Security-Policy
         env:
           TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
           FIREBASE_PROJECT: ${{ vars.FIREBASE_PROJECT }}
         run: |
-          python3 scripts/hosting_csp.py --report-only \
+          python3 scripts/hosting_csp.py \
             --project "$FIREBASE_PROJECT" --telemetry-url "$TELEMETRY_URL" \
             | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -200,7 +201,7 @@ jobs:
             || { echo "::error::$SITE/.well-known/assetlinks.json does not list $PACKAGE_NAME"; exit 1; }
           # R-8 P4: the security headers from firebase.json are served.
           headers=$(curl -fsSI "$SITE/")
-          for h in referrer-policy x-content-type-options x-frame-options permissions-policy content-security-policy-report-only; do
+          for h in referrer-policy x-content-type-options x-frame-options permissions-policy content-security-policy; do
             grep -qi "^$h:" <<< "$headers" || { echo "::error::$SITE/ is missing the $h header"; exit 1; }
           done
           echo "$SITE/ and assetlinks.json OK" | tee -a "$GITHUB_STEP_SUMMARY"
