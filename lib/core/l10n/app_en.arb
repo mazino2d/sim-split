@@ -255,8 +255,9 @@
       "count": { "type": "int" }
     }
   },
-  "statusOwedToYou": "you get back",
-  "statusYouOwe": "you owe",
+  "groupCardYouGetBack": "You get back",
+  "groupCardYouOwe": "You owe",
+  "groupCardSettled": "Settled",
   "statusSettled": "settled",
   "totalSpentValue": "Total {amount}",
   "@totalSpentValue": {"placeholders": {"amount": {"type": "String"}}},

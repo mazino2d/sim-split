@@ -7,6 +7,7 @@ import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/debt.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
+import 'package:simsplit/presentation/providers/settlement_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
 import 'package:simsplit/presentation/widgets/groups/group_card.dart';
@@ -89,6 +90,39 @@ void main() {
           tester,
           GroupCard(group: testGroup().copyWith(name: _groupName)),
         );
+        expect(_lines(tester, find.text(_groupName)), 2);
+      });
+
+      testWidgets('group card puts my balance below the name ($label)',
+          (tester) async {
+        await pump(
+          tester,
+          ProviderScope(
+            overrides: [
+              debtSummaryProvider('g1', 'VND').overrideWith(
+                (ref) async => DebtSummary(
+                  groupId: 'g1',
+                  currencyCode: 'VND',
+                  balances: [
+                    MemberBalance(
+                        member: _members.first.copyWith(isMe: true),
+                        netAmountCents: _bigAmount),
+                  ],
+                  suggestions: const [],
+                ),
+              ),
+              memberListProvider('g1').overrideWith((ref) => Stream.value(
+                  [_members.first.copyWith(isMe: true), _members.last])),
+            ],
+            child: GroupCard(group: testGroup().copyWith(name: _groupName)),
+          ),
+        );
+        final amount = find.text(formatMoney(_bigAmount, 'VND'));
+        expect(amount, findsOneWidget);
+        expect(
+            tester.getTopLeft(amount).dy,
+            greaterThanOrEqualTo(
+                tester.getBottomLeft(find.text(_groupName)).dy));
         expect(_lines(tester, find.text(_groupName)), 2);
       });
 
