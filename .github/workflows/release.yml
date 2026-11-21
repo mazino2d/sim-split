@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 5
     steps:
       # Only pubspec.yaml is needed to compare versions.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: pubspec.yaml
           sparse-checkout-cone-mode: false
@@ -96,14 +96,14 @@ jobs:
     # No checkout: the release is created from the pushed tag via the API.
     steps:
       - name: Download AAB artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: simsplit-prd-release.aab
 
       # The web build's map, for scripts/symbolize_web_stack.py; the only
       # web-sourcemap-* artifact of this run.
       - name: Download web source map
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: web-sourcemap-*
           merge-multiple: true

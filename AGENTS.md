@@ -55,7 +55,7 @@ list; skills and other docs point here instead of copying it.
 | Format, Analyze, Test | `lib/`, `test/`, `pubspec.*`, `analysis_options.yaml`, `build.yaml`, `l10n.yaml`, `.github/actions/flutter-setup/` | `flutter pub get`, codegen and `gen-l10n`, then the three commands above |
 | Store metadata | `android/fastlane/metadata/`, `android/fastlane/whatsnew/`, `scripts/play_metadata.py` | `python3 scripts/play_metadata.py check` |
 | Firestore rules | `firebase.json`, `firebase/` | `npm ci --prefix firebase/test`, then `npx firebase-tools@14 emulators:exec --only firestore --project demo-simsplit "npm --prefix firebase/test test"` (needs Java) |
-| Telemetry endpoint | `services/telemetry/` | `npm ci --prefix services/telemetry`, then `npm --prefix services/telemetry run typecheck` and `npm --prefix services/telemetry test` |
+| Telemetry endpoint | `services/telemetry/` | `npm ci --prefix services/telemetry`, then `npm --prefix services/telemetry run typecheck`, `npm --prefix services/telemetry test` and `npm audit --prefix services/telemetry --omit=dev --audit-level=high` |
 | Lint workflows | `.github/workflows/`, `.github/actions/` | actionlint (the shared `lint.yml` in mazino2d/github-workflows) |
 
 A change to `pr_validate.yml` itself runs every job.
