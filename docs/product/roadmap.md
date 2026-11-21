@@ -30,6 +30,7 @@ records its story. (Renumbered 2026-10-03; earlier backlog items are folded into
 
 | ID | Item | Serves | I | C | E | Score | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| R-7 | Settlements: settle through one collector or in the fewest transfers, chosen per group (#116); archive a group when the trip is over, owner only (#117); a "My name" setting prefilled for new groups (#112); each member's share, paid and what's left on one card (#110); the split shared or saved as images for friends without the app (#115) | UC-2, UC-3, UC-4, UC-5 | 2 | 0.8 | 10 | 0.16 | All phases built and on dev (P1–P6, then review follow-ups #153–#157); ships to production in 2026.11.21, moving to Shipped once Play approves it. No spec document: the issues are the spec. Implementation: [R-7](../implementations/R-7-settlements.md). |
 | R-3 | Co-worked groups: friends log expenses together, see the same split, everyone has full rights, every change is auditable. Google/Apple sign-in, cloud sync, invite link | UC-1, UC-2, UC-4, UC-7, UC-8, UC-9 | 3 | 0.5 | 27 | 0.06 | Strategy change 2026-10-03: drops the no-account default; offline only after first sign-in. Spec: [R-3](specs/R-3-online-shared-groups.md). Backend: Firebase (Blaze at $0, budget + kill switch). Live on [simsplit.web.app](https://simsplit.web.app) and on Android since 2026.10.22. iOS (P8) is on hold: no Apple Developer account for now. Phase status: [implementation](../implementations/R-3-online-shared-groups.md). |
 
 ## Next
