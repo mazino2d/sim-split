@@ -128,6 +128,11 @@ format is shared with the app through `services/crm/test/money_vectors.json`. P4
 everything-as-code #261 (dataset `simsplit_crm`, grants, error alert), data-platform
 (`user_traits`) and this repo: the trait catalog, the audience compiler (parameterised
 BigQuery), the catalog check in the dev deploy and the 36-hour freshness rule.
+P5 and P6 server side in this repo: the tick runs schedules (in each device's clock,
+amounts worked out from Firestore at send time) and campaigns (in-app announcements
+in `announcements/{id}`, pushes for Updates), with the weekly cap in `crm_ledger`.
+Left in P5: the in-app banner and the rules for `announcements` (app, after P2),
+`simsplit_raw.crm_sends` and the dashboard.
 
 P2 must ship to production before any production send is configured. P3 needs P1 and
 P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.

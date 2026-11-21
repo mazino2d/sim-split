@@ -5,6 +5,7 @@
 //   POST /tick    Cloud Scheduler, every 15 min: held-back messages, schedules, campaigns
 
 import { deliverDeferred, onActivity, onFlush, type ActivityDeps } from './activity.ts';
+import { runCampaigns, runSchedules, type BroadcastDeps } from './broadcast.ts';
 
 export interface Request {
   method: string;
@@ -17,7 +18,8 @@ export interface Response {
   status: number;
 }
 
-export interface Deps extends ActivityDeps {
+export interface Deps extends ActivityDeps, BroadcastDeps {
+  store: BroadcastDeps['store'];
   version: string;
 }
 
@@ -63,6 +65,8 @@ export const createHandler = (deps: Deps) => {
         default:
           log({ severity: 'INFO', kind: 'tick', version });
           await deliverDeferred(deps);
+          await runSchedules(deps);
+          await runCampaigns(deps);
           return { status: 204 };
       }
     } catch (e) {

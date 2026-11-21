@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { loadConfig } from '../src/config/load.ts';
 import { createHandler } from '../src/handler.ts';
-import { FakePusher, FakeScheduler, FakeStore } from './fakes.ts';
+import { FakeAudiences, FakePusher, FakeScheduler, FakeStore } from './fakes.ts';
 
 const { config } = loadConfig(resolve(import.meta.dirname, '../../../crm'));
 
@@ -19,6 +19,10 @@ const setup = (killSwitch: boolean) => {
     store: new FakeStore(),
     pusher: new FakePusher(),
     scheduler: new FakeScheduler(),
+    audiences: new FakeAudiences(),
+    traitsTable: 'p.d.t',
+    env: 'dev',
+    startedAt: new Date('2026-12-01T04:00:00Z'),
   });
   return { handle, logs };
 };
