@@ -29,6 +29,7 @@ jobs:
       workflows: ${{ steps.filter.outputs.workflows }}
       firebase: ${{ steps.filter.outputs.firebase }}
       telemetry: ${{ steps.filter.outputs.telemetry }}
+      crm: ${{ steps.filter.outputs.crm }}
     steps:
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
@@ -59,6 +60,10 @@ jobs:
               - ".github/workflows/pr_validate.yml"
             telemetry:
               - "services/telemetry/**"
+              - ".github/workflows/pr_validate.yml"
+            crm:
+              - "crm/**"
+              - "services/crm/**"
               - ".github/workflows/pr_validate.yml"
 
   format:
@@ -156,6 +161,54 @@ jobs:
       # runs (dev dependencies are build tools, not shipped).
       - run: npm audit --prefix services/telemetry --omit=dev --audit-level=high
 
+  # R-9: the notifications config in crm/ and the service that runs it. The
+  # plan (what this PR changes, with a preview of every changed message) is
+  # posted as a PR comment and the job summary; no cloud credentials here.
+  crm:
+    name: CRM config
+    needs: changes
+    if: needs.changes.outputs.crm == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: services/crm/package-lock.json
+      - run: npm ci --prefix services/crm
+      - run: npm --prefix services/crm run typecheck
+      - run: npm --prefix services/crm test
+      - run: npm audit --prefix services/crm --omit=dev --audit-level=high
+      - name: Validate crm/
+        run: npm --prefix services/crm run -s crm -- validate
+      - name: Plan against main
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          base="$RUNNER_TEMP/base"
+          mkdir -p "$base"
+          git fetch --depth=1 origin "$BASE_SHA"
+          if git cat-file -e "$BASE_SHA:crm" 2>/dev/null; then
+            git archive "$BASE_SHA" crm | tar -x -C "$base"
+          fi
+          {
+            echo "<!-- crm-plan -->"
+            npm --prefix services/crm run -s crm -- plan --base "$base/crm"
+          } > "$RUNNER_TEMP/plan.md"
+          cat "$RUNNER_TEMP/plan.md" >> "$GITHUB_STEP_SUMMARY"
+      # A fork's token cannot comment; its plan stays in the job summary.
+      - name: Comment the plan
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr comment "$PR" --edit-last --create-if-none --body-file "$RUNNER_TEMP/plan.md"
+
   # Workflow files are otherwise only exercised after merge (or on a tag), so
   # lint them here: syntax, expressions, action inputs, and shellcheck on run:.
   workflows:
@@ -168,7 +221,7 @@ jobs:
   # job above succeeded or was skipped; fails if any failed or was cancelled.
   result:
     name: PR Validation
-    needs: [changes, format, analyze, test, store-metadata, firestore-rules, telemetry, workflows]
+    needs: [changes, format, analyze, test, store-metadata, firestore-rules, telemetry, crm, workflows]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

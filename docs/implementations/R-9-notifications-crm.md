@@ -1,6 +1,6 @@
 # R-9 Notifications and CRM as code — implementation plan
 
-Status: draft, for review   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
+Status: in progress (P1)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
 
 How R-9 gets built. One new service, `services/crm`, sends every message. Its config
 lives in `crm/` in this repo. The traits that audiences select on come from a dbt model
@@ -119,6 +119,9 @@ device document before Auth signs out (AC23).
 | P5 Campaigns | sim-split | Campaigns over `/tick` (dev: next tick, prd: `send_at`); in-app banner (home screen, one at a time, dismiss syncs per account); push campaigns under the weekly cap; `fct_crm_sends` + Evidence page | AC12, AC13, AC18, AC24 | 2.5 days |
 | P6 Settle reminders | sim-split | `settle-reminder` schedule (Sunday 19:00 device time), audience `owes-14d`, total and count across groups, tap → settle screen | AC11 | 1 day |
 | P7 Email | sim-split, everything-as-code | Account and policy emails only, once the sender is chosen (spec open question) | — | 2 days |
+
+Done so far: P1 infrastructure in everything-as-code #259 (dev and prd), P1 code in
+this repo (`crm/`, `services/crm`, the CRM config check and `crm_deploy.yml`).
 
 P2 must ship to production before any production send is configured. P3 needs P1 and
 P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.

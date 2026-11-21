@@ -1,0 +1,13 @@
+# A member adds, edits or deletes an expense or settlement: the other members
+# get one push per group per batch window. Turned on in R-9 P3.
+id: group-activity
+enabled: false
+category: group_activity
+"on":
+  entities: [expense, settlement]
+  actions: [create, update, delete]
+recipients: group_members_except_actor
+batch_window: 10m
+template: group-activity
+channels: [push]
+rollout: 100
