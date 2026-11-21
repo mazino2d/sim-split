@@ -84,6 +84,34 @@ export interface Store {
   deleteDeferred(key: string): Promise<void>;
 }
 
+/** What one account owes in one open group, from Firestore at send time. */
+export interface Debt {
+  groupId: string;
+  groupName: string;
+  owesCents: number;
+  currencyCode: string;
+  /** Members of the group with money to receive. */
+  creditors: number;
+}
+
+export interface Announcement {
+  id: string;
+  banner: { en: { title: string; body: string }; vi: { title: string; body: string } };
+  /** Undefined: every signed-in user. */
+  audienceUids?: string[];
+  endsAt: Date;
+}
+
+export interface BroadcastStore {
+  /**
+   * Takes the user's weekly non-group slot for `messageId` (spec AC13): true
+   * if the last non-group push was over 7 days ago or was this same message.
+   */
+  takeWeeklySlot(uid: string, messageId: string, now: Date): Promise<boolean>;
+  debtsOf(uid: string): Promise<Debt[]>;
+  writeAnnouncement(announcement: Announcement): Promise<void>;
+}
+
 export type SendResult = 'sent' | 'invalid_token' | 'failed';
 
 export interface Pusher {

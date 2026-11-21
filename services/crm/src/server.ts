@@ -11,6 +11,7 @@ import { createHandler } from './handler.ts';
 import { createFirestoreStore } from './adapters/firestore.ts';
 import { createFcmPusher } from './adapters/fcm.ts';
 import { createTasksScheduler } from './adapters/tasks.ts';
+import { createBigQuerySource } from './adapters/bigquery.ts';
 import type { Config } from './config/schema.ts';
 
 const env = (name: string): string => {
@@ -48,6 +49,10 @@ const handle = createHandler({
     getMessaging(app),
     env('CRM_ENV') === 'prd' ? 'https://simsplit.web.app' : `https://${projectId}.web.app`,
   ),
+  audiences: createBigQuerySource(projectId, env('CRM_TRAITS_TABLE')),
+  traitsTable: env('CRM_TRAITS_TABLE'),
+  env: env('CRM_ENV') === 'prd' ? 'prd' : 'dev',
+  startedAt: new Date(),
   scheduler: createTasksScheduler(env('CRM_TASKS_QUEUE'), `crm-sender@${projectId}.iam.gserviceaccount.com`, () => serviceUrl),
 });
 log({ severity: 'INFO', kind: 'start', version, kill_switch: config.policy.kill_switch });
