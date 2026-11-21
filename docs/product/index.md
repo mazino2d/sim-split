@@ -18,6 +18,7 @@ Newest first. R-1 to R-4 have a spec that also records their story; R-5 to R-7 u
 
 | Phase | Status | Summary |
 | --- | --- | --- |
+| [R-9 Notifications and CRM as code](specs/R-9-notifications-crm.md) | Planned | Push for group activity, opt-in settle reminders and rare notices, with quiet hours and caps that keep the app calm; every message, audience and limit is config in the repo, previewed in a PR and approved before production. [Implementation](../implementations/R-9-notifications-crm.md). |
 | [R-8 Security hardening](../implementations/R-8-security-hardening.md) | In progress | The first security review's findings, closed layer by layer: infrastructure, Firestore rules, telemetry, web headers, CI and the review routine. |
 | [R-7 Settlements](../implementations/R-7-settlements.md) | Shipped | Settle through one collector or in the fewest transfers, archive a trip when it's over, a "My name" setting, one card per member with share, paid and what's left, and the split shared or saved as images. No spec document: the issues are the spec. |
 | R-6 Fixes from testers | Shipped | Sign-in from invite links and in-app browsers, sign-in on Safari, reliable usage events and error reports, faster VND amounts and names that no longer get cut. Tracked in issues #107–#138. |
