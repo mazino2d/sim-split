@@ -11,7 +11,7 @@ import 'package:simsplit/presentation/providers/settlement_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
 import 'package:simsplit/presentation/widgets/groups/group_card.dart';
-import 'package:simsplit/presentation/widgets/settlements/debt_card.dart';
+import 'package:simsplit/presentation/widgets/settlements/member_settle_card.dart';
 import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
 
 import '../helpers/mocks.dart';
@@ -126,29 +126,39 @@ void main() {
         expect(_lines(tester, find.text(_groupName)), 2);
       });
 
-      testWidgets('debt card shows both long names in full ($label)',
+      testWidgets('member card shows long names in full ($label)',
           (tester) async {
         await pump(
           tester,
-          DebtCard(
-            debt: Debt(
-              from: _members[0],
-              to: _members[1],
-              amountCents: _bigAmount,
-              currencyCode: 'VND',
+          MemberSettleCard(
+            balance: MemberBalance(
+              member: _members[0],
+              netAmountCents: -_bigAmount,
+              shareCents: _bigAmount,
             ),
             currencyCode: 'VND',
-            onSettle: () {},
+            outgoing: [
+              Debt(
+                from: _members[0],
+                to: _members[1],
+                amountCents: _bigAmount,
+                currencyCode: 'VND',
+              ),
+            ],
+            onSettle: (_) {},
           ),
         );
-        // "Payer → Receiver" wraps as one paragraph instead of cutting
-        // either name, and the amount row with Settle sits below it.
-        final names = find.textContaining(_receiver, findRichText: true);
-        expect(find.textContaining(_payer, findRichText: true), findsOneWidget);
-        expect(tester.renderObject<RenderParagraph>(names).didExceedMaxLines,
-            isFalse);
-        expect(tester.getTopLeft(find.byType(FilledButton)).dy,
-            greaterThanOrEqualTo(tester.getBottomLeft(names).dy));
+        // Neither the member nor the receiver is cut, and Settle stays on
+        // the transfer's line.
+        for (final name in [_payer, _receiver]) {
+          expect(
+              tester
+                  .renderObject<RenderParagraph>(find.text(name))
+                  .didExceedMaxLines,
+              isFalse);
+        }
+        expect(tester.getCenter(find.byType(FilledButton)).dy,
+            closeTo(tester.getCenter(find.text(_receiver)).dy, 24));
       });
 
       testWidgets('expense row puts payer and total on one line ($label)',

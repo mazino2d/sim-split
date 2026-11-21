@@ -9,6 +9,7 @@ import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/router/app_routes.dart';
+import 'package:simsplit/presentation/screens/share/share_split_preview_screen.dart';
 import 'package:simsplit/presentation/screens/activity/activity_screen.dart';
 import 'package:simsplit/presentation/screens/auth/sign_in_screen.dart';
 import 'package:simsplit/presentation/screens/expenses/expense_detail_screen.dart';
@@ -20,7 +21,6 @@ import 'package:simsplit/presentation/screens/groups/join_group_screen.dart';
 import 'package:simsplit/presentation/screens/members/member_form_screen.dart';
 import 'package:simsplit/presentation/screens/settings/diagnostics_screen.dart';
 import 'package:simsplit/presentation/screens/settings/settings_screen.dart';
-import 'package:simsplit/presentation/screens/settlements/debt_overview_screen.dart';
 import 'package:simsplit/presentation/screens/settlements/settlement_form_screen.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
 
@@ -216,11 +216,10 @@ GoRouter _buildRouter({
                   ],
                 ),
                 GoRoute(
-                  path: 'debts',
-                  builder: (context, state) {
-                    final groupId = state.pathParameters['groupId']!;
-                    return DebtOverviewScreen(groupId: groupId);
-                  },
+                  path: 'share',
+                  builder: (context, state) => ShareSplitPreviewScreen(
+                    groupId: state.pathParameters['groupId']!,
+                  ),
                 ),
                 GoRoute(
                   path: 'settle',

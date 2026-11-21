@@ -40,12 +40,20 @@ void main() {
     List<MemberBalance> balances = const [],
     SettlementMode mode = SettlementMode.simplified,
     Member? collector,
+    bool archived = false,
+    List<Member>? groupMembers,
   }) async {
+    // Tall enough to lay out every card and the history without scrolling.
+    tester.view.physicalSize = const Size(800, 4000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          groupDetailProvider('g1').overrideWith((ref) async => testGroup()),
-          memberListProvider('g1').overrideWith((ref) => Stream.value(members)),
+          groupDetailProvider('g1').overrideWith(
+              (ref) async => testGroup().copyWith(isArchived: archived)),
+          memberListProvider('g1')
+              .overrideWith((ref) => Stream.value(groupMembers ?? members)),
           expenseListProvider('g1')
               .overrideWith((ref) => Stream.value(const <Expense>[])),
           settlementListProvider('g1')
@@ -99,6 +107,10 @@ void main() {
           amountCents: 5000000,
           currencyCode: 'VND',
         ),
+      ],
+      balances: [
+        MemberBalance(member: members[0], netAmountCents: 5000000),
+        MemberBalance(member: members[1], netAmountCents: -5000000),
       ],
     );
 
@@ -217,5 +229,105 @@ void main() {
 
     expect(find.text('Settled'), findsNothing);
     expect(find.text('Total ${formatMoney(240000000, 'VND')}'), findsOneWidget);
+  });
+
+  group('one card per member (who pays whom and balances)', () {
+    final me = testMember('m', name: 'Khoi').copyWith(isMe: true);
+    final linh = testMember('l', name: 'Linh');
+    final nam = testMember('n', name: 'Nam');
+    final lam = testMember('lam', name: 'Lam');
+    final ha = testMember('h', name: 'Ha');
+    final people = [nam, linh, ha, lam, me];
+    Debt debt(Member from, Member to, int cents) =>
+        Debt(from: from, to: to, amountCents: cents, currencyCode: 'VND');
+
+    Future<void> pumpHub(WidgetTester tester, {bool archived = false}) =>
+        pumpSettlementsTab(
+          tester,
+          settlements: const [],
+          groupMembers: people,
+          mode: SettlementMode.hub,
+          collector: linh,
+          archived: archived,
+          balances: [
+            MemberBalance(
+                member: nam, netAmountCents: -55833300, shareCents: 55833300),
+            MemberBalance(
+                member: linh,
+                netAmountCents: 9166700,
+                shareCents: 55833300,
+                paidCents: 65000000),
+            MemberBalance(
+                member: ha,
+                netAmountCents: 0,
+                shareCents: 1000000,
+                paidCents: 1000000),
+            MemberBalance(
+                member: lam,
+                netAmountCents: -5833300,
+                shareCents: 55833300,
+                paidCents: 50000000),
+            MemberBalance(
+                member: me,
+                netAmountCents: 52500000,
+                shareCents: 52500000,
+                paidCents: 105000000),
+          ],
+          suggestions: [
+            debt(nam, linh, 55833300),
+            debt(lam, linh, 5833300),
+            debt(linh, me, 52500000),
+          ],
+        );
+
+    testWidgets('orders you, payers, the collector, receivers, then settled',
+        (tester) async {
+      await pumpHub(tester);
+      double top(String name) => tester.getTopLeft(find.text(name).first).dy;
+      final order = [
+        top('You'),
+        top('Nam'),
+        top('Lam'),
+        top('Linh · collector'),
+        top('Ha'),
+      ];
+      expect(order, [...order]..sort());
+    });
+
+    testWidgets('shows transfers with Settle, the collector and who waits',
+        (tester) async {
+      await pumpHub(tester);
+      expect(find.text('Settle'), findsNWidgets(3));
+      expect(
+          find.text('Collects ${formatMoney(61666600, 'VND')} · '
+              'pays back ${formatMoney(52500000, 'VND')}'),
+          findsOneWidget);
+      expect(find.text('Waiting for Linh'), findsOneWidget);
+      // Ha is even: all figures, no transfer.
+      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    });
+
+    testWidgets('an archived group shows no Settle', (tester) async {
+      await pumpHub(tester, archived: true);
+      expect(find.text('Settle'), findsNothing);
+      expect(find.text('Waiting for Linh'), findsOneWidget);
+    });
+
+    testWidgets('fewest transfers can give one member two transfers',
+        (tester) async {
+      await pumpSettlementsTab(
+        tester,
+        settlements: const [],
+        groupMembers: [nam, linh, me],
+        balances: [
+          MemberBalance(member: nam, netAmountCents: -3000000),
+          MemberBalance(member: linh, netAmountCents: 1000000),
+          MemberBalance(member: me, netAmountCents: 2000000),
+        ],
+        suggestions: [debt(nam, me, 2000000), debt(nam, linh, 1000000)],
+      );
+      expect(find.text('Settle'), findsNWidgets(2));
+      expect(find.text('Waiting for Nam'), findsNWidgets(2));
+    });
   });
 }
