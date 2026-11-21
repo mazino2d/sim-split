@@ -483,3 +483,54 @@ describe('the name an account goes by (R-7 #112)', () => {
     await assertFails(updateDoc(doc(db('bob'), 'users/alice'), { memberName: 'Bob' }));
   });
 });
+
+describe('hardening (R-8 P2)', () => {
+  test("an archived group's own document is read-only", async () => {
+    await seedGroup(['alice', 'bob'], { isArchived: true });
+    for (const uid of ['alice', 'bob']) {
+      await assertFails(updateDoc(doc(db(uid), 'groups/g1'), { name: 'Renamed', ...stamp(uid) }));
+      await assertFails(updateDoc(doc(db(uid), 'groups/g1'), { settlementMode: 'hub', ...stamp(uid) }));
+    }
+    // Reopening is the owner's only change, on its own.
+    await assertFails(updateDoc(doc(db('alice'), 'groups/g1'), { isArchived: false, name: 'Renamed', ...stamp('alice') }));
+    await assertSucceeds(updateDoc(doc(db('alice'), 'groups/g1'), { isArchived: false, ...stamp('alice') }));
+  });
+
+  test('a member still leaves an archived group', async () => {
+    await seedGroup(['alice', 'bob'], { isArchived: true });
+    await assertSucceeds(updateDoc(doc(db('bob'), 'groups/g1'), { memberUids: ['alice'], ...stamp('bob') }));
+  });
+
+  test('free text is bounded', async () => {
+    await seedGroup(['alice', 'bob']);
+    const fs = db('bob');
+    const expense = (extra) => setDoc(doc(fs, 'groups/g1/expenses/big'), { amountCents: 1, splits: [], ...extra, ...stamp('bob') });
+    await assertFails(expense({ title: 'x'.repeat(201) }));
+    await assertFails(expense({ title: 'Taxi', note: 'x'.repeat(2001) }));
+    await assertSucceeds(expense({ title: 'x'.repeat(200), note: 'x'.repeat(2000) }));
+    await assertFails(setDoc(doc(fs, 'groups/g1/settlements/s9'), { amountCents: 1, note: 'x'.repeat(2001), ...stamp('bob') }));
+    await assertSucceeds(setDoc(doc(fs, 'groups/g1/settlements/s9'), { amountCents: 1, note: 'Cash', ...stamp('bob') }));
+  });
+
+  test('a record over a limit from before the limit can still be edited or deleted', async () => {
+    await seedGroup(['alice', 'bob']);
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await setDoc(doc(admin.firestore(), 'groups/g1/expenses/old'), { amountCents: 1, splits: [], title: 'x'.repeat(500) });
+    });
+    await assertSucceeds(updateDoc(doc(db('bob'), 'groups/g1/expenses/old'), { amountCents: 2, ...stamp('bob') }));
+    await assertSucceeds(updateDoc(doc(db('bob'), 'groups/g1/expenses/old'), { deleted: true, ...stamp('bob') }));
+  });
+
+  test('activity entries have the shape the app writes', async () => {
+    await seedGroup(['alice', 'bob']);
+    const fs = db('bob');
+    const entry = (id, extra) => setDoc(doc(fs, `groups/g1/activity/${id}`), activity('bob', extra));
+    await assertSucceeds(entry('ok1', { after: { title: 'Taxi', amountCents: 100 } }));
+    await assertSucceeds(entry('ok2', { action: 'join', entityType: 'group', entityId: 'g1', after: {} }));
+    await assertFails(entry('bad1', { action: 'forge' }));
+    await assertFails(entry('bad2', { entityType: 'invite' }));
+    await assertFails(entry('bad3', { extra: 'field' }));
+    await assertFails(entry('bad4', { after: { title: 'x'.repeat(201) } }));
+    await assertFails(entry('bad5', { after: { note: 'x'.repeat(2001) } }));
+  });
+});
