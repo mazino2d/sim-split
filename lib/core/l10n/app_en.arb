@@ -191,7 +191,8 @@
   "retry": "Retry",
 
   "settlements": "Settlements",
-  "meLabel": "(me)",
+  "youName": "You",
+  "youNameInSentence": "you",
   "unsavedChanges": "Unsaved changes",
   "discardChanges": "Discard",
   "keepEditing": "Keep editing",
@@ -265,6 +266,12 @@
   "@balanceShare": {"placeholders": {"amount": {"type": "String"}}},
   "balanceSettled": "Settled {amount}",
   "@balanceSettled": {"placeholders": {"amount": {"type": "String"}}},
+  "balanceRowShare": "Share",
+  "balanceRowPaid": "Paid",
+  "balanceRowSettled": "Settled",
+  "balanceRowToSettle": "To settle",
+  "balanceStillPays": "still pays",
+  "balanceWaitsToBePaid": "waits to be paid",
   "totalSpent": "Total spent",
   "yourShare": "Your share",
   "settlementModeTitle": "How to settle up",
@@ -316,18 +323,10 @@
   "@splitTextMember": {"placeholders": {"name": {"type": "String"}, "share": {"type": "String"}, "paid": {"type": "String"}}},
   "whoPaysWhom": "Who pays whom",
   "noExpensesHint": "Log the first one — it only takes a few seconds.",
-  "shareYouOwe": "you owe {amount}",
-  "@shareYouOwe": {
-    "placeholders": {
-      "amount": { "type": "String" }
-    }
-  },
-  "shareYouGet": "you get {amount}",
-  "@shareYouGet": {
-    "placeholders": {
-      "amount": { "type": "String" }
-    }
-  },
+  "tilePaidBy": "{name} paid",
+  "@tilePaidBy": {"placeholders": {"name": {"type": "String"}}},
+  "tileYouOwe": "You owe",
+  "tileYouGet": "You get",
   "whatFor": "What was it for?",
   "splitBetween": "Split between",
   "everyone": "Everyone",

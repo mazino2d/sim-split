@@ -6,6 +6,7 @@ import 'package:simsplit/domain/entities/activity_entry.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/presentation/utils/expense_category_ui.dart';
+import 'package:simsplit/presentation/utils/member_label.dart';
 
 /// One field of a record in an activity entry: its value before and after
 /// the change, either of which may be absent (AC26, AC27).
@@ -31,8 +32,7 @@ class ActivityText {
     for (final member in members) {
       _memberNames[member.id] = member.name;
       if (member.linkedUid case final uid?) {
-        _accountNames[uid] =
-            member.isMe ? '${member.name} ${l10n.meLabel}' : member.name;
+        _accountNames[uid] = member.label(l10n);
       }
     }
   }

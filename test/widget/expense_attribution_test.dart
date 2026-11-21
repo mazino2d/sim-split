@@ -60,7 +60,7 @@ void main() {
       );
       await pumpDetail(tester, expense);
 
-      expect(find.text('Edited by Khoi (me) · 5 min ago'), findsOneWidget);
+      expect(find.text('Edited by you · 5 min ago'), findsOneWidget);
     });
 
     testWidgets('says nothing for expenses added while signed out',

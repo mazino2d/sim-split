@@ -24,7 +24,6 @@ import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/presentation/widgets/common/empty_state.dart';
 import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
-import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/presentation/widgets/expenses/expense_list_tile.dart';
@@ -37,6 +36,7 @@ import 'package:simsplit/presentation/widgets/settlements/share_split_sheet.dart
 import 'package:simsplit/presentation/widgets/settlements/settlement_list_tile.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
+import 'package:simsplit/presentation/utils/member_label.dart';
 
 class GroupDetailScreen extends ConsumerWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -664,12 +664,6 @@ class _SettleTab extends ConsumerWidget {
                         paidCents: balance.paidCents,
                         shareCents: balance.shareCents,
                         settledCents: balance.settledCents,
-                        maxAbsCents: summary.balances.fold<int>(
-                          0,
-                          (m, b) => b.netAmountCents.abs() > m
-                              ? b.netAmountCents.abs()
-                              : m,
-                        ),
                         currencyCode: group.currencyCode,
                       ),
                   ],
@@ -738,9 +732,7 @@ class _SettlementModeBar extends StatelessWidget {
         ? l10n.settleFewestTransfers
         : missing
             ? l10n.pickCollectorHint
-            : l10n.settlingThrough(collector!.isMe
-                ? '${collector.name} ${l10n.meLabel}'
-                : collector.name);
+            : l10n.settlingThrough(collector!.labelInSentence(l10n));
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppTheme.gutter, 0, 8, 4),
       child: Row(
@@ -849,11 +841,13 @@ class _SettledUpCard extends StatelessWidget {
 
 /// A member's net balance with a centred bar: right of centre when they are
 /// owed, left of centre when they owe, scaled to the largest balance.
+/// One member's trip summary: what their share was, what they paid for the
+/// group, and what is left to settle. Each figure has a line of its own so
+/// long names and VND amounts never cut each other on a phone.
 class _MemberBalanceRow extends StatelessWidget {
   const _MemberBalanceRow({
     required this.member,
     required this.netCents,
-    required this.maxAbsCents,
     required this.currencyCode,
     this.paidCents = 0,
     this.shareCents = 0,
@@ -865,7 +859,6 @@ class _MemberBalanceRow extends StatelessWidget {
   final int paidCents;
   final int shareCents;
   final int settledCents;
-  final int maxAbsCents;
   final String currencyCode;
 
   @override
@@ -873,82 +866,66 @@ class _MemberBalanceRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final color = context.money.forSign(netCents, cs);
-    final fraction = maxAbsCents == 0 ? 0.0 : netCents.abs() / maxAbsCents;
+    final labelStyle =
+        theme.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant);
+    final valueStyle = theme.textTheme.bodyMedium;
 
-    Widget half({required bool active, required Alignment from}) => Expanded(
-          child: Align(
-            alignment: from,
-            child: FractionallySizedBox(
-              widthFactor: active ? fraction : 0,
-              child: Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
+    Widget line(String label, Widget value) => Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            children: [
+              Expanded(child: Text(label, style: labelStyle)),
+              const SizedBox(width: 12),
+              value,
+            ],
           ),
         );
 
+    // Left to settle is the balance seen from the member's side: ↑ (red)
+    // means they still pay, ↓ (green) means they wait to be paid back.
+    final toSettle = -netCents;
+    final color = context.money.forSign(netCents, cs);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          MemberAvatar(member: member, size: 36),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Text(
+            member.label(l10n),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyLarge
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          line(l10n.balanceRowShare,
+              MoneyText(shareCents, currencyCode, style: valueStyle)),
+          line(l10n.balanceRowPaid,
+              MoneyText(paidCents, currencyCode, style: valueStyle)),
+          if (settledCents != 0)
+            line(l10n.balanceRowSettled,
+                MoneyText(settledCents, currencyCode, style: valueStyle)),
+          line(
+            l10n.balanceRowToSettle,
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        member.isMe
-                            ? '${member.name} ${l10n.meLabel}'
-                            : member.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                    ),
-                    MoneyText(
-                      netCents,
-                      currencyCode,
-                      signed: true,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(2),
+                if (toSettle != 0)
+                  Icon(
+                    toSettle > 0
+                        ? Icons.arrow_upward_rounded
+                        : Icons.arrow_downward_rounded,
+                    size: 16,
+                    color: color,
+                    semanticLabel: toSettle > 0
+                        ? l10n.balanceStillPays
+                        : l10n.balanceWaitsToBePaid,
                   ),
-                  child: Row(
-                    children: [
-                      half(active: netCents < 0, from: Alignment.centerRight),
-                      half(active: netCents > 0, from: Alignment.centerLeft),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 6),
-                // Net = paid − share (+ settlements), so it can be checked
-                // (#110). Wraps under long amounts on a narrow phone.
-                Text(
-                  [
-                    l10n.balancePaid(formatMoney(paidCents, currencyCode)),
-                    l10n.balanceShare(formatMoney(shareCents, currencyCode)),
-                    if (settledCents != 0)
-                      l10n.balanceSettled(
-                          formatMoney(settledCents, currencyCode)),
-                  ].join(' · '),
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: cs.onSurfaceVariant),
+                MoneyText(
+                  toSettle.abs(),
+                  currencyCode,
+                  color: color,
+                  style: theme.textTheme.titleSmall,
                 ),
               ],
             ),

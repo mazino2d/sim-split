@@ -24,6 +24,7 @@ import 'package:simsplit/presentation/widgets/common/member_avatar.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
+import 'package:simsplit/presentation/utils/member_label.dart';
 
 /// Add or edit an expense.
 ///
@@ -698,7 +699,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen>
                     _MemberPicker(
                       members: members,
                       isSelected: (m) => m.id == _paidByMemberId,
-                      meLabel: l10n.meLabel,
+                      l10n: l10n,
                       onTap: context.trackedValueCall(
                           TelemetryEvent.tapPickPayer,
                           (m) => setState(() {
@@ -720,7 +721,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen>
                     _MemberPicker(
                       members: members,
                       isSelected: (m) => _participantIds.contains(m.id),
-                      meLabel: l10n.meLabel,
+                      l10n: l10n,
                       showCheck: true,
                       onTap: context.trackedValueCall(
                           TelemetryEvent.tapToggleParticipant,
@@ -1057,14 +1058,14 @@ class _MemberPicker extends StatelessWidget {
     required this.members,
     required this.isSelected,
     required this.onTap,
-    required this.meLabel,
+    required this.l10n,
     this.showCheck = false,
   });
 
   final List<Member> members;
   final bool Function(Member) isSelected;
   final ValueChanged<Member> onTap;
-  final String meLabel;
+  final AppLocalizations l10n;
   final bool showCheck;
 
   @override
@@ -1118,7 +1119,7 @@ class _MemberPicker extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      m.isMe ? '${m.name} $meLabel' : m.name,
+                      m.label(l10n),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(

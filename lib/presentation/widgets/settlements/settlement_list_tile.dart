@@ -6,6 +6,7 @@ import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
 import 'package:simsplit/presentation/widgets/common/unsynced_mark.dart';
+import 'package:simsplit/presentation/utils/member_label.dart';
 
 /// One recorded payment in the settlement history: "A paid B", its date and
 /// optional note, and the amount.
@@ -29,10 +30,10 @@ class SettlementListTile extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    String nameOf(String memberId) {
+    String nameOf(String memberId, {bool inSentence = false}) {
       final member = members.where((m) => m.id == memberId).firstOrNull;
       if (member == null) return '?';
-      return member.isMe ? '${member.name} ${l10n.meLabel}' : member.name;
+      return inSentence ? member.labelInSentence(l10n) : member.label(l10n);
     }
 
     final locale = Localizations.localeOf(context).toLanguageTag();
@@ -53,7 +54,7 @@ class SettlementListTile extends StatelessWidget {
       title: Text(
         l10n.paidTo(
           nameOf(settlement.fromMemberId),
-          nameOf(settlement.toMemberId),
+          nameOf(settlement.toMemberId, inSentence: true),
         ),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,

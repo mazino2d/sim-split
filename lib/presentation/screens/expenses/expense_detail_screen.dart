@@ -15,6 +15,7 @@ import 'package:simsplit/presentation/widgets/common/money_text.dart';
 import 'package:simsplit/presentation/widgets/common/section_label.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
+import 'package:simsplit/presentation/utils/member_label.dart';
 
 class ExpenseDetailScreen extends ConsumerWidget {
   const ExpenseDetailScreen({
@@ -67,7 +68,7 @@ class ExpenseDetailScreen extends ConsumerWidget {
     String? nameOf(String? uid) {
       final member = members.where((m) => m.linkedUid == uid).firstOrNull;
       if (uid == null || member == null) return null;
-      return member.isMe ? '${member.name} ${l10n.meLabel}' : member.name;
+      return member.labelInSentence(l10n);
     }
 
     final addedBy = nameOf(expense.createdBy);
@@ -116,10 +117,7 @@ class ExpenseDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   [
-                    if (paidBy != null)
-                      l10n.paidByLabel(paidBy.isMe
-                          ? '${paidBy.name} ${l10n.meLabel}'
-                          : paidBy.name),
+                    if (paidBy != null) l10n.paidByLabel(paidBy.label(l10n)),
                     dateLabel,
                   ].join(' · '),
                   style: muted,
@@ -146,7 +144,7 @@ class ExpenseDetailScreen extends ConsumerWidget {
               ListTile(
                 leading: MemberAvatar(member: member, size: 36),
                 title: Text(
-                  member.isMe ? '${member.name} ${l10n.meLabel}' : member.name,
+                  member.label(l10n),
                 ),
                 trailing: MoneyText(
                   split.amountCents,

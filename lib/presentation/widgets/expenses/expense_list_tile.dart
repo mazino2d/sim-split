@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
-import 'package:simsplit/core/utils/money_formatter.dart';
 import 'package:simsplit/domain/entities/expense.dart';
 import 'package:simsplit/domain/entities/member.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
+import 'package:simsplit/presentation/utils/member_label.dart';
 import 'package:simsplit/presentation/utils/expense_category_ui.dart';
 import 'package:simsplit/presentation/widgets/common/money_text.dart';
 import 'package:simsplit/presentation/widgets/common/unsynced_mark.dart';
@@ -39,10 +39,26 @@ class ExpenseListTile extends StatelessWidget {
         members.where((m) => m.id == expense.paidByMemberId).firstOrNull;
     final effect = _myEffectCents();
 
-    final payer = paidBy == null
-        ? null
-        : l10n.paidByLabel(
-            paidBy.isMe ? '${paidBy.name} ${l10n.meLabel}' : paidBy.name);
+    Widget line(String label, Widget amount, {TextStyle? labelStyle}) =>
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: labelStyle ??
+                      theme.textTheme.bodySmall
+                          ?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              ),
+              const SizedBox(width: 12),
+              amount,
+            ],
+          ),
+        );
 
     return InkWell(
       onTap: onTap,
@@ -52,6 +68,7 @@ class ExpenseListTile extends StatelessWidget {
           vertical: 10,
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CategoryTile(category: expense.category),
             const SizedBox(width: 14),
@@ -76,44 +93,31 @@ class ExpenseListTile extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    [
-                      if (payer != null) payer,
-                      l10n.peopleCount(expense.splits.length),
-                    ].join(' · '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: cs.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                MoneyText(
-                  expense.amountCents,
-                  expense.currencyCode,
-                  style: theme.textTheme.titleSmall,
-                ),
-                if (effect != null && effect != 0) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    effect > 0
-                        ? l10n.shareYouGet(
-                            formatMoney(effect, expense.currencyCode))
-                        : l10n.shareYouOwe(
-                            formatMoney(-effect, expense.currencyCode)),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: context.money.forSign(effect, cs),
-                      fontFeatures: tabularFigures,
+                  // Payer and total on one line, my effect on the next: each
+                  // amount gets its own line so names keep the width (#111).
+                  line(
+                    paidBy == null ? '' : l10n.tilePaidBy(paidBy.label(l10n)),
+                    MoneyText(
+                      expense.amountCents,
+                      expense.currencyCode,
+                      style: theme.textTheme.titleSmall,
                     ),
                   ),
+                  if (effect != null && effect != 0)
+                    line(
+                      effect > 0 ? l10n.tileYouGet : l10n.tileYouOwe,
+                      MoneyText(
+                        effect.abs(),
+                        expense.currencyCode,
+                        color: context.money.forSign(effect, cs),
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      labelStyle: theme.textTheme.bodySmall?.copyWith(
+                        color: context.money.forSign(effect, cs),
+                      ),
+                    ),
                 ],
-              ],
+              ),
             ),
           ],
         ),
