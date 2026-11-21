@@ -1,5 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Saving the shared split to the photo library on Android 9 and 10
+         (#115); newer versions need no permission. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
     <application
+        android:requestLegacyExternalStorage="true"
         android:label="${appLabel}"
         android:name="${applicationName}"
         android:allowBackup="false"

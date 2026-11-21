@@ -64,6 +64,10 @@ enum TelemetryEvent {
   tapChangeSettlementMode,
   tapPickSettlementMode,
   tapOpenSettlementMode,
+  tapCloseSettlementMode,
+  tapSaveSplitImage,
+  tapZoomSplitImage,
+  tapOpenSavedImages,
   tapResetInviteLink,
   tapPickCollector,
   tapMenuSettlementMode,
@@ -99,6 +103,7 @@ enum TelemetryEvent {
   gestureSwipeEditExpense,
   gestureSwipeDeleteExpense,
   gestureSwipeDeleteSettlement,
+  gestureSwipeSplitImage,
 
   // ── Operations: one per use case, with result and duration ──────────────
   opSignInWithGoogle,
