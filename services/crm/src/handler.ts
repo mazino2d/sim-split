@@ -1,28 +1,43 @@
 // HTTP routes of the crm service (R-9). Cloud Run IAM lets only the crm
 // account in (Eventarc, Cloud Tasks, Cloud Scheduler), so no auth here.
-// P1: the routes exist and honour the kill switch; sending comes in P3–P6.
+//   POST /events  Eventarc: a new activity entry (header ce-document)
+//   POST /flush   Cloud Tasks: a group's batch window ended (JSON body)
+//   POST /tick    Cloud Scheduler, every 15 min: held-back messages, schedules, campaigns
 
-import type { Config } from './config/schema.ts';
+import { deliverDeferred, onActivity, onFlush, type ActivityDeps } from './activity.ts';
 
 export interface Request {
   method: string;
   path: string;
   headers: Record<string, string | undefined>;
+  body: Buffer;
 }
 
 export interface Response {
   status: number;
 }
 
-export interface Deps {
-  config: Config;
+export interface Deps extends ActivityDeps {
   version: string;
-  log: (entry: Record<string, unknown>) => void;
 }
 
 const ROUTES = new Set(['/events', '/flush', '/tick']);
 
-export const createHandler = ({ config, version, log }: Deps) => {
+const parseFlush = (body: Buffer) => {
+  try {
+    const b = JSON.parse(body.toString('utf8')) as Record<string, unknown>;
+    const windowEnd = new Date(String(b.windowEnd));
+    if (typeof b.groupId !== 'string' || typeof b.triggerId !== 'string' || Number.isNaN(windowEnd.getTime())) {
+      return undefined;
+    }
+    return { groupId: b.groupId, triggerId: b.triggerId, windowEnd };
+  } catch {
+    return undefined;
+  }
+};
+
+export const createHandler = (deps: Deps) => {
+  const { config, version, log } = deps;
   return async (req: Request): Promise<Response> => {
     if (!ROUTES.has(req.path)) return { status: 404 };
     if (req.method !== 'POST') return { status: 405 };
@@ -31,8 +46,29 @@ export const createHandler = ({ config, version, log }: Deps) => {
       log({ severity: 'NOTICE', kind: 'kill_switch', route, version });
       return { status: 204 };
     }
-    // The CloudEvent id only: document paths carry group IDs, which stay out of logs.
-    log({ severity: 'INFO', kind: route, version, event_id: req.headers['ce-id'] });
-    return { status: 204 };
+    try {
+      switch (route) {
+        case 'events':
+          // Only the CloudEvent id is logged: document paths carry group IDs.
+          log({ severity: 'INFO', kind: 'events', version, event_id: req.headers['ce-id'] });
+          await onActivity(deps, req.headers['ce-document']);
+          return { status: 204 };
+        case 'flush': {
+          const flush = parseFlush(req.body);
+          // A malformed task would retry forever: drop it.
+          if (!flush) return { status: 204 };
+          await onFlush(deps, flush.groupId, flush.triggerId, flush.windowEnd);
+          return { status: 204 };
+        }
+        default:
+          log({ severity: 'INFO', kind: 'tick', version });
+          await deliverDeferred(deps);
+          return { status: 204 };
+      }
+    } catch (e) {
+      // 500 lets Eventarc and Cloud Tasks retry; sends already made are in the ledger.
+      log({ severity: 'ERROR', kind: 'error', route, version, message: (e as Error).message });
+      return { status: 500 };
+    }
   };
 };
