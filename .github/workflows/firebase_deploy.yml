@@ -147,6 +147,20 @@ jobs:
         if: env.APP_ENV == 'dev'
         run: cp -R firebase/hosting/dev/. build/web/
 
+      # R-8 P4: a Content-Security-Policy built for this build (inline script
+      # hashes, this environment's telemetry endpoint). Report-only on dev for
+      # now: browsers only log what it would block, and the smoke test below
+      # fails on those logs. Enforced, and added to prd, once dev stays clean.
+      - name: Add the Content-Security-Policy (report-only, dev)
+        if: env.APP_ENV == 'dev'
+        env:
+          TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
+          FIREBASE_PROJECT: ${{ vars.FIREBASE_PROJECT }}
+        run: |
+          python3 scripts/hosting_csp.py --report-only \
+            --project "$FIREBASE_PROJECT" --telemetry-url "$TELEMETRY_URL" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
       # Keyless auth via Workload Identity Federation, managed in
       # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-<env>/github_actions.tf).
       # Only main and v* tags (vYYYY.M.D, vYYYY.M.D-rc.N) of this repo can impersonate the accounts.
@@ -181,6 +195,11 @@ jobs:
           curl -fsS "$SITE/.well-known/assetlinks.json" \
             | jq -e --arg pkg "$PACKAGE_NAME" 'any(.[]; .target.package_name == $pkg)' > /dev/null \
             || { echo "::error::$SITE/.well-known/assetlinks.json does not list $PACKAGE_NAME"; exit 1; }
+          # R-8 P4: the security headers from firebase.json are served.
+          headers=$(curl -fsSI "$SITE/")
+          for h in referrer-policy x-content-type-options x-frame-options permissions-policy content-security-policy-report-only; do
+            grep -qi "^$h:" <<< "$headers" || { echo "::error::$SITE/ is missing the $h header"; exit 1; }
+          done
           echo "$SITE/ and assetlinks.json OK" | tee -a "$GITHUB_STEP_SUMMARY"
 
       # Loads the site in headless Chromium: fails on uncaught errors, console
