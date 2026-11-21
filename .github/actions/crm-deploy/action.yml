@@ -15,6 +15,12 @@ inputs:
   workload-identity-provider:
     description: vars.GCP_WORKLOAD_IDENTITY_PROVIDER of the environment
     required: true
+  traits-table:
+    description: >-
+      The warehouse traits table to check crm/traits.yaml against before
+      deploying (dev only); empty skips the check
+    required: false
+    default: ""
 runs:
   using: composite
   steps:
@@ -40,6 +46,21 @@ runs:
         workload_identity_provider: ${{ inputs.workload-identity-provider }}
         service_account: ${{ inputs.deployer }}
     - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+    - if: inputs.traits-table != ''
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: "26"
+        cache: npm
+        cache-dependency-path: services/crm/package-lock.json
+    # A trait catalog that no longer matches the dbt model would break audiences.
+    - name: Check the trait catalog
+      if: inputs.traits-table != ''
+      shell: bash
+      env:
+        TRAITS_TABLE: ${{ inputs.traits-table }}
+      run: |
+        npm ci --prefix services/crm --no-audit --no-fund
+        npm --prefix services/crm run -s crm -- check-traits --table "$TRAITS_TABLE"
     - name: Push the image
       shell: bash
       env:

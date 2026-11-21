@@ -72,6 +72,7 @@ jobs:
           image-repository: ${{ vars.CRM_IMAGE_REPOSITORY }}
           deployer: ${{ vars.GCP_CRM_DEPLOYER }}
           workload-identity-provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          traits-table: dataplatform-as-se1-dev.simsplit_crm.user_traits
 
   prd:
     needs: dev
