@@ -107,8 +107,10 @@ code in the repo, reviewed in a pull request like the rest of the app.
 - **AC17** The pull request shows, for every changed message, a rendered preview in EN and
   VI, and for every changed audience, its rules in plain words.
 - **AC18** Merging applies the config to dev only; dev users (the SimSplit [Dev] build and
-  the dev web app) get the messages first. Production gets it only after the maintainer
-  approves, and the approval screen shows the audience sizes counted on production data.
+  the dev web app) get the messages first, and a campaign goes out on dev at the next
+  tick after the merge. Production runs the exact build dev ran, only after the maintainer
+  approves; there it follows each campaign's send time. Audiences are not counted before
+  approval.
 - **AC19** A campaign is sent at most once to each device, even if a send is retried or the
   config is applied again.
 
