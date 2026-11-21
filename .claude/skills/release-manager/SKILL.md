@@ -110,6 +110,7 @@ Run what can be run; list the rest as manual steps for the user.
 | 10 | Backend ready | the rules and indexes on `main` deployed cleanly to dev (`firebase_deploy` push runs green, including the smoke test of the live dev site; look at its `smoke-dev` screenshot artifact); the tag deploys them to prd, so a new index must build before the app needs it; budget and kill switch healthy | you check runs, user checks console |
 | 11 | App Check | still enforced (`app_check_enforced = true` in everything-as-code); App Check metrics show verified traffic on Android and web | user checks console |
 | 12 | Release notes | `whatsnew/whatsnew-{en-US,vi}` describe this release; `python3 scripts/play_metadata.py check` passes | you |
+| 13 | Security | if the release changes Firestore rules, auth, the telemetry endpoint, Hosting headers, CI or infrastructure, run a full `security-reviewer` scan; no open critical or high finding | you |
 
 Any red gate is a no-go; say which and what fixes it.
 

@@ -1,6 +1,6 @@
 # R-8 Security hardening — implementation plan
 
-Status: in progress (P1 and P2 done)   ·   Spec: no spec document; the findings of the first `security-reviewer` scan (2026-11-21) are the scope   ·   Written 2026-11-21
+Status: in progress (P1–P6 done; the CSP is report-only on dev until it is enforced)   ·   Spec: no spec document; the findings of the first `security-reviewer` scan (2026-11-21) are the scope   ·   Written 2026-11-21
 
 How R-8 gets built. The first full scan with the
 [`security-reviewer`](../../.claude/skills/security-reviewer/SKILL.md) skill found no
@@ -38,8 +38,10 @@ Work spans this repo and `mazino2d/everything-as-code` (infrastructure).
 | P6 Process | sim-split | `security-reviewer` in PR mode for every PR that touches `firebase/`, auth, `services/telemetry`, `.github/` or `AndroidManifest.xml` (a line in the `pr-writer` checklist); a full scan before each release that changes rules or infrastructure (a line in the `release-manager` preflight); `SECURITY.md` names the telemetry endpoint and the web headers in scope | 0.5 day |
 
 Done so far: P1 in everything-as-code #255 and #256 (dev), #257 and #258 (prd), applied
-2026-11-21 after sign-in and sync were checked on dev and prd; P2 in #167 (on dev, reaches
-prd with the next release).
+2026-11-21 after sign-in and sync were checked on dev and prd; P2 in #167, P3 in #169,
+P4 in #170 (headers on dev; the CSP report-only), P5 in #171, P6 in this repo's skills
+and `SECURITY.md`. P2–P4 reach prd with the next release. Left: enforce the CSP, and add
+it to prd, once dev has run clean for a week.
 
 P2–P6 are independent of each other. P2 changes what released clients may write;
 it is written so that builds already released keep working (see Risks).

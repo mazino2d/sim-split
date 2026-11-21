@@ -46,6 +46,7 @@ Flag every violation in the PR's **Notes for reviewers** section (or fix it firs
 | Tests | New/changed use cases have Mocktail tests; repositories use in-memory Drift |
 | Docs in sync | Behaviour, commands, workflows or data collected changed → the mirrors in `../docs-writer/references/doc-map.md` changed too (run `docs-writer` sync if not); `python3 .claude/skills/docs-writer/scripts/check_docs.py` passes |
 | Sync | New synced fields go through `SyncCodec` and `SyncRecorder`; `firebase/firestore.rules` changes come with a test in `firebase/test/` |
+| Security | The diff touches `firebase/`, auth, `services/telemetry/`, `.github/`, `firebase.json` or `AndroidManifest.xml` → run the `security-reviewer` skill in PR mode and say the result in Notes for reviewers (R-8 P6) |
 
 ```bash
 git diff origin/<base>...HEAD --name-only | grep '^lib/domain/' | xargs -r grep -nE "package:(flutter|drift|firebase_[a-z]+|cloud_firestore|riverpod|flutter_riverpod|go_router)/"

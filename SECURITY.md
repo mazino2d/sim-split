@@ -12,6 +12,10 @@ the main risks are:
 - invite links — joining a group without a valid invite;
 - the app itself — data left on the device after sign-out, or leaked through
   logs;
+- the telemetry endpoint (`services/telemetry/`) — what one client can send, and
+  that nothing it stores identifies a person beyond what the privacy policy says;
+- the web app's response headers (`firebase.json`: Content-Security-Policy,
+  framing, referrer and permissions policies);
 - its dependencies, and the CI that builds and publishes it.
 
 ## Supported versions
