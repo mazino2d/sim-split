@@ -42,6 +42,8 @@ export interface Device {
 export interface Push {
   messageId: string;
   category: string;
+  /** `trigger:<id>`, `schedule:<id>` or `campaign:<id>`: config ids only, for open counts (AC24). */
+  source: string;
   route: string;
   title: string;
   body: string;

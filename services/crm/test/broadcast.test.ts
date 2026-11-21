@@ -70,6 +70,7 @@ test('the weekly reminder goes to opted-in users in its device minute window (AC
   assert.equal(s.pusher.sent[0].push.title, 'Bạn còn nợ 350.000 ₫');
   assert.equal(s.pusher.sent[0].push.body, 'Cho 4 người, nhiều nhất ở Đà Lạt. Chạm để thanh toán.');
   assert.equal(s.pusher.sent[0].push.route, '/groups/g1/settle');
+  assert.equal(s.pusher.sent[0].push.source, 'schedule:settle-reminder');
   assert.match(s.audiences.queries[0], /`owes_groups` >= @p0 AND `oldest_unsettled_days` > @p1/);
   // The next tick in the same window sends nothing more.
   s.setNow(new Date(SUNDAY_EVENING.getTime() + 5 * 60_000));

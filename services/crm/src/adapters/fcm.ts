@@ -16,7 +16,7 @@ export const createFcmPusher = (messaging: Messaging, webOrigin: string): Pusher
       await messaging.send({
         token: device.token,
         notification: { title: push.title, body: push.body },
-        data: { messageId: push.messageId, category: push.category, route: push.route },
+        data: { messageId: push.messageId, category: push.category, route: push.route, source: push.source },
         android: {
           priority: 'normal',
           collapseKey: push.tag,

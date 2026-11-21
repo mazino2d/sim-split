@@ -73,6 +73,7 @@ test('one change: the other members get it, the actor does not (AC6, AC8, AC10)'
   assert.equal(byDevice.c1.body, 'An added Ăn tối · 500.000 ₫');
   assert.equal(byDevice.c1.route, '/groups/g1/expenses/e-Ăn tối');
   assert.equal(byDevice.c1.category, 'group_activity');
+  assert.equal(byDevice.c1.source, 'trigger:group-activity');
   const rows = (s.deps.sends as FakeSendLog).rows;
   assert.deepEqual(
     rows.map((r) => [r.source, r.source_id, r.uid, r.result]).sort(),
