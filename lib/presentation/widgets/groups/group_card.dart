@@ -44,6 +44,7 @@ class GroupCard extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               GroupGlyph(group: group),
               const SizedBox(width: 14),
@@ -51,6 +52,8 @@ class GroupCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // The name keeps the full width; my balance gets a line
+                    // of its own below instead of a column beside it.
                     Text(
                       group.name,
                       maxLines: 2,
@@ -63,33 +66,40 @@ class GroupCard extends ConsumerWidget {
                       style: theme.textTheme.bodySmall
                           ?.copyWith(color: cs.onSurfaceVariant),
                     ),
+                    if (myNet != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                myNet > 0
+                                    ? l10n.groupCardYouGetBack
+                                    : myNet < 0
+                                        ? l10n.groupCardYouOwe
+                                        : l10n.groupCardSettled,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: context.money.forSign(myNet, cs),
+                                ),
+                              ),
+                            ),
+                            if (myNet != 0) ...[
+                              const SizedBox(width: 12),
+                              MoneyText(
+                                myNet.abs(),
+                                group.currencyCode,
+                                color: context.money.forSign(myNet, cs),
+                                style: theme.textTheme.titleSmall,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
-              if (myNet != null) ...[
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (myNet != 0)
-                      MoneyText(
-                        myNet.abs(),
-                        group.currencyCode,
-                        color: context.money.forSign(myNet, cs),
-                        style: theme.textTheme.titleSmall,
-                      ),
-                    Text(
-                      myNet > 0
-                          ? l10n.statusOwedToYou
-                          : myNet < 0
-                              ? l10n.statusYouOwe
-                              : l10n.statusSettled,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: cs.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ],
             ],
           ),
         ),
