@@ -92,7 +92,7 @@ const sendOne = async (
   if (!(await deps.store.takeWeeklySlot(uid, messageId, deps.now()))) return false;
   if (!(await deps.store.claimSend(messageId, uid, device.id))) return false;
   const copy = renderCopy(template.push[device.locale], device.locale, values);
-  const result = await deps.pusher.send(device, { messageId, category, route, ...copy, tag: messageId });
+  const result = await deps.pusher.send(device, { messageId, category, source: `${source}:${sourceId}`, route, ...copy, tag: messageId });
   deps.sends.record({
     sent_at: deps.now().toISOString(),
     message_id: messageId,

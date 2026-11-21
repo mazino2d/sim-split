@@ -161,6 +161,7 @@ const deliver = async (
   const result = await deps.pusher.send(device, {
     messageId,
     category: trigger.category,
+    source: `trigger:${trigger.id}`,
     route,
     title: rendered.title,
     body: rendered.body,
