@@ -1,6 +1,6 @@
 # R-9 Notifications and CRM as code — implementation plan
 
-Status: in progress (P1–P4 done; P5 next)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
+Status: in progress (P1–P4 and the P5/P6 server side done; banner, send log and dashboard next)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
 
 How R-9 gets built. One new service, `services/crm`, sends every message. Its config
 lives in `crm/` in this repo. The traits that audiences select on come from a dbt model
@@ -134,7 +134,13 @@ per group, sent to the other members' devices, held back in quiet hours; the mon
 format is shared with the app through `services/crm/test/money_vectors.json`. P4 in
 everything-as-code #261 (dataset `simsplit_crm`, grants, error alert), data-platform
 (`user_traits`) and this repo: the trait catalog, the audience compiler (parameterised
-BigQuery), the catalog check in the dev deploy and the 36-hour freshness rule. P2 in this
+BigQuery), the catalog check in the dev deploy and the 36-hour freshness rule.
+P5 and P6 server side in this repo: the tick runs schedules (in each device's clock,
+amounts worked out from Firestore at send time) and campaigns (in-app announcements
+in `announcements/{id}`, pushes for Updates), with the weekly cap in `crm_ledger`.
+Left in P5: the in-app banner and the rules for `announcements` (app, after P2),
+`simsplit_raw.crm_sends` and the dashboard.
+P2 in this
 repo: `firebase_messaging` and `flutter_timezone`; device registration
 (`lib/data/notifications/`) on sign-in, app start, language change and token refresh,
 only after the user tapped Turn on and the system allows it; the one-time inline card in

@@ -2,12 +2,14 @@
 // out of reach for clients: no rule in firebase/firestore.rules matches them.
 
 import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
-import type { Deferred, Device, GroupDoc, PendingItem, Prefs, Store } from '../ports.ts';
+import type { BroadcastStore, Debt, Deferred, Device, GroupDoc, PendingItem, Prefs, Store } from '../ports.ts';
 
 const STALE_BATCH_MS = 5 * 60_000;
 const ALREADY_EXISTS = 6;
 
-export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'mutedGroups'>): Store => {
+const WEEK_MS = 7 * 24 * 60 * 60_000;
+
+export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'mutedGroups'>): Store & BroadcastStore => {
   const pendingRef = (groupId: string, triggerId: string) => db.doc(`crm_pending/${groupId}_${triggerId}`);
   return {
     async getActivity(groupId, entryId) {
@@ -151,6 +153,67 @@ export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'muted
 
     async deleteDeferred(key) {
       await db.doc(`crm_deferred/${key}`).delete();
+    },
+
+    takeWeeklySlot(uid, messageId, now) {
+      const ref = db.doc(`crm_ledger/${uid}`);
+      return db.runTransaction(async (tx) => {
+        const d = (await tx.get(ref)).data();
+        const last = d?.lastNonGroupAt instanceof Timestamp ? d.lastNonGroupAt.toMillis() : 0;
+        if (d?.lastMessageId === messageId) return true;
+        if (now.getTime() - last < WEEK_MS) return false;
+        tx.set(ref, { lastNonGroupAt: Timestamp.fromDate(now), lastMessageId: messageId });
+        return true;
+      });
+    },
+
+    async debtsOf(uid) {
+      const groups = await db.collection('groups').where('memberUids', 'array-contains', uid).get();
+      const debts: Debt[] = [];
+      for (const g of groups.docs) {
+        const gd = g.data();
+        if (gd.isArchived === true || gd.deleted === true) continue;
+        const [members, expenses, settlements] = await Promise.all(
+          ['members', 'expenses', 'settlements'].map((c) => db.collection(`groups/${g.id}/${c}`).get()),
+        );
+        const net = new Map<string, number>();
+        const add = (memberId: unknown, cents: unknown) => {
+          if (typeof memberId === 'string' && typeof cents === 'number') net.set(memberId, (net.get(memberId) ?? 0) + cents);
+        };
+        for (const e of expenses.docs.map((x) => x.data())) {
+          if (e.deleted === true) continue;
+          add(e.paidByMemberId, e.amountCents);
+          for (const split of (e.splits ?? []) as { memberId?: unknown; amountCents?: unknown }[]) {
+            add(split.memberId, -(Number(split.amountCents) || 0));
+          }
+        }
+        for (const st of settlements.docs.map((x) => x.data())) {
+          if (st.deleted === true) continue;
+          add(st.fromMemberId, st.amountCents);
+          add(st.toMemberId, -(Number(st.amountCents) || 0));
+        }
+        const mine = members.docs.find((m) => m.data().linkedUid === uid && m.data().deleted !== true);
+        const balance = mine ? (net.get(mine.id) ?? 0) : 0;
+        if (balance <= -1) {
+          debts.push({
+            groupId: g.id,
+            groupName: typeof gd.name === 'string' ? gd.name : '',
+            owesCents: -balance,
+            currencyCode: typeof gd.currencyCode === 'string' ? gd.currencyCode : 'VND',
+            creditors: [...net.values()].filter((v) => v >= 1).length,
+          });
+        }
+      }
+      return debts;
+    },
+
+    async writeAnnouncement(a) {
+      await db.doc(`announcements/${a.id}`).set({
+        banner: a.banner,
+        all: a.audienceUids === undefined,
+        audienceUids: a.audienceUids ?? [],
+        endsAt: Timestamp.fromDate(a.endsAt),
+      });
     },
   };
 };

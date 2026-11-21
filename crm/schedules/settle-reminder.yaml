@@ -1,0 +1,11 @@
+# Sunday 19:00 on the device's clock, for people who turned settle reminders
+# on and still owe money after two weeks (spec AC11). The amounts are worked
+# out from the groups at send time; the traits only pick the candidates.
+id: settle-reminder
+enabled: true
+kind: settle_reminder
+category: settle_reminder
+cron: "0 19 * * 0"
+audience: owes-14d
+template: settle-reminder
+channels: [push]

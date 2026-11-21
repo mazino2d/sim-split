@@ -1,8 +1,11 @@
 // In-memory Store, Pusher and FlushScheduler for tests.
 
-import type { Deferred, Device, FlushScheduler, GroupDoc, PendingItem, Prefs, Push, Pusher, SendResult, Store } from '../src/ports.ts';
+import type { Announcement, BroadcastStore, Debt, Deferred, Device, FlushScheduler, GroupDoc, PendingItem, Prefs, Push, Pusher, SendResult, Store } from '../src/ports.ts';
 
-export class FakeStore implements Store {
+export class FakeStore implements Store, BroadcastStore {
+  ledger = new Map<string, { at: Date; messageId: string }>();
+  debts = new Map<string, Debt[]>();
+  announcements = new Map<string, Announcement>();
   activity = new Map<string, Record<string, unknown>>();
   groups = new Map<string, GroupDoc>();
   members = new Map<string, Map<string, string>>();
@@ -64,6 +67,19 @@ export class FakeStore implements Store {
   async deleteDeferred(key: string) {
     this.deferred.delete(key);
   }
+  async takeWeeklySlot(uid: string, messageId: string, now: Date) {
+    const last = this.ledger.get(uid);
+    if (last?.messageId === messageId) return true;
+    if (last && now.getTime() - last.at.getTime() < 7 * 24 * 3600_000) return false;
+    this.ledger.set(uid, { at: now, messageId });
+    return true;
+  }
+  async debtsOf(uid: string) {
+    return this.debts.get(uid) ?? [];
+  }
+  async writeAnnouncement(a: Announcement) {
+    this.announcements.set(a.id, a);
+  }
 }
 
 export class FakePusher implements Pusher {
@@ -80,5 +96,29 @@ export class FakeScheduler implements FlushScheduler {
   scheduled: { groupId: string; triggerId: string; windowEnd: Date }[] = [];
   async scheduleFlush(groupId: string, triggerId: string, windowEnd: Date) {
     this.scheduled.push({ groupId, triggerId, windowEnd });
+  }
+}
+
+export class FakeAudiences {
+  uidsByQuery: string[] = [];
+  updated: Date | undefined = new Date('2026-12-01T05:00:00Z');
+  queries: string[] = [];
+  async uids(q: { sql: string }) {
+    this.queries.push(q.sql);
+    return this.uidsByQuery;
+  }
+  async updatedAt() {
+    return this.updated;
+  }
+}
+
+export class FakeSendLog {
+  rows: import('../src/ports.ts').SendRow[] = [];
+  flushed = 0;
+  record(row: import('../src/ports.ts').SendRow) {
+    this.rows.push(row);
+  }
+  async flush() {
+    this.flushed++;
   }
 }

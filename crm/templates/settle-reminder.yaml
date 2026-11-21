@@ -1,0 +1,9 @@
+id: settle-reminder
+vars: [total, people, group]
+push:
+  en:
+    title: "You still owe {total}"
+    body: "{people, plural, one {To # person} other {To # people}}, most of it in {group}. Tap to settle up."
+  vi:
+    title: "Bạn còn nợ {total}"
+    body: "Cho {people} người, nhiều nhất ở {group}. Chạm để thanh toán."

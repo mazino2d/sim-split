@@ -5,6 +5,7 @@
 //   POST /tick    Cloud Scheduler, every 15 min: held-back messages, schedules, campaigns
 
 import { deliverDeferred, onActivity, onFlush, type ActivityDeps } from './activity.ts';
+import { runCampaigns, runSchedules, type BroadcastDeps } from './broadcast.ts';
 
 export interface Request {
   method: string;
@@ -17,7 +18,8 @@ export interface Response {
   status: number;
 }
 
-export interface Deps extends ActivityDeps {
+export interface Deps extends ActivityDeps, BroadcastDeps {
+  store: BroadcastDeps['store'];
   version: string;
 }
 
@@ -52,20 +54,26 @@ export const createHandler = (deps: Deps) => {
           // Only the CloudEvent id is logged: document paths carry group IDs.
           log({ severity: 'INFO', kind: 'events', version, event_id: req.headers['ce-id'] });
           await onActivity(deps, req.headers['ce-document']);
+          await deps.sends.flush();
           return { status: 204 };
         case 'flush': {
           const flush = parseFlush(req.body);
           // A malformed task would retry forever: drop it.
           if (!flush) return { status: 204 };
           await onFlush(deps, flush.groupId, flush.triggerId, flush.windowEnd);
+          await deps.sends.flush();
           return { status: 204 };
         }
         default:
           log({ severity: 'INFO', kind: 'tick', version });
           await deliverDeferred(deps);
+          await runSchedules(deps);
+          await runCampaigns(deps);
+          await deps.sends.flush();
           return { status: 204 };
       }
     } catch (e) {
+      await deps.sends.flush();
       // 500 lets Eventarc and Cloud Tasks retry; sends already made are in the ledger.
       log({ severity: 'ERROR', kind: 'error', route, version, message: (e as Error).message });
       return { status: 500 };

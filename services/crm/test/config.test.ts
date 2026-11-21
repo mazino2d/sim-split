@@ -46,6 +46,14 @@ const TRAITS = `- name: platform
   type: bool
   column: has_push_token
   label: Can get push
+- name: owes_groups
+  type: number
+  column: owes_groups
+  label: Groups where they owe money
+- name: oldest_unsettled_days
+  type: days_ago
+  column: oldest_unsettled_days
+  label: Oldest unsettled debt
 `;
 
 test('the config in the repo is valid', () => {

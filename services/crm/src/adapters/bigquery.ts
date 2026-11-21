@@ -9,8 +9,8 @@ const MAX_BYTES_BILLED = 1024 ** 3;
 
 export interface AudienceSource {
   uids(query: CompiledQuery): Promise<string[]>;
-  /** When the traits table was last written. */
-  updatedAt(): Promise<Date>;
+  /** When the traits table was last written; undefined before dbt's first run. */
+  updatedAt(): Promise<Date | undefined>;
 }
 
 export const createBigQuerySource = (jobProject: string, table: string): AudienceSource => {
@@ -27,7 +27,10 @@ export const createBigQuerySource = (jobProject: string, table: string): Audienc
       return (rows as { uid: string }[]).map((r) => r.uid);
     },
     async updatedAt() {
-      const [meta] = await bigquery.dataset(dataset, { projectId: project }).table(name).getMetadata();
+      const table = bigquery.dataset(dataset, { projectId: project }).table(name);
+      const [exists] = await table.exists();
+      if (!exists) return undefined;
+      const [meta] = await table.getMetadata();
       return new Date(Number(meta.lastModifiedTime));
     },
   };
