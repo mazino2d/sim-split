@@ -12,6 +12,7 @@ import { createFirestoreStore } from './adapters/firestore.ts';
 import { createFcmPusher } from './adapters/fcm.ts';
 import { createTasksScheduler } from './adapters/tasks.ts';
 import { createBigQuerySource } from './adapters/bigquery.ts';
+import { createBigQuerySendLog } from './adapters/send_log.ts';
 import type { Config } from './config/schema.ts';
 
 const env = (name: string): string => {
@@ -51,6 +52,7 @@ const handle = createHandler({
   ),
   audiences: createBigQuerySource(projectId, env('CRM_TRAITS_TABLE')),
   traitsTable: env('CRM_TRAITS_TABLE'),
+  sends: createBigQuerySendLog(env('CRM_SENDS_DATASET'), log),
   env: env('CRM_ENV') === 'prd' ? 'prd' : 'dev',
   startedAt: new Date(),
   scheduler: createTasksScheduler(env('CRM_TASKS_QUEUE'), `crm-sender@${projectId}.iam.gserviceaccount.com`, () => serviceUrl),

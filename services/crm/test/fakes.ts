@@ -111,3 +111,14 @@ export class FakeAudiences {
     return this.updated;
   }
 }
+
+export class FakeSendLog {
+  rows: import('../src/ports.ts').SendRow[] = [];
+  flushed = 0;
+  record(row: import('../src/ports.ts').SendRow) {
+    this.rows.push(row);
+  }
+  async flush() {
+    this.flushed++;
+  }
+}

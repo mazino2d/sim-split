@@ -122,4 +122,23 @@ export interface FlushScheduler {
   scheduleFlush(groupId: string, triggerId: string, windowEnd: Date): Promise<void>;
 }
 
+/** One row of simsplit_raw.crm_sends (spec AC24). */
+export interface SendRow {
+  sent_at: string;
+  message_id: string;
+  source: 'trigger' | 'schedule' | 'campaign';
+  source_id: string;
+  category: string;
+  uid: string;
+  platform: string;
+  locale: string;
+  result: SendResult;
+}
+
+export interface SendLog {
+  record(row: SendRow): void;
+  /** Writes what was recorded; never throws. */
+  flush(): Promise<void>;
+}
+
 export type Log = (entry: Record<string, unknown>) => void;

@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { loadConfig } from '../src/config/load.ts';
 import { bucket, deliverDeferred, onActivity, onFlush, type ActivityDeps } from '../src/activity.ts';
 import type { Device } from '../src/ports.ts';
-import { FakePusher, FakeScheduler, FakeStore } from './fakes.ts';
+import { FakePusher, FakeScheduler, FakeSendLog, FakeStore } from './fakes.ts';
 
 const { config } = loadConfig(resolve(import.meta.dirname, '../../../crm'));
 
@@ -30,6 +30,7 @@ const setup = (now = NOON) => {
     store,
     pusher,
     scheduler,
+    sends: new FakeSendLog(),
     log: () => {},
     now: () => clock,
   };
@@ -72,6 +73,11 @@ test('one change: the other members get it, the actor does not (AC6, AC8, AC10)'
   assert.equal(byDevice.c1.body, 'An added Ăn tối · 500.000 ₫');
   assert.equal(byDevice.c1.route, '/groups/g1/expenses/e-Ăn tối');
   assert.equal(byDevice.c1.category, 'group_activity');
+  const rows = (s.deps.sends as FakeSendLog).rows;
+  assert.deepEqual(
+    rows.map((r) => [r.source, r.source_id, r.uid, r.result]).sort(),
+    [['trigger', 'group-activity', 'ub', 'sent'], ['trigger', 'group-activity', 'uc', 'sent']],
+  );
 });
 
 test('several changes in the window become one message (AC7)', async () => {
