@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createHandler, ERROR_REPORTS_PER_DAY, type Deps, type Request } from '../src/handler.ts';
+import {
+  createHandler,
+  ERROR_REPORTS_PER_ADDRESS_PER_DAY,
+  ERROR_REPORTS_PER_DAY,
+  ERROR_REPORTS_TOTAL_PER_DAY,
+  type Deps,
+  type Request,
+} from '../src/handler.ts';
+import { AddressKey } from '../src/limits.ts';
 import type { ErrorReportRow, UsageEventRow } from '../src/schema.ts';
 
 const UID = 'kT9mPq2Lr8Xs4Vw6Yz1Ab3Cd';
@@ -101,3 +109,56 @@ test('allows CORS only from the web app and localhost', async () => {
   assert.equal((await preflight('http://localhost:5000')).headers['access-control-allow-origin'], 'http://localhost:5000');
   assert.equal((await preflight('https://evil.example')).headers['access-control-allow-origin'], undefined);
 });
+
+// R-8 P3: caps per client address and per instance.
+
+const from = (address: string, spoofed?: string) => ({
+  'x-forwarded-for': spoofed ? `${spoofed}, ${address}` : address,
+});
+
+test('caps error reports per address even when every report ID is new', async () => {
+  const { handle, written } = setup({ addressKey: new AddressKey(Buffer.alloc(16)) });
+  const batch = (n: number) => ({ reports: Array.from({ length: 20 }, (_, i) => report(`R${n}-${i}`)) });
+  let last = 0;
+  for (let n = 0; n < ERROR_REPORTS_PER_ADDRESS_PER_DAY / 20 + 2; n++) {
+    last = (await handle(post('/v1/errors', batch(n), from('203.0.113.7')))).status;
+  }
+  assert.equal(last, 429);
+  assert.equal(written.reports.length, ERROR_REPORTS_PER_ADDRESS_PER_DAY);
+  // Another address is not affected.
+  assert.equal((await handle(post('/v1/errors', batch(99), from('198.51.100.2')))).status, 202);
+});
+
+test('a spoofed X-Forwarded-For entry does not reset the address cap', async () => {
+  const { handle } = setup({ addressKey: new AddressKey(Buffer.alloc(16)) });
+  const batch = (n: number) => ({ reports: Array.from({ length: 20 }, (_, i) => report(`S${n}-${i}`)) });
+  for (let n = 0; n < ERROR_REPORTS_PER_ADDRESS_PER_DAY / 20; n++) {
+    await handle(post('/v1/errors', batch(n), from('203.0.113.7')));
+  }
+  const res = await handle(post('/v1/errors', batch(1000), from('203.0.113.7', '10.0.0.1')));
+  assert.equal(res.status, 429);
+});
+
+test('the instance takes at most the global number of error reports a day', async () => {
+  const { handle, written } = setup({ addressKey: new AddressKey(Buffer.alloc(16)) });
+  const batch = (a: number, n: number) => ({ reports: Array.from({ length: 20 }, (_, i) => report(`G${a}-${n}-${i}`)) });
+  const addresses = ERROR_REPORTS_TOTAL_PER_DAY / ERROR_REPORTS_PER_ADDRESS_PER_DAY + 1;
+  for (let a = 0; a < addresses; a++) {
+    for (let n = 0; n < ERROR_REPORTS_PER_ADDRESS_PER_DAY / 20; n++) {
+      await handle(post('/v1/errors', batch(a, n), from(`192.0.2.${a}`)));
+    }
+  }
+  assert.equal(written.reports.length, ERROR_REPORTS_TOTAL_PER_DAY);
+});
+
+test('the client address never reaches a log entry or a row', async () => {
+  const { handle, written, logs } = setup({ addressKey: new AddressKey(Buffer.alloc(16)) });
+  const batch = (n: number) => ({ reports: Array.from({ length: 20 }, (_, i) => report(`L${n}-${i}`)) });
+  for (let n = 0; n < ERROR_REPORTS_PER_ADDRESS_PER_DAY / 20 + 1; n++) {
+    await handle(post('/v1/errors', batch(n), from('203.0.113.99')));
+  }
+  const everything = JSON.stringify({ logs, written });
+  assert.ok(!everything.includes('203.0.113.99'));
+  assert.ok(!everything.includes(new AddressKey(Buffer.alloc(16)).of('203.0.113.99')));
+});
+
