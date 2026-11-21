@@ -1,0 +1,31 @@
+# Kinds of messages; each is one switch in Settings → Notifications and one
+# Android notification channel. Only a per-group category may default to on.
+- id: group_activity
+  default: "on"
+  per_group: true
+  name:
+    en: Group activity
+    vi: Hoạt động nhóm
+  description:
+    en: When friends add, edit or settle expenses in your groups
+    vi: Khi bạn bè thêm, sửa hoặc thanh toán khoản chi trong nhóm của bạn
+
+- id: settle_reminder
+  default: "off"
+  per_group: false
+  name:
+    en: Settle reminders
+    vi: Nhắc thanh toán
+  description:
+    en: A weekly reminder when you still owe money for more than two weeks
+    vi: Nhắc mỗi tuần khi bạn còn nợ quá hai tuần
+
+- id: updates
+  default: "off"
+  per_group: false
+  name:
+    en: Updates
+    vi: Cập nhật
+  description:
+    en: Rare news about SimSplit, such as a new version that fixes a bug you hit
+    vi: Tin hiếm hoi về SimSplit, như bản mới sửa lỗi bạn từng gặp

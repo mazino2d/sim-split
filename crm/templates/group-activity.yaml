@@ -1,0 +1,16 @@
+id: group-activity
+vars: [actor, group, title, amount, count, entity, action]
+push:
+  en:
+    title: "{group}"
+    body: "{entity, select, settlement {{actor} {action, select, delete {deleted} other {recorded}} a settlement · {amount}} other {{actor} {action, select, create {added} update {edited} delete {deleted} other {changed}} {title} · {amount}}}"
+  vi:
+    title: "{group}"
+    body: "{entity, select, settlement {{actor} {action, select, delete {đã xoá} other {đã ghi}} một khoản thanh toán · {amount}} other {{actor} {action, select, create {đã thêm} update {đã sửa} delete {đã xoá} other {đã đổi}} {title} · {amount}}}"
+push_batched:
+  en:
+    title: "{group}"
+    body: "{count, plural, one {# new change} other {# new changes}}"
+  vi:
+    title: "{group}"
+    body: "{count} thay đổi mới"

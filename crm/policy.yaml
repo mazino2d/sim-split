@@ -1,0 +1,14 @@
+# Calm limits for every message (R-9). These may be stricter than the limits in
+# services/crm/src/calm.ts, never looser: `crm validate` refuses a looser value.
+
+# true stops every send at once, without an app release.
+kill_switch: false
+
+# No push between these times on the device's clock; a message due then waits.
+quiet_hours:
+  from: "21:00"
+  to: "08:00"
+
+caps:
+  # Settle reminders and updates together, per user.
+  non_group_per_user_per_week: 1

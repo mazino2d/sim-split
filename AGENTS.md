@@ -56,6 +56,7 @@ list; skills and other docs point here instead of copying it.
 | Store metadata | `android/fastlane/metadata/`, `android/fastlane/whatsnew/`, `scripts/play_metadata.py` | `python3 scripts/play_metadata.py check` |
 | Firestore rules | `firebase.json`, `firebase/` | `npm ci --prefix firebase/test`, then `npx firebase-tools@14 emulators:exec --only firestore --project demo-simsplit "npm --prefix firebase/test test"` (needs Java) |
 | Telemetry endpoint | `services/telemetry/` | `npm ci --prefix services/telemetry`, then `npm --prefix services/telemetry run typecheck`, `npm --prefix services/telemetry test` and `npm audit --prefix services/telemetry --omit=dev --audit-level=high` |
+| CRM config | `crm/`, `services/crm/` | `npm ci --prefix services/crm`, then `npm --prefix services/crm run typecheck`, `npm --prefix services/crm test` and `npm --prefix services/crm run -s crm -- validate` (and `render` to preview messages; see [crm/README.md](crm/README.md)) |
 | Lint workflows | `.github/workflows/`, `.github/actions/` | actionlint (the shared `lint.yml` in mazino2d/github-workflows) |
 
 A change to `pr_validate.yml` itself runs every job.

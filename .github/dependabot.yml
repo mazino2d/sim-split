@@ -48,6 +48,28 @@ updates:
       - dependency-name: node
         versions: ["~> 25.0", "~> 27.0", "~> 29.0"]
 
+  # R-9 notifications service (Cloud Run) and its base image.
+  - package-ecosystem: npm
+    directory: /services/crm
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      crm-npm-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "@types/node"
+        versions: ["25.x", "27.x", "29.x"]
+
+  - package-ecosystem: docker
+    directory: /services/crm
+    schedule:
+      interval: weekly
+    # Odd Node majors never become LTS; stay on even (LTS) majors.
+    ignore:
+      - dependency-name: node
+        versions: ["~> 25.0", "~> 27.0", "~> 29.0"]
+
   # Firestore rules tests (firebase/test).
   - package-ecosystem: npm
     directory: /firebase/test

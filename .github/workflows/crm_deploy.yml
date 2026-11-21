@@ -1,0 +1,91 @@
+name: CRM Deploy
+
+# Ships the R-9 notifications service (services/crm) with the config in crm/
+# baked into the image. The image is built once and the same digest runs on
+# dev, then on prd after the maintainer approves in the crm-prd environment.
+# The service, its triggers and the deployers are managed in
+# mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-<env>/crm.tf).
+# App deploys stay tag-only (release.yml); crm-prd admits main only, and prd's
+# Workload Identity lets only that environment use the crm deployer.
+# PRs validate and plan the config in pr_validate.yml.
+on:
+  push:
+    branches: [main]
+    paths:
+      - crm/**
+      - services/crm/**
+      - .github/workflows/crm_deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crm-deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check ref
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::crm deploys only from main, not $GITHUB_REF"
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: services/crm/package-lock.json
+      - run: npm ci --prefix services/crm
+      - run: npm --prefix services/crm test
+      - name: Compile crm/ into the image
+        run: npm --prefix services/crm run -s crm -- compile --out config.json --version "$GITHUB_SHA"
+      - name: Build the image
+        run: |
+          docker build -t "crm:$GITHUB_SHA" services/crm
+          docker save "crm:$GITHUB_SHA" | gzip > "$RUNNER_TEMP/crm.tar.gz"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: crm-image
+          path: ${{ runner.temp }}/crm.tar.gz
+          retention-days: 3
+
+  # dev first; prd only once dev runs the same image, after approval.
+  dev:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/crm-deploy
+        with:
+          expected-project: simsplit-as-se1-dev
+          image-repository: ${{ vars.CRM_IMAGE_REPOSITORY }}
+          deployer: ${{ vars.GCP_CRM_DEPLOYER }}
+          workload-identity-provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+  prd:
+    needs: dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: crm-prd
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/crm-deploy
+        with:
+          expected-project: simsplit-as-se1-prd
+          image-repository: ${{ vars.CRM_IMAGE_REPOSITORY }}
+          deployer: ${{ vars.GCP_CRM_DEPLOYER }}
+          workload-identity-provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
