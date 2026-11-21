@@ -189,6 +189,22 @@ void main() {
     );
   });
 
+  e2e('R-9: notification choices are saved with the account', (tester) async {
+    await tester.launch();
+    tester.goTo('/settings/notifications');
+    await tester.waitFor(find.text('Group activity'));
+    expect(find.text('Settle reminders'), findsOneWidget);
+    await tester.tapAndWait(find.text('Updates'));
+    final profile = FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid);
+    await tester.waitUntil(() async =>
+        ((await profile.get()).data()?['notificationPrefs']
+            as Map?)?['updates'] ==
+        true);
+    await tester.tapAndWait(find.text('Updates'));
+  });
+
   e2e('UC-7.5: pushes the group to the account, then signs out',
       (tester) async {
     await tester.launch();

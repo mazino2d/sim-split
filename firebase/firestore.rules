@@ -219,23 +219,68 @@ service cloud.firestore {
         && get(groupPath(resource.data.groupId)).data.ownerUid == request.auth.uid;
     }
 
+    // R-9: what the account wants to be notified about. Every field is
+    // optional (a missing one is the default in crm/categories.yaml); the
+    // sender reads it at send time.
+    function validNotificationPrefs(p) {
+      return p is map
+        && p.keys().hasOnly(['groupActivity', 'settleReminder', 'updates', 'mutedGroups'])
+        && p.get('groupActivity', false) is bool
+        && p.get('settleReminder', false) is bool
+        && p.get('updates', false) is bool
+        && p.get('mutedGroups', []) is list
+        && p.get('mutedGroups', []).size() <= 200;
+    }
+
     // R-4: the account's profile and the privacy policy revision it agreed
     // to by signing in. Only the account itself can read, create or delete
     // it, and the agreement can never be changed afterwards. R-7 #112: the
-    // account may set the name it goes by in groups, and nothing else.
+    // account may set the name it goes by in groups; R-9: and its
+    // notification choices. Nothing else.
     match /users/{uid} {
       allow get, delete: if signedIn() && request.auth.uid == uid;
       allow update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberName'])
-        && request.resource.data.memberName is string
-        && request.resource.data.memberName.size() > 0
-        && request.resource.data.memberName.size() <= 80;
+        && changedKeys().hasOnly(['memberName', 'notificationPrefs'])
+        && (!('memberName' in changedKeys())
+          || (request.resource.data.memberName is string
+            && request.resource.data.memberName.size() > 0
+            && request.resource.data.memberName.size() <= 80))
+        && (!('notificationPrefs' in changedKeys())
+          || validNotificationPrefs(request.resource.data.notificationPrefs));
       allow create: if signedIn() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['displayName', 'email', 'createdAt', 'consent'])
         && request.resource.data.createdAt == request.time
         && request.resource.data.consent.keys().hasOnly(['agreedAt', 'policyVersion'])
         && request.resource.data.consent.agreedAt == request.time
         && request.resource.data.consent.policyVersion is string;
+    }
+
+    // R-9: the account's devices that get push notifications, one per app
+    // install (a random ID, not the R-4 error report ID). Only the account
+    // reads or changes them; the sender reads them with the Admin SDK. They
+    // are deleted on sign-out (this device) and before the profile when the
+    // account is deleted (all of them), since deleting users/{uid} keeps
+    // its subcollections.
+    match /users/{uid}/devices/{deviceId} {
+      function validDevice() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['token', 'platform', 'locale', 'tzName',
+            'tzOffsetMinutes', 'appVersion', 'updatedAt'])
+          && d.keys().hasAll(['token', 'platform', 'locale', 'tzName',
+            'tzOffsetMinutes', 'appVersion', 'updatedAt'])
+          && d.token is string && d.token.size() > 0 && d.token.size() <= 4096
+          && d.platform in ['android', 'web']
+          && d.locale in ['en', 'vi']
+          && d.tzName is string && d.tzName.size() > 0 && d.tzName.size() <= 64
+          && d.tzOffsetMinutes is int
+          && d.tzOffsetMinutes >= -720 && d.tzOffsetMinutes <= 840
+          && d.appVersion is string && d.appVersion.size() > 0 && d.appVersion.size() <= 40
+          && d.updatedAt == request.time;
+      }
+
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && deviceId.size() <= 64 && validDevice();
     }
 
     match /groups/{g}/activity/{a} {

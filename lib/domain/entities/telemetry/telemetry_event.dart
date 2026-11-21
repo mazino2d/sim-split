@@ -84,6 +84,12 @@ enum TelemetryEvent {
   tapSaveMyName,
   tapClaimMe,
   tapNotNow,
+  tapTurnOnNotifications,
+  tapNotificationsNotNow,
+  tapOpenNotificationSettings,
+  tapNotificationCategory,
+  tapMenuMuteGroup,
+  tapMenuUnmuteGroup,
 
   // ── Forms ───────────────────────────────────────────────────────────────
   formGroupSubmitted,
@@ -130,7 +136,17 @@ enum TelemetryEvent {
   opResetInviteLink,
   opStartSync,
   opStopSync,
-  opSetErrorReports;
+  opSetErrorReports,
+
+  // R-9: the result is the outcome — `granted`, `denied` or `not_now`.
+  opNotificationPermission,
+  // R-9: the result is `<category>_on` or `<category>_off`.
+  opSetNotificationPref,
+  opMuteGroup,
+  opUnmuteGroup,
+  opRegisterDevice,
+  // R-9: a tapped notification; the result is `<category>__<messageId>`.
+  opNotificationOpened;
 
   /// The snake_case wire name, e.g. `op_create_group`.
   String get wireName => name.replaceAllMapped(

@@ -8,7 +8,8 @@ the main risks are:
 - the rules in [`firebase/firestore.rules`](firebase/firestore.rules) — anyone
   reading or changing a group they are not a member of, or a member doing
   something the rules should forbid (changing who is in a group other than
-  leaving it, editing or deleting activity history);
+  leaving it, editing or deleting activity history, reading or changing another
+  account's push devices or notification choices);
 - invite links — joining a group without a valid invite;
 - the app itself — data left on the device after sign-out, or leaked through
   logs;

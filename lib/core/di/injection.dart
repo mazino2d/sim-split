@@ -2,17 +2,22 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, debugPrint, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/services.dart' show MethodChannel;
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:simsplit/core/constants/app_links.dart';
 import 'package:simsplit/core/constants/auth_constants.dart';
 import 'package:simsplit/core/constants/invite_constants.dart';
+import 'package:simsplit/core/constants/notifications.dart';
 import 'package:simsplit/core/constants/telemetry.dart';
 
 import 'package:simsplit/data/database/app_database.dart';
@@ -27,6 +32,8 @@ import 'package:simsplit/data/mappers/expense_mapper.dart';
 import 'package:simsplit/data/mappers/group_mapper.dart';
 import 'package:simsplit/data/mappers/member_mapper.dart';
 import 'package:simsplit/data/mappers/settlement_mapper.dart';
+import 'package:simsplit/data/notifications/firebase_notification_repository.dart';
+import 'package:simsplit/data/notifications/firestore_notification_prefs_repository.dart';
 import 'package:simsplit/data/repositories/drift_activity_repository.dart';
 import 'package:simsplit/data/repositories/drift_expense_repository.dart';
 import 'package:simsplit/data/repositories/drift_local_data_repository.dart';
@@ -52,6 +59,8 @@ import 'package:simsplit/domain/repositories/local_data_repository.dart';
 import 'package:simsplit/domain/repositories/group_repository.dart';
 import 'package:simsplit/domain/repositories/invite_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
+import 'package:simsplit/domain/repositories/notification_prefs_repository.dart';
+import 'package:simsplit/domain/repositories/notification_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/domain/repositories/sync_repository.dart';
 import 'package:simsplit/domain/repositories/telemetry_repository.dart';
@@ -82,6 +91,9 @@ import 'package:simsplit/domain/use_cases/members/add_member.dart';
 import 'package:simsplit/domain/use_cases/members/list_members.dart';
 import 'package:simsplit/domain/use_cases/members/remove_member.dart';
 import 'package:simsplit/domain/use_cases/members/update_member.dart';
+import 'package:simsplit/domain/use_cases/notifications/device_registration.dart';
+import 'package:simsplit/domain/use_cases/notifications/notification_permission.dart';
+import 'package:simsplit/domain/use_cases/notifications/notification_prefs.dart';
 import 'package:simsplit/domain/use_cases/settlements/calculate_debts.dart';
 import 'package:simsplit/domain/use_cases/settlements/delete_settlement.dart';
 import 'package:simsplit/domain/use_cases/settlements/list_settlements.dart';
@@ -374,6 +386,7 @@ SignOut signOut(Ref ref) => SignOut(
       authRepository: ref.watch(authRepositoryProvider),
       localDataRepository: ref.watch(localDataRepositoryProvider),
       syncRepository: ref.watch(syncRepositoryProvider),
+      notificationRepository: ref.watch(notificationRepositoryProvider),
     );
 
 @riverpod
@@ -382,6 +395,7 @@ DeleteAccount deleteAccount(Ref ref) => DeleteAccount(
       localDataRepository: ref.watch(localDataRepositoryProvider),
       syncRepository: ref.watch(syncRepositoryProvider),
       userProfileRepository: ref.watch(userProfileRepositoryProvider),
+      notificationRepository: ref.watch(notificationRepositoryProvider),
     );
 
 @riverpod
@@ -422,6 +436,93 @@ WatchActivity watchActivity(Ref ref) =>
 @riverpod
 WatchUnsyncedRecordIds watchUnsyncedRecordIds(Ref ref) =>
     WatchUnsyncedRecordIds(syncRepository: ref.watch(syncRepositoryProvider));
+
+// ── Notifications (R-9) ────────────────────────────────────────────────────
+
+/// Where push is offered: Android, and the web app when the build has a Web
+/// Push key. iOS waits for R-3 P8.
+String? _pushPlatform() {
+  if (kIsWeb) return fcmVapidKey.isEmpty ? null : 'web';
+  return defaultTargetPlatform == TargetPlatform.android ? 'android' : null;
+}
+
+/// Only read when [authAvailable] is true.
+@Riverpod(keepAlive: true)
+NotificationRepository notificationRepository(Ref ref) {
+  const channel = MethodChannel(notificationChannelsMethodChannel);
+  return FirebaseNotificationRepository(
+    messaging: () => FirebaseMessaging.instance,
+    firestore: ref.watch(firestoreProvider),
+    currentUid: () => FirebaseAuth.instance.currentUser?.uid,
+    platform: _pushPlatform(),
+    vapidKey: kIsWeb ? fcmVapidKey : null,
+    openedMessages: () => FirebaseMessaging.onMessageOpenedApp,
+    appVersion: () async {
+      final info = await PackageInfo.fromPlatform();
+      return '${info.version}+${info.buildNumber}';
+    },
+    timeZoneName: () async =>
+        (await FlutterTimezone.getLocalTimezone()).identifier,
+    createChannels: (channels) =>
+        channel.invokeMethod<void>('createChannels', channels),
+    newId: const Uuid().v4,
+    log: (message) => debugPrint('[push] $message'),
+  );
+}
+
+/// Only read when [authAvailable] is true.
+@Riverpod(keepAlive: true)
+NotificationPrefsRepository notificationPrefsRepository(Ref ref) =>
+    FirestoreNotificationPrefsRepository(
+      firestore: ref.watch(firestoreProvider),
+      currentUid: () => FirebaseAuth.instance.currentUser?.uid,
+    );
+
+@riverpod
+GetNotificationSetup getNotificationSetup(Ref ref) =>
+    GetNotificationSetup(repository: ref.watch(notificationRepositoryProvider));
+
+@riverpod
+RequestNotificationPermission requestNotificationPermission(Ref ref) =>
+    RequestNotificationPermission(
+        repository: ref.watch(notificationRepositoryProvider));
+
+@riverpod
+DismissNotificationPrompt dismissNotificationPrompt(Ref ref) =>
+    DismissNotificationPrompt(
+        repository: ref.watch(notificationRepositoryProvider));
+
+@riverpod
+RegisterDevice registerDevice(Ref ref) =>
+    RegisterDevice(repository: ref.watch(notificationRepositoryProvider));
+
+@riverpod
+WatchTokenRefreshes watchTokenRefreshes(Ref ref) =>
+    WatchTokenRefreshes(repository: ref.watch(notificationRepositoryProvider));
+
+@riverpod
+WatchNotificationOpens watchNotificationOpens(Ref ref) =>
+    WatchNotificationOpens(
+        repository: ref.watch(notificationRepositoryProvider));
+
+@riverpod
+SetUpNotificationChannels setUpNotificationChannels(Ref ref) =>
+    SetUpNotificationChannels(
+        repository: ref.watch(notificationRepositoryProvider));
+
+@riverpod
+WatchNotificationPrefs watchNotificationPrefs(Ref ref) =>
+    WatchNotificationPrefs(
+        repository: ref.watch(notificationPrefsRepositoryProvider));
+
+@riverpod
+SetNotificationCategory setNotificationCategory(Ref ref) =>
+    SetNotificationCategory(
+        repository: ref.watch(notificationPrefsRepositoryProvider));
+
+@riverpod
+SetGroupMuted setGroupMuted(Ref ref) =>
+    SetGroupMuted(repository: ref.watch(notificationPrefsRepositoryProvider));
 
 // ── Telemetry (R-4) ────────────────────────────────────────────────────────
 

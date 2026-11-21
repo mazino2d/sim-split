@@ -5,7 +5,9 @@ it edits firebase.json in place on the runner.
 
 The policy allows what SimSplit loads: its own files (Flutter, the Drift worker
 and sqlite3.wasm), Firebase and Google sign-in, reCAPTCHA Enterprise for App
-Check, Google Fonts, and the environment's telemetry endpoint. Inline scripts
+Check, Google Fonts, the environment's telemetry endpoint, and Firebase Cloud
+Messaging for web push (R-9: the service worker loads the SDK from gstatic and
+registers through fcmregistrations and firebaseinstallations). Inline scripts
 in index.html are allowed by hash, so no 'unsafe-inline' is needed for them.
 
   scripts/hosting_csp.py --telemetry-url URL --project ID [--report-only]
@@ -45,6 +47,10 @@ def policy(telemetry_origin: str | None, project: str, hashes: list[str]) -> str
         "connect-src": [
             "'self'",
             "https://*.googleapis.com",
+            # R-9 web push. Covered by the wildcard above, named so that
+            # narrowing it later keeps push working.
+            "https://fcmregistrations.googleapis.com",
+            "https://firebaseinstallations.googleapis.com",
             "https://www.google.com",
             "https://www.gstatic.com",
             "https://fonts.gstatic.com",

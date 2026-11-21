@@ -103,6 +103,20 @@ void main() {
     ]);
   });
 
+  test('trackOp can name a success from the use case result (R-9)', () async {
+    final track = TrackEvent(telemetryRepository: recorder);
+    await trackOp(track, TelemetryEvent.opNotificationPermission,
+        () async => right<Failure, String>('granted'),
+        successResult: (v) => v);
+    await trackOp(track, TelemetryEvent.opNotificationPermission,
+        () async => left<Failure, String>(const GroupFailure.nameTooShort()),
+        successResult: (v) => v);
+    expect(recorder.tracked, [
+      (BreadcrumbKind.op, 'op_notification_permission', 'granted'),
+      (BreadcrumbKind.op, 'op_notification_permission', 'group_name_too_short'),
+    ]);
+  });
+
   testWidgets('a tracked tap records its event, then runs the callback',
       (tester) async {
     var pressed = 0;

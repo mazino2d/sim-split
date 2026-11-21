@@ -83,6 +83,14 @@ and a network for first use; after that, offline use is a strong default (below)
   by the maintainer and kept indefinitely. Deleting the account deletes the user's cloud
   data and their personal details (name, email) in the warehouse; anonymised facts keyed
   by the uid stay.
+- Notifications only when asked for ([R-9](specs/R-9-notifications-crm.md)): the app asks
+  for the permission once, inline, when the user first opens a group with another
+  member, never on launch. Group activity is on once allowed; settle reminders and
+  updates stay off until turned on in Settings → Notifications, and each group can be
+  muted. Each device stores its push token, language and time zone with the account;
+  push goes through Firebase Cloud Messaging (Google). Traits computed from usage data
+  choose who gets a notice, only among users who turned that kind on. Quiet hours and a
+  weekly cap apply to every message.
 
 These replaced "No account or sign-up" and "Data stays on the device" on 2026-10-03
 (see R-3).

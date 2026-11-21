@@ -33,6 +33,7 @@ void main() {
         '/sign-in',
         '/starting',
         '/settings',
+        '/settings/notifications',
         '/groups/form',
         '/groups/g1',
         '/groups/g1/edit',
@@ -107,6 +108,13 @@ void main() {
       expect(authRedirect(const AsyncData(null), Uri.parse(signIn!)), isNull);
       expect(
           authRedirect(const AsyncData(user), Uri.parse(signIn)), '/join/t1');
+    });
+
+    test('keeps a notification link through sign-in (R-9 AC8)', () {
+      const link = '/groups/0b6f1c2e-4a5d-4e8f-9a1b-2c3d4e5f6a7b';
+      final starting = authRedirect(const AsyncLoading(), Uri.parse(link));
+      expect(starting, '/starting?from=${Uri.encodeComponent(link)}');
+      expect(authRedirect(const AsyncData(user), Uri.parse(starting!)), link);
     });
 
     test('join links open under the group list', () {

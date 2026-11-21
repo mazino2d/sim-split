@@ -12,6 +12,8 @@ import 'package:simsplit/domain/repositories/group_repository.dart';
 import 'package:simsplit/domain/repositories/invite_repository.dart';
 import 'package:simsplit/domain/repositories/local_data_repository.dart';
 import 'package:simsplit/domain/repositories/member_repository.dart';
+import 'package:simsplit/domain/repositories/notification_prefs_repository.dart';
+import 'package:simsplit/domain/repositories/notification_repository.dart';
 import 'package:simsplit/domain/repositories/settlement_repository.dart';
 import 'package:simsplit/domain/repositories/sync_repository.dart';
 import 'package:simsplit/domain/repositories/user_profile_repository.dart';
@@ -41,6 +43,12 @@ class MockSyncRepository extends Mock implements SyncRepository {}
 class MockUserProfileRepository extends Mock implements UserProfileRepository {}
 
 class MockInviteRepository extends Mock implements InviteRepository {}
+
+class MockNotificationRepository extends Mock
+    implements NotificationRepository {}
+
+class MockNotificationPrefsRepository extends Mock
+    implements NotificationPrefsRepository {}
 
 final testDate = DateTime(2024);
 

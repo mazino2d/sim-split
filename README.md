@@ -31,7 +31,7 @@ follows once the Apple Developer account is active.
 | Framework | Flutter 3.47.x (Android, iOS, web) |
 | State management | Riverpod |
 | Local database | Drift / SQLite (WASM on web) |
-| Backend | Firebase Auth + Cloud Firestore (`simsplit-as-se1-prd`, and `simsplit-as-se1-dev` for dev builds; asia-southeast1); Hosting serves the web app |
+| Backend | Firebase Auth + Cloud Firestore (`simsplit-as-se1-prd`, and `simsplit-as-se1-dev` for dev builds; asia-southeast1); Hosting serves the web app; Cloud Messaging delivers push |
 | Architecture | Clean Architecture |
 | CI/CD | GitHub Actions + Fastlane |
 
@@ -201,7 +201,8 @@ app permissions listed in
 **Firebase deploys** need no secret either: the `dev` and `prd` GitHub Environments
 hold the same variables (`FIREBASE_PROJECT`, `GCP_WORKLOAD_IDENTITY_PROVIDER`,
 `GCP_FIREBASE_DEPLOYER`, `RECAPTCHA_ENTERPRISE_SITE_KEY`, `TELEMETRY_URL`,
-`TELEMETRY_IMAGE_REPOSITORY`, `GCP_TELEMETRY_DEPLOYER`), set by everything-as-code.
+`TELEMETRY_IMAGE_REPOSITORY`, `GCP_TELEMETRY_DEPLOYER`, and `FCM_VAPID_KEY`, the public Web
+Push key; while it is unset the web app skips push), set by everything-as-code.
 
 **iOS (not needed until the Apple account is active):**
 
@@ -277,7 +278,9 @@ approved. **Play Rollout** (`50%`, `100%`, `halt` / `resume`) applies again once
 SimSplit keeps your Google account's name and email in Firebase Authentication and your
 groups in Cloud Firestore; a group is visible only to its members. Signing in agrees to usage tracking
 (linked to the account) and anonymous error reports (can be turned off in Settings → Diagnostics),
-sent only to the app's own endpoint and analysed in the maintainer's BigQuery warehouse. No ads and
+sent only to the app's own endpoint and analysed in the maintainer's BigQuery warehouse. Turning on
+notifications stores each device's push token, language and time zone, and the account's
+notification choices, with the account; push goes through Firebase Cloud Messaging. No ads and
 no third-party analytics. See
 [docs/privacy-policy.html](docs/privacy-policy.html).
 

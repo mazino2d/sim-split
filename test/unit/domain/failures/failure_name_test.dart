@@ -7,6 +7,7 @@ import 'package:simsplit/domain/failures/expense_failure.dart';
 import 'package:simsplit/domain/failures/group_failure.dart';
 import 'package:simsplit/domain/failures/invite_failure.dart';
 import 'package:simsplit/domain/failures/member_failure.dart';
+import 'package:simsplit/domain/failures/notification_failure.dart';
 import 'package:simsplit/domain/failures/settlement_failure.dart';
 import 'package:simsplit/domain/failures/sync_failure.dart';
 
@@ -44,6 +45,7 @@ const _all = <Failure>[
   MemberFailure.nameTooLong(),
   MemberFailure.notInGroup(),
   MemberFailure.hasHistory(),
+  NotificationFailure.tooManyMutedGroups(),
   SettlementFailure.notFound(),
   SettlementFailure.memberHasUnsettledDebts(),
   SettlementFailure.amountExceedsDebt(),

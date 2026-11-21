@@ -227,6 +227,16 @@ class _AccountSection extends ConsumerWidget {
                   : () => _editMyName(
                       context, ref, myName ?? user.displayName ?? '')),
         ),
+        // R-9: the switches per kind of notification.
+        ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
+          leading: const Icon(Icons.notifications_none_outlined),
+          title: Text(l10n.notifications),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: context.tracked(TelemetryEvent.tapOpenNotificationSettings,
+              () => context.push(AppRoutes.notificationSettings)),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
           child: OutlinedButton(

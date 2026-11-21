@@ -6,6 +6,7 @@ import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/entities/auth_user.dart';
 import 'package:simsplit/domain/entities/member.dart';
+import 'package:simsplit/domain/entities/notifications/notification_open.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/router/app_routes.dart';
@@ -20,6 +21,7 @@ import 'package:simsplit/presentation/screens/groups/group_list_screen.dart';
 import 'package:simsplit/presentation/screens/groups/join_group_screen.dart';
 import 'package:simsplit/presentation/screens/members/member_form_screen.dart';
 import 'package:simsplit/presentation/screens/settings/diagnostics_screen.dart';
+import 'package:simsplit/presentation/screens/settings/notifications_screen.dart';
 import 'package:simsplit/presentation/screens/settings/settings_screen.dart';
 import 'package:simsplit/presentation/screens/settlements/settlement_form_screen.dart';
 import 'package:simsplit/presentation/utils/tracking.dart';
@@ -30,13 +32,15 @@ part 'app_router.g.dart';
 /// is required wherever accounts are available (R-3 AC1): while the stored
 /// session loads, the app waits on a blank screen under the native splash.
 /// An invite link opened before sign-in is kept through the gate as `from`,
-/// so the friend lands on its join screen right after (AC12).
+/// so the friend lands on its join screen right after (AC12). So is a
+/// notification's group or expense link, which the web app opens on a tap
+/// (R-9 AC8).
 String? authRedirect(AsyncValue<AuthUser?> auth, Uri uri) {
   final location = uri.path;
   final onGate = location == AppRoutes.signIn || location == AppRoutes.starting;
-  final from = onGate
-      ? uri.queryParameters['from']
-      : (location.startsWith('/join/') ? location : null);
+  final keep =
+      location.startsWith('/join/') || parseNotificationRoute(location) != null;
+  final from = onGate ? uri.queryParameters['from'] : (keep ? location : null);
   String gate(String path) => from == null
       ? path
       : Uri(path: path, queryParameters: {'from': from}).toString();
@@ -130,6 +134,10 @@ GoRouter _buildRouter({
                 GoRoute(
                   path: 'diagnostics',
                   builder: (context, state) => const DiagnosticsScreen(),
+                ),
+                GoRoute(
+                  path: 'notifications',
+                  builder: (context, state) => const NotificationsScreen(),
                 ),
               ],
             ),

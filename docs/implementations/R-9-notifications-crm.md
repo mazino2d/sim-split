@@ -1,6 +1,6 @@
 # R-9 Notifications and CRM as code — implementation plan
 
-Status: in progress (P1)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
+Status: in progress (P2)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
 
 How R-9 gets built. One new service, `services/crm`, sends every message. Its config
 lives in `crm/` in this repo. The traits that audiences select on come from a dbt model
@@ -91,7 +91,7 @@ On the app side:
 - `firebase_messaging` handles push.
 - `flutter_timezone` provides the IANA time zone name.
 - About 20 lines of Kotlin create the Android channels, instead of using `flutter_local_notifications`.
-- A small Dart script generates the category enum from `crm/categories.yaml`. The category names stay in the ARB files.
+- The app's `NotificationCategory` enum and the ARB names and descriptions mirror `crm/categories.yaml`; a unit test parses the YAML and fails when the ids, defaults or EN/VI copy differ (simpler than a generator for three entries).
 
 A push that arrives while the app is in the foreground is not shown, because the group
 already updates live.
@@ -105,8 +105,15 @@ already updates live.
 | `announcements/{id}` | banner copy EN/VI, `audienceUids` or `all`, `endsAt` | signed-in read (own audience), server write |
 | `crm_*` | server state | no client access |
 
-A deleted account loses `users/{uid}`, including its devices. Signing out deletes the
-device document before Auth signs out (AC23).
+Deleting `users/{uid}` does not delete its `devices` subcollection, so account deletion
+deletes every device document before the profile, and signing out deletes this install's
+device document (and its FCM token) before Auth signs out; a failure there is logged and
+doesn't block the sign-out (AC23). `deviceId` is a random ID made once per install, not
+the R-4 error report ID. `notificationPrefs` fields are optional: a missing one is the
+category's default. The `route` data of a message is `/groups/<groupId>`,
+`/groups/<groupId>/expenses/<expenseId>` or `/groups/<groupId>/settle` (settlements link
+to the group, which has no settlement screen); the app ignores anything else. On the web,
+the sender sets `webpush.fcm_options.link` to the web app's origin plus that route.
 
 ## Phases
 
@@ -121,7 +128,18 @@ device document before Auth signs out (AC23).
 | P7 Email | sim-split, everything-as-code | Account and policy emails only, once the sender is chosen (spec open question) | — | 2 days |
 
 Done so far: P1 infrastructure in everything-as-code #259 (dev and prd), P1 code in
-this repo (`crm/`, `services/crm`, the CRM config check and `crm_deploy.yml`).
+this repo (`crm/`, `services/crm`, the CRM config check and `crm_deploy.yml`). P2 in this
+repo: `firebase_messaging` and `flutter_timezone`; device registration
+(`lib/data/notifications/`) on sign-in, app start, language change and token refresh,
+only after the user tapped Turn on and the system allows it; the one-time inline card in
+a group with another account; Settings → Notifications; Mute in the group menu with a
+muted mark; Android channels from `MainActivity.kt`; tap → deep link (`getInitialMessage`,
+`onMessageOpenedApp`, and on the web the link kept through sign-in); usage events
+`op_notification_permission`, `op_set_notification_pref`, `op_mute_group`,
+`op_unmute_group`, `op_register_device`, `op_notification_opened`; rules and emulator
+tests for `devices` and `notificationPrefs`; `web/firebase-messaging-sw.js` (config from
+Hosting's `/__/firebase/init.js`) and `FCM_VAPID_KEY` in `firebase_deploy.yml`; privacy
+policy, Data safety and strategy updated (AC25).
 
 P2 must ship to production before any production send is configured. P3 needs P1 and
 P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.

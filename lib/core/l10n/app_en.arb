@@ -579,5 +579,22 @@
   "platformLabel": "Platform",
   "errorReportsWaiting": "Reports waiting to be sent",
   "signInAgreementPrefix": "By continuing, you agree to the ",
-  "privacyPolicyLink": "Privacy Policy"
+  "privacyPolicyLink": "Privacy Policy",
+  "notifications": "Notifications",
+  "notificationCategoryGroupActivity": "Group activity",
+  "notificationCategoryGroupActivityDescription": "When friends add, edit or settle expenses in your groups",
+  "notificationCategorySettleReminder": "Settle reminders",
+  "notificationCategorySettleReminderDescription": "A weekly reminder when you still owe money for more than two weeks",
+  "notificationCategoryUpdates": "Updates",
+  "notificationCategoryUpdatesDescription": "Rare news about SimSplit, such as a new version that fixes a bug you hit",
+  "notificationPrompt": "Get a notification when friends add or settle expenses here?",
+  "notificationTurnOn": "Turn on",
+  "notificationsOffOnDevice": "Notifications are off on this device.",
+  "notificationsBlockedAndroid": "Notifications are blocked. To get them, allow notifications for SimSplit in your phone's Settings → Apps.",
+  "notificationsBlockedWeb": "Notifications are blocked. To get them, allow notifications for this site in your browser's site settings.",
+  "notificationsUnsupported": "This device can't get notifications yet. Your choices apply to your other devices.",
+  "muteNotifications": "Mute notifications",
+  "unmuteNotifications": "Unmute notifications",
+  "groupMuted": "Notifications muted",
+  "errorTooManyMutedGroups": "You can mute up to 200 groups."
 }

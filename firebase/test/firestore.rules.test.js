@@ -534,3 +534,103 @@ describe('hardening (R-8 P2)', () => {
     await assertFails(entry('bad5', { after: { note: 'x'.repeat(2001) } }));
   });
 });
+
+describe('notification preferences (R-9 AC3, AC4)', () => {
+  test('an account sets its own choices, with the right keys and types', async () => {
+    const fs = db('alice');
+    await assertSucceeds(updateDoc(doc(fs, 'users/alice'), { 'notificationPrefs.settleReminder': true }));
+    await assertSucceeds(updateDoc(doc(fs, 'users/alice'), { 'notificationPrefs.groupActivity': false, 'notificationPrefs.updates': true }));
+    await assertSucceeds(updateDoc(doc(fs, 'users/alice'), { 'notificationPrefs.mutedGroups': arrayUnion('g1') }));
+    await assertSucceeds(updateDoc(doc(fs, 'users/alice'), { 'notificationPrefs.mutedGroups': arrayRemove('g1') }));
+    // Together with the name, as long as each is valid.
+    await assertSucceeds(updateDoc(doc(fs, 'users/alice'), { memberName: 'An', 'notificationPrefs.updates': false }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { memberName: '', 'notificationPrefs.updates': false }));
+
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { 'notificationPrefs.updates': 'yes' }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { 'notificationPrefs.marketing': true }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { 'notificationPrefs.mutedGroups': 'g1' }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { notificationPrefs: true }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { 'notificationPrefs.updates': true, email: 'x@example.com' }));
+  });
+
+  test('an account mutes at most 200 groups', async () => {
+    const fs = db('alice');
+    const ids = (n) => Array.from({ length: n }, (_, i) => `g${i}`);
+    await assertSucceeds(updateDoc(doc(fs, 'users/alice'), { 'notificationPrefs.mutedGroups': ids(200) }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { 'notificationPrefs.mutedGroups': arrayUnion('one-more') }));
+  });
+
+  test("nobody changes someone else's choices", async () => {
+    await assertFails(updateDoc(doc(db('bob'), 'users/alice'), { 'notificationPrefs.groupActivity': false }));
+  });
+
+  test('setting the name still works without any choices', async () => {
+    await assertSucceeds(updateDoc(doc(db('alice'), 'users/alice'), { memberName: 'An' }));
+  });
+});
+
+describe('push devices (R-9 AC23)', () => {
+  const device = (extra = {}) => ({
+    token: 'fcm-token',
+    platform: 'android',
+    locale: 'vi',
+    tzName: 'Asia/Ho_Chi_Minh',
+    tzOffsetMinutes: 420,
+    appVersion: '2026.11.21+8',
+    updatedAt: serverTimestamp(),
+    ...extra,
+  });
+
+  test('only the account registers, reads and removes its devices', async () => {
+    const fs = db('alice');
+    await assertSucceeds(setDoc(doc(fs, 'users/alice/devices/d1'), device()));
+    await assertSucceeds(setDoc(doc(fs, 'users/alice/devices/d1'), device({ locale: 'en', token: 'new' })));
+    await assertSucceeds(getDoc(doc(fs, 'users/alice/devices/d1')));
+    await assertSucceeds(getDocs(collection(fs, 'users/alice/devices')));
+
+    const bob = db('bob');
+    await assertFails(getDoc(doc(bob, 'users/alice/devices/d1')));
+    await assertFails(getDocs(collection(bob, 'users/alice/devices')));
+    await assertFails(setDoc(doc(bob, 'users/alice/devices/d2'), device()));
+    await assertFails(deleteDoc(doc(bob, 'users/alice/devices/d1')));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'users/alice/devices/d1')));
+
+    await assertSucceeds(deleteDoc(doc(fs, 'users/alice/devices/d1')));
+  });
+
+  test('a device has exactly the fields the sender reads, bounded', async () => {
+    const fs = db('alice');
+    const put = (data) => setDoc(doc(fs, 'users/alice/devices/d1'), data);
+    await assertSucceeds(put(device({ platform: 'web', locale: 'en', tzName: 'Etc/UTC', tzOffsetMinutes: 0 })));
+    await assertSucceeds(put(device({ tzOffsetMinutes: -720 })));
+    await assertSucceeds(put(device({ tzOffsetMinutes: 840 })));
+    await assertSucceeds(put(device({ token: 'x'.repeat(4096), tzName: 'x'.repeat(64), appVersion: 'x'.repeat(40) })));
+
+    await assertFails(put(device({ extra: true })));
+    const { token, ...withoutToken } = device();
+    await assertFails(put(withoutToken));
+    await assertFails(put(device({ token: '' })));
+    await assertFails(put(device({ token: 'x'.repeat(4097) })));
+    await assertFails(put(device({ platform: 'ios' })));
+    await assertFails(put(device({ locale: 'fr' })));
+    await assertFails(put(device({ tzName: '' })));
+    await assertFails(put(device({ tzName: 'x'.repeat(65) })));
+    await assertFails(put(device({ tzOffsetMinutes: 7.5 })));
+    await assertFails(put(device({ tzOffsetMinutes: '420' })));
+    await assertFails(put(device({ tzOffsetMinutes: -721 })));
+    await assertFails(put(device({ tzOffsetMinutes: 841 })));
+    await assertFails(put(device({ appVersion: 'x'.repeat(41) })));
+    await assertFails(put(device({ updatedAt: 1 })));
+    await assertFails(setDoc(doc(fs, `users/alice/devices/${'d'.repeat(65)}`), device()));
+  });
+
+  test('the account deletes its devices before its profile', async () => {
+    const fs = db('alice');
+    await setDoc(doc(fs, 'users/alice/devices/d1'), device());
+    await setDoc(doc(fs, 'users/alice/devices/d2'), device({ platform: 'web' }));
+    const batch = writeBatch(fs);
+    for (const d of (await getDocs(collection(fs, 'users/alice/devices'))).docs) batch.delete(d.ref);
+    await assertSucceeds(batch.commit());
+    await assertSucceeds(deleteDoc(doc(fs, 'users/alice')));
+  });
+});
