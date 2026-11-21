@@ -13,7 +13,7 @@ device registration, a Notifications settings screen, per-group mute and in-app 
 | --- | --- | --- |
 | One sender | `services/crm` (TypeScript on Cloud Run, like `services/telemetry`) handles event triggers, schedules and campaigns. It has its own service account; telemetry keeps its insert-only role from R-8 | Calm limits and the send ledger need one place that sees every message. Mixing this into telemetry would widen the access R-8 narrowed |
 | Config baked into the image | `crm/` is validated and compiled to one JSON file at build time, and that file ships inside the `services/crm` image. Each Cloud Run revision runs exactly one config commit | Rollback means a revert or moving traffic to the previous revision. The service needs no runtime config store, and the config can't drift from git |
-| Event source | Eventarc Firestore triggers (`document.v1.written` on `groups/{g}/expenses/{e}` and `groups/{g}/settlements/{s}`) call the service | Free for Google sources, and needs no Cloud Functions (which this project avoids). The app does not change how it writes |
+| Event source | One Eventarc Firestore trigger (`document.v1.created` on `groups/{g}/activity/{a}`) calls the service. The service reads the entry from Firestore by the event's document name, and the event ID dedupes it | A Firestore event does not say who wrote a document. An activity entry already carries `actorUid`, the action and before/after (deletes too), and R-8's rules validate it. One trigger covers expenses and settlements, the protobuf payload never needs decoding, and the app does not change how it writes. Eventarc is free for Google sources and needs no Cloud Functions |
 | Batching | The first event in a group starts a Cloud Tasks task due when `batch_window` ends; later events in that window go into one pending document (`crm_pending/{groupId}`) | One message per window per recipient (AC7). Cloud Tasks is free under 1 M operations a month |
 | Schedules and campaigns | One Cloud Scheduler job calls `/tick` every 15 minutes. The tick sends whatever the config says is due, using each device's stored time zone | Scheduler's free tier is 3 jobs, so one tick avoids a Terraform resource per campaign, and it gives local-time delivery (AC11, AC14) |
 | Ledger | `crm_ledger/{uid}` records the last non-group send and the quiet-hour queue; `crm_sends/{messageId}/devices/{deviceId}` makes every send idempotent. These collections are server-only (the rules deny clients) | Caps and at-most-once delivery hold across retries and re-applies (AC13, AC19) |
@@ -31,7 +31,7 @@ device registration, a Notifications settings screen, per-group mute and in-app 
 ```
 crm/ (YAML) ──build──► services/crm image (config.json baked in)
                            │
-Firestore write ─Eventarc─►│/events ──► crm_pending + Cloud Tasks ──►│/flush ─┐
+activity entry ─Eventarc─►│/events ──► crm_pending + Cloud Tasks ──►│/flush ─┐
 Cloud Scheduler 15' ──────►│/tick   ──► due schedules & campaigns ──────────┤
                            │              audience → BigQuery user_traits     │
                            ▼                                                  ▼
@@ -59,6 +59,41 @@ The `crm` CLI lives in `services/crm` and has three commands:
 
 The PR check posts `render` and the diff as a comment.
 
+### Libraries
+
+The core is a pipeline of pure functions. Firestore, FCM, BigQuery and Cloud Tasks sit
+behind interfaces, so the unit tests need no cloud:
+
+event or tick → pick trigger / schedule / campaign → candidates → filter (prefs, mutes,
+permission, devices) → calm policy → render per locale → send → ledger and `crm_sends`.
+
+| Need | Library | Why |
+| --- | --- | --- |
+| Firestore, FCM | `firebase-admin` | Already used by telemetry. `messaging().sendEach()` sends to many devices in one call |
+| `crm_sends` rows | `@google-cloud/bigquery-storage` | Same write path as telemetry. The Storage Write API is free, while streaming inserts are billed |
+| Audience queries | `@google-cloud/bigquery` | Parameterised queries with `maximumBytesBilled` |
+| Batch flush | `@google-cloud/tasks` | Delayed tasks |
+| YAML | `yaml` | Errors carry line numbers for the PR check |
+| Config schema | `zod` (v4) | One schema gives the TypeScript types, the validation and a JSON Schema (`z.toJSONSchema`) for editor completion in `crm/` |
+| Templates | `intl-messageformat` | ICU syntax, the same as the app's ARB files, plurals included |
+| Cron in device time | `cron-parser` | Time zone support |
+| CLI, HTTP, tests | `node:util` `parseArgs`, `node:http`, `node:test` | Built in, as in telemetry |
+| PR comment | `gh pr comment --edit-last` | No third-party action (R-8 supply chain) |
+
+Eventarc, Cloud Tasks and Scheduler call the service with OIDC tokens checked by Cloud Run
+IAM, so no auth library. Self-hosting Novu was ruled out: it needs MongoDB and Redis
+running (not zero cost), and the calm limits would still be ours to write.
+
+On the app side:
+
+- `firebase_messaging` handles push.
+- `flutter_timezone` provides the IANA time zone name.
+- About 20 lines of Kotlin create the Android channels, instead of using `flutter_local_notifications`.
+- A small Dart script generates the category enum from `crm/categories.yaml`. The category names stay in the ARB files.
+
+A push that arrives while the app is in the foreground is not shown, because the group
+already updates live.
+
 ### App data (Firestore)
 
 | Path | Fields | Rules |
@@ -77,7 +112,7 @@ device document before Auth signs out (AC23).
 | --- | --- | --- | --- | --- |
 | P1 Foundation | sim-split, everything-as-code | `crm/` schemas and starter files; `services/crm` CLI (`validate`, `render`, `plan`) with tests; PR check and comment; `crm_deploy.yml` (dev on merge, then prd behind `crm-prd`); the service skeleton (`/events`, `/flush`, `/tick` return 204, kill switch). Infra on dev and prd: Cloud Run service (min 0, max 1), service account, Eventarc triggers, Cloud Tasks queue, Scheduler tick, `crm-prd` environment and WIF binding | AC15–AC17, AC18 (dev) | 3 days |
 | P2 Devices and settings | sim-split | `firebase_messaging` on Android and web; device registration and token refresh; permission timing (AC1–AC2); Settings → Notifications; group Mute; Android channels; tap → deep link; usage events; rules and emulator tests for `devices` and prefs. Privacy policy, Data safety and strategy updated in the same release (AC25) | AC1–AC5, AC8, AC23, AC25 | 3 days |
-| P3 Group activity | sim-split | Triggers for expenses and settlements; batching; recipients (members except actor, not muted, not archived); localisation and money formatting shared with the app's rules (golden tests against `MoneyFormatter` output); FCM send, removal of invalid tokens; quiet hours and ledger; `crm_sends` rows | AC6–AC10, AC14, AC19 | 3 days |
+| P3 Group activity | sim-split | Trigger on activity entries for expenses and settlements (create, edit, delete); batching; recipients (members except actor, not muted, not archived); localisation and money formatting shared with the app's rules (golden tests against `MoneyFormatter` output); FCM send, removal of invalid tokens; quiet hours and ledger; `crm_sends` rows | AC6–AC10, AC14, AC19 | 3 days |
 | P4 Traits and audiences | data-platform, sim-split, everything-as-code | dbt `user_traits` (platform, language, app version, signup days, last active days, sessions 30 d, open groups, multi-member groups, owes / owed, oldest unsettled days, prefs); dataset `simsplit_crm` and its grant; `traits.yaml`; audience compiler with tests; freshness guard and alert | AC20–AC22 | 2.5 days |
 | P5 Campaigns | sim-split | Campaigns over `/tick`; in-app banner (home screen, one at a time, dismiss syncs per account); push campaigns under the weekly cap; prd counts on the approval page; `fct_crm_sends` + Evidence page | AC12, AC13, AC18, AC24 | 2.5 days |
 | P6 Settle reminders | sim-split | `settle-reminder` schedule (Sunday 19:00 device time), audience `owes-14d`, total and count across groups, tap → settle screen | AC11 | 1 day |
@@ -102,7 +137,7 @@ P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.
 | Risk | Mitigation |
 | --- | --- |
 | A wrong rule or template spams real users | Dev first; prd behind approval with counts; caps enforced in code, not config; kill switch; `rollout` % on triggers |
-| Eventarc delivers twice or out of order | Idempotent pending documents keyed by event ID; a batch reads current Firestore state, not event payloads |
+| Eventarc delivers twice or out of order | Pending items keyed by the activity entry ID, which the event names; a batch reads the entries from Firestore, not event payloads |
 | Notifications hurt Calm (users mute everything) | Group activity batched, others opt-in, quiet hours; success check tracks mute rate; adjust defaults before widening |
 | Cross-project BigQuery access leaks more than traits | Grant on the `simsplit_crm` dataset only; the traits model has no names or emails; R-8 security review in PR mode for P1 and P4 |
 | CSP enforcement (R-8 follow-up) blocks web push | P2 adds FCM origins to the report-only CSP and watches reports before R-8 enforces it |
