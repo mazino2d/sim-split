@@ -43,6 +43,23 @@ extension Tracking on BuildContext {
     };
   }
 
+  /// Like [tracked], recording [result] with the event: a fixed value or a
+  /// config id (an announcement's campaign), never user data.
+  VoidCallback? trackedWith(
+      TelemetryEvent event, String result, VoidCallback? callback) {
+    if (callback == null) return null;
+    final container = ProviderScope.containerOf(this, listen: false);
+    return () {
+      try {
+        container.read(trackEventProvider)(event.kind, event.wireName,
+            result: result);
+      } on Object {
+        // Telemetry never gets in the user's way.
+      }
+      callback();
+    };
+  }
+
   /// [tracked] for parameters that cannot be null.
   VoidCallback trackedCall(TelemetryEvent event, VoidCallback callback) =>
       tracked(event, callback)!;

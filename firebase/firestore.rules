@@ -236,17 +236,20 @@ service cloud.firestore {
     // to by signing in. Only the account itself can read, create or delete
     // it, and the agreement can never be changed afterwards. R-7 #112: the
     // account may set the name it goes by in groups; R-9: and its
-    // notification choices. Nothing else.
+    // notification choices and the in-app banners it dismissed. Nothing else.
     match /users/{uid} {
       allow get, delete: if signedIn() && request.auth.uid == uid;
       allow update: if signedIn() && request.auth.uid == uid
-        && changedKeys().hasOnly(['memberName', 'notificationPrefs'])
+        && changedKeys().hasOnly(['memberName', 'notificationPrefs', 'dismissedAnnouncements'])
         && (!('memberName' in changedKeys())
           || (request.resource.data.memberName is string
             && request.resource.data.memberName.size() > 0
             && request.resource.data.memberName.size() <= 80))
         && (!('notificationPrefs' in changedKeys())
-          || validNotificationPrefs(request.resource.data.notificationPrefs));
+          || validNotificationPrefs(request.resource.data.notificationPrefs))
+        && (!('dismissedAnnouncements' in changedKeys())
+          || (request.resource.data.dismissedAnnouncements is list
+            && request.resource.data.dismissedAnnouncements.size() <= 100));
       allow create: if signedIn() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['displayName', 'email', 'createdAt', 'consent'])
         && request.resource.data.createdAt == request.time
@@ -281,6 +284,14 @@ service cloud.firestore {
       allow read, delete: if signedIn() && request.auth.uid == uid;
       allow create, update: if signedIn() && request.auth.uid == uid
         && deviceId.size() <= 64 && validDevice();
+    }
+
+    // R-9 AC12: in-app banners, written only by services/crm (Admin SDK).
+    // A signed-in account reads one addressed to everyone or to itself;
+    // the app queries exactly those two cases. Clients never write.
+    match /announcements/{id} {
+      allow read: if signedIn()
+        && (resource.data.all == true || request.auth.uid in resource.data.audienceUids);
     }
 
     match /groups/{g}/activity/{a} {

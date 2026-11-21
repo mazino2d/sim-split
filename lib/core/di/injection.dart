@@ -33,6 +33,7 @@ import 'package:simsplit/data/mappers/group_mapper.dart';
 import 'package:simsplit/data/mappers/member_mapper.dart';
 import 'package:simsplit/data/mappers/settlement_mapper.dart';
 import 'package:simsplit/data/notifications/firebase_notification_repository.dart';
+import 'package:simsplit/data/notifications/firestore_announcement_repository.dart';
 import 'package:simsplit/data/notifications/firestore_notification_prefs_repository.dart';
 import 'package:simsplit/data/repositories/drift_activity_repository.dart';
 import 'package:simsplit/data/repositories/drift_expense_repository.dart';
@@ -53,6 +54,7 @@ import 'package:simsplit/data/sync/sync_recorder.dart';
 import 'package:simsplit/data/telemetry/device_os.dart';
 import 'package:simsplit/data/telemetry/telemetry_sender.dart';
 import 'package:simsplit/domain/repositories/activity_repository.dart';
+import 'package:simsplit/domain/repositories/announcement_repository.dart';
 import 'package:simsplit/domain/repositories/auth_repository.dart';
 import 'package:simsplit/domain/repositories/expense_repository.dart';
 import 'package:simsplit/domain/repositories/local_data_repository.dart';
@@ -66,6 +68,7 @@ import 'package:simsplit/domain/repositories/sync_repository.dart';
 import 'package:simsplit/domain/repositories/telemetry_repository.dart';
 import 'package:simsplit/domain/repositories/user_profile_repository.dart';
 import 'package:simsplit/domain/use_cases/activity/watch_activity.dart';
+import 'package:simsplit/domain/use_cases/announcements/announcements.dart';
 import 'package:simsplit/domain/use_cases/auth/delete_account.dart';
 import 'package:simsplit/domain/use_cases/auth/sign_in_with_google.dart';
 import 'package:simsplit/domain/use_cases/auth/sign_out.dart';
@@ -523,6 +526,22 @@ SetNotificationCategory setNotificationCategory(Ref ref) =>
 @riverpod
 SetGroupMuted setGroupMuted(Ref ref) =>
     SetGroupMuted(repository: ref.watch(notificationPrefsRepositoryProvider));
+
+/// Only read when [authAvailable] is true.
+@Riverpod(keepAlive: true)
+AnnouncementRepository announcementRepository(Ref ref) =>
+    FirestoreAnnouncementRepository(
+      firestore: ref.watch(firestoreProvider),
+      currentUid: () => FirebaseAuth.instance.currentUser?.uid,
+    );
+
+@riverpod
+WatchAnnouncement watchAnnouncement(Ref ref) =>
+    WatchAnnouncement(repository: ref.watch(announcementRepositoryProvider));
+
+@riverpod
+DismissAnnouncement dismissAnnouncement(Ref ref) =>
+    DismissAnnouncement(repository: ref.watch(announcementRepositoryProvider));
 
 // ── Telemetry (R-4) ────────────────────────────────────────────────────────
 

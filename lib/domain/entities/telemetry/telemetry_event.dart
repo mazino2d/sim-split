@@ -90,6 +90,9 @@ enum TelemetryEvent {
   tapNotificationCategory,
   tapMenuMuteGroup,
   tapMenuUnmuteGroup,
+  // R-9 AC12: the result is the announcement's campaign, `campaign_<id>`.
+  tapAnnouncement,
+  tapDismissAnnouncement,
 
   // ── Forms ───────────────────────────────────────────────────────────────
   formGroupSubmitted,
@@ -145,8 +148,12 @@ enum TelemetryEvent {
   opMuteGroup,
   opUnmuteGroup,
   opRegisterDevice,
-  // R-9: a tapped notification; the result is its category.
-  opNotificationOpened;
+  // R-9: a tapped notification; the result is its source as `<kind>_<id>`
+  // (`campaign_2026_12_01_new_version`), or its category for older senders.
+  opNotificationOpened,
+  // R-9 AC12: a banner shown; the result is `campaign_<id>`.
+  opAnnouncementShown,
+  opDismissAnnouncement;
 
   /// The snake_case wire name, e.g. `op_create_group`.
   String get wireName => name.replaceAllMapped(

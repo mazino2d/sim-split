@@ -446,5 +446,6 @@
   "muteNotifications": "Tắt thông báo nhóm",
   "unmuteNotifications": "Bật lại thông báo nhóm",
   "groupMuted": "Đã tắt thông báo",
-  "errorTooManyMutedGroups": "Bạn chỉ tắt thông báo được tối đa 200 nhóm."
+  "errorTooManyMutedGroups": "Bạn chỉ tắt thông báo được tối đa 200 nhóm.",
+  "dismissAnnouncement": "Ẩn thông báo"
 }

@@ -8,6 +8,7 @@ import 'package:simsplit/domain/entities/group.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/providers/settlement_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
+import 'package:simsplit/presentation/widgets/notifications/announcement_banner.dart';
 import 'package:simsplit/presentation/widgets/common/empty_state.dart';
 import 'package:simsplit/presentation/widgets/common/error_widget.dart';
 import 'package:simsplit/presentation/widgets/common/loading_widget.dart';
@@ -67,6 +68,8 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
               const SizedBox(width: 8),
             ],
           ),
+          // R-9 AC12: at most one notice from the maintainer.
+          const SliverToBoxAdapter(child: AnnouncementBanner()),
           ...groupsAsync.when(
             data: (_) => activeGroups.isEmpty
                 ? [

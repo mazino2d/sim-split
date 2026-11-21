@@ -7,12 +7,14 @@ import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/entities/auth_user.dart';
 import 'package:simsplit/domain/entities/group.dart';
+import 'package:simsplit/domain/entities/notifications/announcement.dart';
 import 'package:simsplit/domain/entities/notifications/notification_category.dart';
 import 'package:simsplit/domain/entities/notifications/notification_open.dart';
 import 'package:simsplit/domain/entities/notifications/notification_prefs.dart';
 import 'package:simsplit/domain/entities/notifications/notification_setup.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/use_cases/announcements/announcements.dart';
 import 'package:simsplit/domain/use_cases/notifications/notification_permission.dart';
 import 'package:simsplit/domain/use_cases/notifications/notification_prefs.dart';
 import 'package:simsplit/domain/use_cases/telemetry/track_event.dart';
@@ -22,6 +24,7 @@ import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/providers/notification_providers.dart';
 import 'package:simsplit/presentation/screens/settings/notifications_screen.dart';
 import 'package:simsplit/presentation/widgets/groups/group_app_bar_actions.dart';
+import 'package:simsplit/presentation/widgets/notifications/announcement_banner.dart';
 import 'package:simsplit/presentation/widgets/notifications/notification_prompt_card.dart';
 
 import '../helpers/mocks.dart';
@@ -35,6 +38,8 @@ class _MockDismiss extends Mock implements DismissNotificationPrompt {}
 class _MockSetCategory extends Mock implements SetNotificationCategory {}
 
 class _MockSetMuted extends Mock implements SetGroupMuted {}
+
+class _MockDismissAnnouncement extends Mock implements DismissAnnouncement {}
 
 NotificationSetup _setup({
   bool supported = true,
@@ -291,16 +296,115 @@ void main() {
     });
   });
 
-  test('a tapped notification is recorded by category, without IDs', () {
-    const open = NotificationOpen(
-      messageId: 'group-activity-0b6f1c2e-4a5d-4e8f-9a1b-2c3d4e5f6a7b-1',
-      category: NotificationCategory.groupActivity,
-      route: null,
+  group('the in-app banner (R-9 AC12)', () {
+    late _MockDismissAnnouncement dismissAnnouncement;
+    final announcement = Announcement(
+      id: '2026-12-01-new-version',
+      copy: const {
+        'en': AnnouncementCopy(title: 'New version', body: 'It fixes sync.'),
+        'vi': AnnouncementCopy(title: 'Bản mới', body: 'Sửa lỗi đồng bộ.'),
+      },
+      endsAt: DateTime(2100),
     );
-    expect(notificationOpenedResult(open), 'group_activity');
+    const result = 'campaign_2026_12_01_new_version';
+
+    setUp(() {
+      dismissAnnouncement = _MockDismissAnnouncement();
+      when(() => dismissAnnouncement(any()))
+          .thenAnswer((_) async => right<Failure, Unit>(unit));
+    });
+
+    Future<void> pumpBanner(WidgetTester tester, Announcement? shown,
+        {Locale locale = const Locale('en')}) async {
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          authAvailableProvider.overrideWithValue(true),
+          currentAnnouncementProvider
+              .overrideWith((ref) => Stream.value(shown)),
+          trackEventProvider.overrideWithValue(track),
+          dismissAnnouncementProvider.overrideWithValue(dismissAnnouncement),
+        ],
+        child: MaterialApp(
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: AnnouncementBanner()),
+        ),
+      ));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows the banner in the app language and records it',
+        (tester) async {
+      await pumpBanner(tester, announcement, locale: const Locale('vi'));
+
+      expect(find.text('Bản mới'), findsOneWidget);
+      expect(find.text('Sửa lỗi đồng bộ.'), findsOneWidget);
+      verify(() => track(
+          BreadcrumbKind.op, TelemetryEvent.opAnnouncementShown.wireName,
+          result: result)).called(1);
+    });
+
+    testWidgets('shows nothing without an announcement', (tester) async {
+      await pumpBanner(tester, null);
+      expect(find.byType(InkWell), findsNothing);
+    });
+
+    testWidgets('a tap is recorded with the campaign', (tester) async {
+      await pumpBanner(tester, announcement);
+      await tester.tap(find.text('New version'));
+      await tester.pumpAndSettle();
+      verify(() => track(
+          BreadcrumbKind.tap, TelemetryEvent.tapAnnouncement.wireName,
+          result: result)).called(1);
+    });
+
+    testWidgets('dismissing hides it and saves it for the account',
+        (tester) async {
+      await pumpBanner(tester, announcement);
+
+      await tester.tap(find.byTooltip('Dismiss'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('New version'), findsNothing);
+      verify(() => dismissAnnouncement('2026-12-01-new-version')).called(1);
+      verify(() => track(
+          BreadcrumbKind.tap, TelemetryEvent.tapDismissAnnouncement.wireName,
+          result: result)).called(1);
+      verifyOp(TelemetryEvent.opDismissAnnouncement, 'success');
+    });
+  });
+
+  test('a tapped notification is recorded by its source, without IDs', () {
+    NotificationOpen open({String? source, String? messageId}) =>
+        NotificationOpen(
+          messageId: messageId,
+          category: NotificationCategory.groupActivity,
+          route: null,
+          source: parseNotificationSource(source),
+        );
+    expect(open(source: 'trigger:group-activity').usageResult,
+        'trigger_group_activity');
+    expect(open(source: 'campaign:2026-12-01-new-version').usageResult,
+        'campaign_2026_12_01_new_version');
+    expect(open(source: 'schedule:settle-reminder').usageResult,
+        'schedule_settle_reminder');
+    // Older senders, or a source in any other shape: the category.
+    for (final source in [
+      null,
+      'campaign:Bad Id',
+      'campaign:x',
+      'group:0b6f1c2e',
+      'trigger:group-activity:extra',
+    ]) {
+      expect(open(source: source).usageResult, 'group_activity',
+          reason: source);
+    }
     expect(
-        notificationOpenedResult(const NotificationOpen(
-            messageId: null, category: null, route: null)),
+        const NotificationOpen(messageId: null, category: null, route: null)
+            .usageResult,
         'unknown');
+    final long = open(source: 'campaign:${'a' * 63}').usageResult;
+    expect(long, matches(RegExp(r'^[a-z][a-z0-9_]{0,63}$')));
   });
 }

@@ -66,6 +66,12 @@ class NotificationNotifier extends _$NotificationNotifier {
         successResult: (_) => '${category.id}_${on ? 'on' : 'off'}');
   }
 
+  /// Hides a banner on every device of the account (AC12).
+  Future<Either<Failure, Unit>> dismissAnnouncement(String id) {
+    final useCase = ref.read(dismissAnnouncementProvider);
+    return _run(TelemetryEvent.opDismissAnnouncement, () => useCase(id));
+  }
+
   Future<Either<Failure, Unit>> setGroupMuted(String groupId, bool muted) {
     final useCase = ref.read(setGroupMutedProvider);
     final current = ref.read(notificationPrefsProvider).value;
