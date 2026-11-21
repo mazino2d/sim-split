@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:simsplit/domain/entities/settlement.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
@@ -189,6 +191,9 @@ class _SettlementFormScreenState extends ConsumerState<SettlementFormScreen>
                 const SizedBox(height: 12),
                 TextField(
                   controller: _noteController,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(maxSettlementNoteLength),
+                  ],
                   decoration: InputDecoration(
                     labelText: l10n.note,
                   ),

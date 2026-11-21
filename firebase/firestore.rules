@@ -81,6 +81,19 @@ service cloud.firestore {
       return getAfter(groupPath(g)).data.get('isArchived', false) == true;
     }
 
+    // R-8: an archived group's own document is read-only too. While archived,
+    // only the owner reopening it or a member leaving changes it; the last
+    // member can still delete it (allow delete below).
+    function archivedBefore() {
+      return resource.data.get('isArchived', false) == true;
+    }
+
+    function reopening() {
+      return resource.data.ownerUid == request.auth.uid
+        && request.resource.data.get('isArchived', false) == false
+        && changedKeys().hasOnly(['isArchived', 'updatedAt', 'updatedBy']);
+    }
+
     function archiveUnchangedOrOwner() {
       return request.resource.data.get('isArchived', false) == resource.data.get('isArchived', false)
         || resource.data.ownerUid == request.auth.uid;
@@ -133,7 +146,8 @@ service cloud.firestore {
 
       allow update: if agreed() && request.auth.uid in resource.data.memberUids
         && stamped() && validGroup(g) && validInviteChange() && archiveUnchangedOrOwner()
-        && (!changedKeys().hasAny(['memberUids', 'ownerUid']) || leaving());
+        && (!changedKeys().hasAny(['memberUids', 'ownerUid']) || leaving())
+        && (!archivedBefore() || reopening() || leaving());
 
       allow update: if agreed() && joining();
 
@@ -155,14 +169,25 @@ service cloud.firestore {
           || (before == request.auth.uid && after == null);
       }
 
+      // R-8: free text is bounded. A value that doesn't change passes, so a
+      // record written before a limit existed can still be edited or deleted.
+      function textAtMost(field, max) {
+        let value = request.resource.data.get(field, null);
+        return value == null
+          || (value is string && value.size() <= max)
+          || (resource != null && resource.data.get(field, null) == value);
+      }
+
       // Money is integer cents, never a float (AC21).
       function validRecord() {
         let data = request.resource.data;
         return collection == 'members'
           ? data.name is string && data.name.size() > 0 && data.name.size() <= 80 && validClaim()
+            && textAtMost('emoji', 16)
           : collection == 'expenses'
             ? data.amountCents is int && data.splits is list && data.splits.size() <= 100
-            : data.amountCents is int;
+              && textAtMost('title', 200) && textAtMost('note', 2000) && textAtMost('category', 40)
+            : data.amountCents is int && textAtMost('note', 2000);
       }
 
       // Leaving an archived group still releases your own member.
@@ -214,11 +239,33 @@ service cloud.firestore {
     }
 
     match /groups/{g}/activity/{a} {
+      // R-8: an entry has the shape the app writes: a known action on a known
+      // kind of record, and snapshots whose free text is bounded like the
+      // records themselves.
+      function snapshotOk(s) {
+        return s == null || (s is map && s.keys().size() <= 40
+          && (s.get('title', '') is string && s.get('title', '').size() <= 200)
+          && (s.get('note', null) == null || (s.note is string && s.note.size() <= 2000))
+          && (s.get('name', '') is string && s.get('name', '').size() <= 100));
+      }
+
+      function validEntry() {
+        let data = request.resource.data;
+        return data.keys().hasOnly(['actorUid', 'action', 'entityType', 'entityId',
+            'before', 'after', 'clientTime', 'syncedAt'])
+          && data.action in ['create', 'update', 'delete', 'join']
+          && data.entityType in ['group', 'member', 'expense', 'settlement']
+          && data.entityId is string && data.entityId.size() <= 128
+          && snapshotOk(data.get('before', null))
+          && snapshotOk(data.get('after', null));
+      }
+
       allow read: if memberBefore(g);
       allow create: if (memberBefore(g) || memberAfter(g))
         && request.resource.data.actorUid == request.auth.uid
         && request.resource.data.syncedAt == request.time
-        && request.resource.data.clientTime is int;
+        && request.resource.data.clientTime is int
+        && validEntry();
       allow delete: if soleMember(g);
     }
   }
