@@ -248,6 +248,7 @@ class FirebaseNotificationRepository implements NotificationRepository {
       messageId: text('messageId'),
       category: NotificationCategory.fromId(text('category')),
       route: parseNotificationRoute(text('route')),
+      source: parseNotificationSource(text('source')),
     );
   }
 

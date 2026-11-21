@@ -1,6 +1,6 @@
 # R-9 Notifications and CRM as code — implementation plan
 
-Status: in progress (P1–P4 and the P5/P6 server side done; banner, send log and dashboard next)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
+Status: in progress (P1–P4, P6 and P5 except the dashboard done)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
 
 How R-9 gets built. One new service, `services/crm`, sends every message. Its config
 lives in `crm/` in this repo. The traits that audiences select on come from a dbt model
@@ -102,6 +102,7 @@ already updates live.
 | --- | --- | --- |
 | `users/{uid}/devices/{deviceId}` | `token`, `platform`, `locale`, `tzOffsetMinutes`, `tzName`, `appVersion`, `updatedAt` | owner only; bounded strings |
 | `users/{uid}.notificationPrefs` | `groupActivity`, `settleReminder`, `updates` (bool), `mutedGroups` (≤ 200 IDs) | owner only |
+| `users/{uid}.dismissedAnnouncements` | announcement ids (≤ 100) | owner only |
 | `announcements/{id}` | banner copy EN/VI, `audienceUids` or `all`, `endsAt` | signed-in read (own audience), server write |
 | `crm_*` | server state | no client access |
 
@@ -138,8 +139,15 @@ BigQuery), the catalog check in the dev deploy and the 36-hour freshness rule.
 P5 and P6 server side in this repo: the tick runs schedules (in each device's clock,
 amounts worked out from Firestore at send time) and campaigns (in-app announcements
 in `announcements/{id}`, pushes for Updates), with the weekly cap in `crm_ledger`.
-Left in P5: the in-app banner and the rules for `announcements` (app, after P2),
-`simsplit_raw.crm_sends` and the dashboard.
+P5 app side: the in-app banner on the home screen (one at a time, the one ending
+first; tap shows the whole text; dismissing it is kept in
+`users/{uid}.dismissedAnnouncements`, at most 100, for every device of the account), the
+rules for `announcements` (read when `all` or the reader is in `audienceUids`, no client
+writes) and their two composite indexes, and usage events `op_announcement_shown`,
+`tap_announcement`, `tap_dismiss_announcement` and `op_dismiss_announcement` whose
+result is `campaign_<id>`. `op_notification_opened` now records the message's `source`
+data (`trigger:<id>`, `schedule:<id>` or `campaign:<id>`) as `<kind>_<id>`, which gives
+per-message open counts (AC24). Left in P5: the dashboard.
 P2 in this
 repo: `firebase_messaging` and `flutter_timezone`; device registration
 (`lib/data/notifications/`) on sign-in, app start, language change and token refresh,
@@ -148,8 +156,8 @@ a group with another account; Settings → Notifications; Mute in the group menu
 muted mark; Android channels from `MainActivity.kt`; tap → deep link (`getInitialMessage`,
 `onMessageOpenedApp`, and on the web the link kept through sign-in); usage events
 `op_notification_permission`, `op_set_notification_pref`, `op_mute_group`,
-`op_unmute_group`, `op_register_device`, `op_notification_opened` (result: the category; the
-message ID embeds a group ID, so it stays out of usage events); rules and emulator
+`op_unmute_group`, `op_register_device`, `op_notification_opened` (the message ID embeds a
+group ID, so it stays out of usage events); rules and emulator
 tests for `devices` and `notificationPrefs`; `web/firebase-messaging-sw.js` (config from
 Hosting's `/__/firebase/init.js`) and `FCM_VAPID_KEY` in `firebase_deploy.yml`; privacy
 policy, Data safety and strategy updated (AC25).

@@ -596,5 +596,6 @@
   "muteNotifications": "Mute notifications",
   "unmuteNotifications": "Unmute notifications",
   "groupMuted": "Notifications muted",
-  "errorTooManyMutedGroups": "You can mute up to 200 groups."
+  "errorTooManyMutedGroups": "You can mute up to 200 groups.",
+  "dismissAnnouncement": "Dismiss"
 }

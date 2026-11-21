@@ -1,6 +1,7 @@
 // Firestore security rules tests. They run against the emulator:
 //   npx firebase-tools emulators:exec --only firestore --project demo-simsplit \
 //     "npm --prefix firebase/test test"
+import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { after, before, beforeEach, describe, test } from 'node:test';
 
@@ -632,5 +633,55 @@ describe('push devices (R-9 AC23)', () => {
     for (const d of (await getDocs(collection(fs, 'users/alice/devices'))).docs) batch.delete(d.ref);
     await assertSucceeds(batch.commit());
     await assertSucceeds(deleteDoc(doc(fs, 'users/alice')));
+  });
+});
+
+describe('in-app banners (R-9 AC12)', () => {
+  const banner = { en: { title: 'New version', body: 'Fixes sync.' }, vi: { title: 'Bản mới', body: 'Sửa đồng bộ.' } };
+  const future = new Date(Date.now() + 86_400_000);
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (admin) => {
+      const fs = admin.firestore();
+      await setDoc(doc(fs, 'announcements/everyone'), { banner, all: true, audienceUids: [], endsAt: future });
+      await setDoc(doc(fs, 'announcements/for-alice'), { banner, all: false, audienceUids: ['alice'], endsAt: future });
+    });
+  });
+
+  test('an account reads banners for everyone or for itself, nothing else', async () => {
+    const alice = db('alice');
+    const bob = db('bob');
+    await assertSucceeds(getDoc(doc(alice, 'announcements/everyone')));
+    await assertSucceeds(getDoc(doc(alice, 'announcements/for-alice')));
+    await assertSucceeds(getDoc(doc(bob, 'announcements/everyone')));
+    await assertFails(getDoc(doc(bob, 'announcements/for-alice')));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'announcements/everyone')));
+  });
+
+  test('the two queries the app runs are allowed, a plain list is not', async () => {
+    const alice = collection(db('alice'), 'announcements');
+    const mine = await assertSucceeds(getDocs(query(alice, where('audienceUids', 'array-contains', 'alice'), where('endsAt', '>', new Date()))));
+    assert.deepEqual(mine.docs.map((d) => d.id), ['for-alice']);
+    const all = await assertSucceeds(getDocs(query(alice, where('all', '==', true), where('endsAt', '>', new Date()))));
+    assert.deepEqual(all.docs.map((d) => d.id), ['everyone']);
+    await assertFails(getDocs(alice));
+    await assertFails(getDocs(query(alice, where('audienceUids', 'array-contains', 'bob'))));
+  });
+
+  test('clients never write banners', async () => {
+    const fs = db('alice');
+    await assertFails(setDoc(doc(fs, 'announcements/mine'), { banner, all: true, audienceUids: [], endsAt: future }));
+    await assertFails(updateDoc(doc(fs, 'announcements/for-alice'), { endsAt: new Date(Date.now() + 2 * 86_400_000) }));
+    await assertFails(deleteDoc(doc(fs, 'announcements/for-alice')));
+  });
+
+  test('an account keeps at most 100 dismissed banners, as a list', async () => {
+    const fs = db('alice');
+    const ids = (n) => Array.from({ length: n }, (_, i) => `c-${i}`);
+    await assertSucceeds(updateDoc(doc(fs, 'users/alice'), { dismissedAnnouncements: arrayUnion('everyone') }));
+    await assertSucceeds(updateDoc(doc(fs, 'users/alice'), { dismissedAnnouncements: ids(100) }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { dismissedAnnouncements: arrayUnion('one-more') }));
+    await assertFails(updateDoc(doc(fs, 'users/alice'), { dismissedAnnouncements: 'everyone' }));
+    await assertFails(updateDoc(doc(db('bob'), 'users/alice'), { dismissedAnnouncements: ['x'] }));
   });
 });

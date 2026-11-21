@@ -4,8 +4,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:simsplit/core/di/injection.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
+import 'package:simsplit/domain/entities/notifications/announcement.dart';
 import 'package:simsplit/domain/entities/notifications/notification_category.dart';
-import 'package:simsplit/domain/entities/notifications/notification_open.dart';
 import 'package:simsplit/domain/entities/notifications/notification_prefs.dart';
 import 'package:simsplit/domain/entities/notifications/notification_setup.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
@@ -41,6 +41,20 @@ Stream<NotificationPrefs> notificationPrefs(Ref ref) {
   if (user == null) return Stream.value(const NotificationPrefs());
   return ref.watch(watchNotificationPrefsProvider)(const NoParams()).map(
         (either) => either.fold((f) => throw FailureException(f), (p) => p),
+      );
+}
+
+/// The in-app banner to show on the home screen (R-9 AC12), or null.
+@riverpod
+Stream<Announcement?> currentAnnouncement(Ref ref) {
+  if (!ref.watch(authAvailableProvider)) return Stream.value(null);
+  final user = ref.watch(currentUserProvider).value;
+  if (user == null) return Stream.value(null);
+  return ref.watch(watchAnnouncementProvider)(const NoParams()).map(
+        (either) => either.fold((f) {
+          debugPrint('[announcements] $f');
+          return null;
+        }, (a) => a),
       );
 }
 
@@ -113,7 +127,7 @@ void notificationOpenRunner(Ref ref) {
       .listen((either) => either.fold((_) {}, (open) {
             track(
                 BreadcrumbKind.op, TelemetryEvent.opNotificationOpened.wireName,
-                result: notificationOpenedResult(open));
+                result: open.usageResult);
             if (open.route != null) {
               ref
                   .read(pendingNotificationRouteProvider.notifier)
@@ -122,13 +136,6 @@ void notificationOpenRunner(Ref ref) {
           }));
   ref.onDispose(opens.cancel);
 }
-
-/// The usage event's result for a tapped notification: its category id,
-/// or `unknown`. The message ID is left out: the sender's IDs embed a group
-/// ID (`group-activity-<groupId>-<time>`), and usage events never carry real
-/// IDs (R-4 AC3). Per-message opens need an ID-free field from the sender.
-String notificationOpenedResult(NotificationOpen open) =>
-    open.category?.id ?? 'unknown';
 
 String notificationCategoryName(
         NotificationCategory category, AppLocalizations l10n) =>
