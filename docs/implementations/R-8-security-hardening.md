@@ -1,6 +1,6 @@
 # R-8 Security hardening — implementation plan
 
-Status: planned   ·   Spec: no spec document; the findings of the first `security-reviewer` scan (2026-11-21) are the scope   ·   Written 2026-11-21
+Status: in progress (P1 and P2 done)   ·   Spec: no spec document; the findings of the first `security-reviewer` scan (2026-11-21) are the scope   ·   Written 2026-11-21
 
 How R-8 gets built. The first full scan with the
 [`security-reviewer`](../../.claude/skills/security-reviewer/SKILL.md) skill found no
@@ -36,6 +36,10 @@ Work spans this repo and `mazino2d/everything-as-code` (infrastructure).
 | P4 Web headers | sim-split | `firebase.json` `hosting.headers` for every path: `Referrer-Policy: strict-origin-when-cross-origin` (keeps invite tokens in `/join/<token>` out of referrers), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` and `frame-ancestors 'none'`, `Permissions-Policy` denying camera, microphone and geolocation. `Content-Security-Policy-Report-Only` with the sources the app needs (self, Firebase, Google sign-in, reCAPTCHA, gstatic fonts, the telemetry endpoint, `wasm-unsafe-eval`) on dev; enforced in a follow-up PR once clean. The `firebase_deploy` smoke test checks the headers | 1 day + a week of observation |
 | P5 CI and dependencies | sim-split | Pin `actions/*` and `google-github-actions/*` to full commit SHAs with the version as a comment (Dependabot keeps them current, as for the actions already pinned); run `npm audit --omit=dev --audit-level=high` for `services/telemetry` in `pr_validate`; take the open moderate `glob` / `minimatch` alerts when `firebase-admin` releases a fix | 0.5 day |
 | P6 Process | sim-split | `security-reviewer` in PR mode for every PR that touches `firebase/`, auth, `services/telemetry`, `.github/` or `AndroidManifest.xml` (a line in the `pr-writer` checklist); a full scan before each release that changes rules or infrastructure (a line in the `release-manager` preflight); `SECURITY.md` names the telemetry endpoint and the web headers in scope | 0.5 day |
+
+Done so far: P1 in everything-as-code #255 and #256 (dev), #257 and #258 (prd), applied
+2026-11-21 after sign-in and sync were checked on dev and prd; P2 in #167 (on dev, reaches
+prd with the next release).
 
 P2–P6 are independent of each other. P2 changes what released clients may write;
 it is written so that builds already released keep working (see Risks).
