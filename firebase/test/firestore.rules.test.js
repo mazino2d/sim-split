@@ -763,7 +763,7 @@ describe('push devices (R-9 AC23)', () => {
     // Registering again replaces the document, without the stamp.
     await assertSucceeds(setDoc(ref, device({ locale: 'en' })));
 
-    await assertFails(updateDoc(ref, { testRequestedAt: Timestamp.now() }));
+    await assertFails(updateDoc(ref, { testRequestedAt: Timestamp.fromMillis(Date.now() - 60000) }));
     await assertFails(updateDoc(ref, { testRequestedAt: 1 }));
     await assertFails(updateDoc(ref, { testRequestedAt: serverTimestamp(), token: 'other' }));
     await assertFails(updateDoc(doc(db('bob'), 'users/alice/devices/d1'), { testRequestedAt: serverTimestamp() }));
