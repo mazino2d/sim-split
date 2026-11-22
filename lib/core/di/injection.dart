@@ -524,8 +524,18 @@ SetNotificationCategory setNotificationCategory(Ref ref) =>
         repository: ref.watch(notificationPrefsRepositoryProvider));
 
 @riverpod
-SetGroupMuted setGroupMuted(Ref ref) =>
-    SetGroupMuted(repository: ref.watch(notificationPrefsRepositoryProvider));
+UpdateNotificationPrefs updateNotificationPrefs(Ref ref) =>
+    UpdateNotificationPrefs(
+        repository: ref.watch(notificationPrefsRepositoryProvider));
+
+@riverpod
+MigrateMutedGroups migrateMutedGroups(Ref ref) => MigrateMutedGroups(
+    repository: ref.watch(notificationPrefsRepositoryProvider));
+
+@riverpod
+RequestTestNotification requestTestNotification(Ref ref) =>
+    RequestTestNotification(
+        repository: ref.watch(notificationRepositoryProvider));
 
 /// Only read when [authAvailable] is true.
 @Riverpod(keepAlive: true)

@@ -22,6 +22,19 @@ class RegisterDevice implements AsyncUseCase<Unit, String> {
   }
 }
 
+/// "Send a test notification" on the Diagnostics screen (R-9 AC33): the
+/// sender pushes one message to this device within a minute.
+class RequestTestNotification implements AsyncUseCase<Unit, NoParams> {
+  const RequestTestNotification({required NotificationRepository repository})
+      : _repository = repository;
+
+  final NotificationRepository _repository;
+
+  @override
+  Future<Either<Failure, Unit>> call(NoParams params) =>
+      _repository.requestTestNotification();
+}
+
 /// Emits when the push token changes.
 class WatchTokenRefreshes implements StreamUseCase<Unit, NoParams> {
   const WatchTokenRefreshes({required NotificationRepository repository})

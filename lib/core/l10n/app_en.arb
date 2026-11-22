@@ -593,9 +593,182 @@
   "notificationsBlockedAndroid": "Notifications are blocked. To get them, allow notifications for SimSplit in your phone's Settings → Apps.",
   "notificationsBlockedWeb": "Notifications are blocked. To get them, allow notifications for this site in your browser's site settings.",
   "notificationsUnsupported": "This device can't get notifications yet. Your choices apply to your other devices.",
-  "muteNotifications": "Mute notifications",
-  "unmuteNotifications": "Unmute notifications",
-  "groupMuted": "Notifications muted",
-  "errorTooManyMutedGroups": "You can mute up to 200 groups.",
-  "dismissAnnouncement": "Dismiss"
+  "groupMuted": "Notifications off",
+  "errorTooManyMutedGroups": "You can change notifications for up to 200 groups.",
+  "dismissAnnouncement": "Dismiss",
+  "notificationEventExpenseCreate": "New expenses",
+  "notificationEventExpenseUpdate": "Edited expenses",
+  "notificationEventExpenseDelete": "Deleted expenses",
+  "notificationEventSettlement": "Settlements",
+  "notificationEventMemberJoin": "Members joining",
+  "notificationKinds": "Kinds of notifications",
+  "pauseNotifications": "Pause notifications",
+  "pauseOff": "Off",
+  "pauseUntil": "Until {time}",
+  "@pauseUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "pausedBanner": "Paused until {time}",
+  "@pausedBanner": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "resumeNotifications": "Resume",
+  "pauseNone": "Don't pause",
+  "pauseOneHour": "1 hour",
+  "pauseUntilMorning": "Until 08:00 tomorrow",
+  "pauseOneWeek": "1 week",
+  "pauseExplanation": "While paused, group activity is gathered and sent as one notification when the pause ends. Settle reminders and updates are skipped.",
+  "timeTomorrow": "{time} tomorrow",
+  "@timeTomorrow": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "timeOnDate": "{time}, {date}",
+  "@timeOnDate": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationOff": "Off",
+  "bundleShort10m": "Every 10 min",
+  "bundleShort30m": "Every 30 min",
+  "bundleShort1h": "Every hour",
+  "bundleShortDaily": "Summary at 19:00",
+  "activityScopeInvolving": "only involving me",
+  "activityScopeAll": "all changes",
+  "activityScopeCount": "{count, plural, =1{1 kind of change} other{{count} kinds of change}}",
+  "@activityScopeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupActivitySubtitle": "{bundle} · {scope}",
+  "@groupActivitySubtitle": {
+    "placeholders": {
+      "bundle": {
+        "type": "String"
+      },
+      "scope": {
+        "type": "String"
+      }
+    }
+  },
+  "settleReminderOnSubtitle": "{day}, {time} · debts over {days} days",
+  "@settleReminderOnSubtitle": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "settleReminderOffSubtitle": "Off · weekly while you still owe",
+  "updatesOnSubtitle": "Rare news about SimSplit",
+  "updatesOffSubtitle": "Off · rare news about SimSplit",
+  "quietHours": "Quiet hours",
+  "quietHoursSubtitle": "{range} · no notifications",
+  "@quietHoursSubtitle": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "quietHoursStart": "Start",
+  "quietHoursEnd": "End",
+  "quietHoursExplanation": "Quiet hours can only be longer than 21:00–08:00, never shorter. Notifications due during them arrive when they end.",
+  "groupNotifications": "By group",
+  "groupNotificationsAllDefault": "All groups: all activity",
+  "groupNotificationsChanged": "{count, plural, =1{1 group changed} other{{count} groups changed}}",
+  "@groupNotificationsChanged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupNotificationsHint": "You can also change this in each group's menu.",
+  "groupNotificationsEmpty": "Groups you share with friends show up here.",
+  "groupNotificationsSection": "Notifications from this group",
+  "groupModeAll": "All activity",
+  "groupModeInvolving": "Only changes that involve me",
+  "groupModeOffUntilMorning": "Off until 08:00 tomorrow",
+  "groupModeOff": "Off",
+  "notifyMeAbout": "Notify me about",
+  "onlyInvolvingMe": "Only changes that involve me",
+  "onlyInvolvingMeHint": "Expenses you paid or have a share in, or your settlements",
+  "bundleSection": "Bundle changes",
+  "bundle10m": "Every 10 minutes (default)",
+  "bundle30m": "Every 30 minutes",
+  "bundle1h": "Every hour",
+  "bundleDaily": "Once a day at 19:00",
+  "bundleExplanation": "Several changes in one group arrive as one notification.",
+  "settleReminderDay": "Reminder day",
+  "settleReminderTime": "Reminder time",
+  "settleReminderOtherTime": "Other…",
+  "settleReminderTimeOutOfRange": "Pick a time between 08:00 and 21:00.",
+  "settleReminderDebtAge": "Remind when a debt is older than",
+  "settleReminderDays": "{days} days",
+  "@settleReminderDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "settleReminderDaysDefault": "{days} days (default)",
+  "@settleReminderDaysDefault": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "settleReminderExampleLabel": "Example:",
+  "settleReminderExampleTitle": "You still owe 350,000 ₫",
+  "settleReminderExampleBody": "To 2 people, most of it in Trip to Đà Lạt. Tap to settle up.",
+  "weekdayShort": "{day, select, 0{Sun} 1{Mon} 2{Tue} 3{Wed} 4{Thu} 5{Fri} 6{Sat} other{}}",
+  "@weekdayShort": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "weekdayLong": "{day, select, 0{Sunday} 1{Monday} 2{Tuesday} 3{Wednesday} 4{Thursday} 5{Friday} 6{Saturday} other{}}",
+  "@weekdayLong": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationsOnOnDevice": "This device gets notifications.",
+  "sendTestNotification": "Send a test notification",
+  "sendTestNotificationHint": "One notification to this device within a minute, at most once every 10 minutes.",
+  "testNotificationRequested": "Test notification sent to this device. Try again in 10 minutes.",
+  "errorTestNotificationNotRegistered": "This device doesn't get notifications yet. Turn them on in Settings → Notifications."
 }

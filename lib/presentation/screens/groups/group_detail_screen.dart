@@ -219,8 +219,8 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
       tabBar != oldDelegate.tabBar || background != oldDelegate.background;
 }
 
-/// A small bell-off after the group name while its notifications are
-/// muted (R-9 AC4).
+/// A small bell-off after the group name while its notifications are off,
+/// or off until a time (R-9 AC29).
 class _MutedMark extends ConsumerWidget {
   const _MutedMark({required this.groupId});
 
@@ -228,8 +228,12 @@ class _MutedMark extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final muted =
-        ref.watch(notificationPrefsProvider).value?.isMuted(groupId) ?? false;
+    final now = ref.watch(notificationClockProvider)();
+    final muted = ref
+            .watch(notificationPrefsProvider)
+            .value
+            ?.isGroupSilenced(groupId, now) ??
+        false;
     if (!muted) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(left: 6),

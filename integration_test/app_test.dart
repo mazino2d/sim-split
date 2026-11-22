@@ -203,6 +203,28 @@ void main() {
             as Map?)?['updates'] ==
         true);
     await tester.tapAndWait(find.text('Updates'));
+
+    // Settings v2 (P8): one level down, saved the same way.
+    Future<Map?> prefs() async =>
+        (await profile.get()).data()?['notificationPrefs'] as Map?;
+    await tester.tapAndWait(find.text('Group activity'));
+    await tester.tapAndWait(find.text('Members joining'));
+    await tester.tapAndWait(find.text('Every hour'));
+    await tester.waitUntil(() async {
+      final p = await prefs();
+      return (p?['activityEvents'] as Map?)?['memberJoin'] == true &&
+          p?['bundle'] == '1h';
+    });
+    await tester.tapAndWait(find.text('Members joining'));
+    await tester.tapAndWait(find.text('Every 10 minutes (default)'));
+    await tester.tapAndWait(find.byTooltip('Back'));
+    await tester.tapAndWait(find.text('Quiet hours'));
+    await tester.tapAndWait(find.text('20:00'));
+    await tester.waitUntil(() async =>
+        ((await prefs())?['quietHours'] as Map?)?['from'] == '20:00');
+    await tester.tapAndWait(find.text('21:00'));
+    await tester.waitUntil(
+        () async => (await prefs())?.containsKey('quietHours') == false);
   });
 
   e2e('UC-7.5: pushes the group to the account, then signs out',

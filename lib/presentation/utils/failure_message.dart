@@ -77,6 +77,9 @@ String failureMessage(Object? error, AppLocalizations l10n) {
     SyncUnsyncedChanges() => l10n.errorUnsyncedChanges,
     SyncNoConnection() => l10n.errorNoConnection,
     NotificationTooManyMutedGroups() => l10n.errorTooManyMutedGroups,
+    NotificationInvalidChoice() => l10n.errorUnexpected,
+    NotificationDeviceNotRegistered() =>
+      l10n.errorTestNotificationNotRegistered,
     SyncServerError() => l10n.errorSyncFailed,
     InviteInvalidLink() => l10n.errorInviteLinkInvalid,
     // Wildcard keeps this compiling when new Failure variants are added.

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:simsplit/domain/entities/notifications/notification_category.dart';
+import 'package:simsplit/domain/entities/notifications/notification_prefs.dart';
 import 'package:yaml/yaml.dart';
 
 /// R-9: `crm/categories.yaml` is the source of every notification category.
@@ -44,6 +45,50 @@ void main() {
             reason: '${key}Description ($lang)');
       }
     }
+  });
+
+  group('group activity events (R-9 AC26)', () {
+    final category =
+        yaml.cast<YamlMap>().firstWhere((c) => c['id'] == 'group_activity');
+    final events = (category['events'] as YamlList).cast<YamlMap>();
+
+    test('the app has exactly the events of crm/categories.yaml', () {
+      expect(ActivityEvent.values.map((e) => e.id).toList(),
+          events.map((e) => e['id']).toList());
+    });
+
+    test('defaults match', () {
+      for (final entry in events) {
+        final event =
+            ActivityEvent.values.firstWhere((e) => e.id == entry['id']);
+        expect(event.defaultOn, entry['default'] == 'on', reason: event.id);
+      }
+    });
+
+    test('names in both languages match', () {
+      for (final entry in events) {
+        final key = 'notificationEvent${pascal(entry['id'] as String)}';
+        for (final lang in ['en', 'vi']) {
+          expect(arb[lang]![key], (entry['name'] as YamlMap)[lang],
+              reason: '$key ($lang)');
+        }
+      }
+    });
+
+    test('preference keys in activityEvents are the camelCase ids', () {
+      for (final event in ActivityEvent.values) {
+        final p = pascal(event.id);
+        expect(event.name, '${p[0].toLowerCase()}${p.substring(1)}');
+      }
+    });
+
+    test('only group activity has events', () {
+      for (final entry in yaml.cast<YamlMap>()) {
+        if (entry['id'] != 'group_activity') {
+          expect(entry['events'], isNull, reason: entry['id'] as String);
+        }
+      }
+    });
   });
 
   test('preference keys are the camelCase ids', () {

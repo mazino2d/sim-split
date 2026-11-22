@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fpdart/fpdart.dart' hide Group;
 import 'package:mocktail/mocktail.dart';
 import 'package:simsplit/core/di/injection.dart';
@@ -22,6 +23,7 @@ import 'package:simsplit/domain/use_cases/use_case.dart';
 import 'package:simsplit/presentation/providers/auth_providers.dart';
 import 'package:simsplit/presentation/providers/group_providers.dart';
 import 'package:simsplit/presentation/providers/notification_providers.dart';
+import 'package:simsplit/presentation/screens/settings/notification_detail_screens.dart';
 import 'package:simsplit/presentation/screens/settings/notifications_screen.dart';
 import 'package:simsplit/presentation/widgets/groups/group_app_bar_actions.dart';
 import 'package:simsplit/presentation/widgets/notifications/announcement_banner.dart';
@@ -37,7 +39,7 @@ class _MockDismiss extends Mock implements DismissNotificationPrompt {}
 
 class _MockSetCategory extends Mock implements SetNotificationCategory {}
 
-class _MockSetMuted extends Mock implements SetGroupMuted {}
+class _MockUpdatePrefs extends Mock implements UpdateNotificationPrefs {}
 
 class _MockDismissAnnouncement extends Mock implements DismissAnnouncement {}
 
@@ -59,7 +61,7 @@ void main() {
   late _MockRequest request;
   late _MockDismiss dismiss;
   late _MockSetCategory setCategory;
-  late _MockSetMuted setMuted;
+  late _MockUpdatePrefs updatePrefs;
   late NotificationSetup setup;
   late NotificationPrefs prefs;
 
@@ -69,7 +71,8 @@ void main() {
     registerFallbackValue(const SetNotificationCategoryParams(
         NotificationCategory.updates,
         on: false));
-    registerFallbackValue(const SetGroupMutedParams('g', muted: false));
+    registerFallbackValue(
+        const UpdateNotificationPrefsParams(OnlyInvolvingMeChange(on: false)));
   });
 
   setUp(() {
@@ -77,7 +80,7 @@ void main() {
     request = _MockRequest();
     dismiss = _MockDismiss();
     setCategory = _MockSetCategory();
-    setMuted = _MockSetMuted();
+    updatePrefs = _MockUpdatePrefs();
     setup = _setup();
     prefs = const NotificationPrefs();
     when(() => request(any())).thenAnswer((_) async {
@@ -95,13 +98,20 @@ void main() {
     });
     when(() => setCategory(any()))
         .thenAnswer((_) async => right<Failure, Unit>(unit));
-    when(() => setMuted(any()))
+    when(() => updatePrefs(any()))
         .thenAnswer((_) async => right<Failure, Unit>(unit));
   });
 
-  Future<void> pump(WidgetTester tester, Widget child, {Group? group}) async {
+  // Saturday 22 November 2026, 21:30 device time.
+  final now = DateTime(2026, 11, 22, 21, 30);
+
+  Future<void> pump(WidgetTester tester, Widget child,
+      {Group? group, GoRouter? router}) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
+        notificationClockProvider.overrideWithValue(() => now),
+        groupListProvider
+            .overrideWith((ref) => Stream.value([if (group != null) group])),
         authAvailableProvider.overrideWithValue(true),
         currentUserProvider
             .overrideWith((ref) => Stream.value(const AuthUser(uid: 'alice'))),
@@ -113,14 +123,21 @@ void main() {
         requestNotificationPermissionProvider.overrideWithValue(request),
         dismissNotificationPromptProvider.overrideWithValue(dismiss),
         setNotificationCategoryProvider.overrideWithValue(setCategory),
-        setGroupMutedProvider.overrideWithValue(setMuted),
+        updateNotificationPrefsProvider.overrideWithValue(updatePrefs),
       ],
-      child: MaterialApp(
-        locale: const Locale('en'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: child,
-      ),
+      child: router != null
+          ? MaterialApp.router(
+              locale: const Locale('en'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              routerConfig: router,
+            )
+          : MaterialApp(
+              locale: const Locale('en'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: child,
+            ),
     ));
     await tester.pumpAndSettle();
   }
@@ -186,27 +203,58 @@ void main() {
     });
   });
 
-  group('Settings → Notifications (R-9 AC2, AC3)', () {
-    testWidgets('one switch per category, with the defaults', (tester) async {
+  NotificationPrefsChange savedChange() =>
+      (verify(() => updatePrefs(captureAny())).captured.single
+              as UpdateNotificationPrefsParams)
+          .change;
+
+  group('Settings → Notifications (R-9 AC2, AC3, AC26–AC32)', () {
+    bool switchOn(WidgetTester tester, int index) =>
+        tester.widgetList<Switch>(find.byType(Switch)).elementAt(index).value;
+
+    testWidgets('one switch per category, with the defaults and subtitles',
+        (tester) async {
       await pump(tester, const NotificationsScreen());
 
-      expect(find.byType(SwitchListTile), findsNWidgets(3));
-      bool on(String title) => tester
-          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, title))
-          .value;
-      expect(on('Group activity'), isTrue);
-      expect(on('Settle reminders'), isFalse);
-      expect(on('Updates'), isFalse);
-      expect(
-          find.text(
-              'A weekly reminder when you still owe money for more than two weeks'),
-          findsOneWidget);
+      expect(find.byType(Switch), findsNWidgets(3));
+      expect(switchOn(tester, 0), isTrue);
+      expect(switchOn(tester, 1), isFalse);
+      expect(switchOn(tester, 2), isFalse);
+      expect(find.text('Every 10 min · all changes'), findsOneWidget);
+      expect(find.text('Off · weekly while you still owe'), findsOneWidget);
+      expect(find.text('Off · rare news about SimSplit'), findsOneWidget);
+      expect(find.text('Off'), findsOneWidget); // Pause
+      expect(find.text('21:00 – 08:00 · no notifications'), findsOneWidget);
+      expect(find.text('All groups: all activity'), findsOneWidget);
+    });
+
+    testWidgets('subtitles follow the choices', (tester) async {
+      prefs = NotificationPrefs(
+        categories: const {NotificationCategory.settleReminder: true},
+        onlyInvolvingMe: true,
+        bundle: ActivityBundle.daily,
+        settle: const SettleReminderPrefs(
+            day: 5, time: DayTime(20 * 60 + 30), minDays: 30),
+        quietHours:
+            const QuietHours(from: DayTime(20 * 60), to: DayTime(9 * 60)),
+        groups: {
+          'g1': const GroupNotifySetting(GroupNotifyMode.off),
+          'g2': GroupNotifySetting(GroupNotifyMode.off,
+              offUntil: DateTime(2026, 11, 22, 8)), // already over
+        },
+      );
+      await pump(tester, const NotificationsScreen());
+
+      expect(find.text('Summary at 19:00 · only involving me'), findsOneWidget);
+      expect(find.text('Friday, 20:30 · debts over 30 days'), findsOneWidget);
+      expect(find.text('20:00 – 09:00 · no notifications'), findsOneWidget);
+      expect(find.text('1 group changed'), findsOneWidget);
     });
 
     testWidgets('a switch saves the choice and records it', (tester) async {
       await pump(tester, const NotificationsScreen());
 
-      await tester.tap(find.text('Settle reminders'));
+      await tester.tap(find.byType(Switch).at(1));
       await tester.pumpAndSettle();
 
       final params = verify(() => setCategory(captureAny())).captured.single
@@ -216,12 +264,48 @@ void main() {
       verifyOp(TelemetryEvent.opSetNotificationPref, 'settle_reminder_on');
     });
 
+    testWidgets('Updates has no detail: tapping its row toggles it',
+        (tester) async {
+      await pump(tester, const NotificationsScreen());
+
+      await tester.tap(find.text('Updates'));
+      await tester.pumpAndSettle();
+
+      final params = verify(() => setCategory(captureAny())).captured.single
+          as SetNotificationCategoryParams;
+      expect(
+          (params.category, params.on), (NotificationCategory.updates, true));
+    });
+
+    testWidgets('while paused, shows the end and Resume (AC30)',
+        (tester) async {
+      prefs = NotificationPrefs(pausedUntil: DateTime(2026, 11, 23, 8));
+      await pump(tester, const NotificationsScreen());
+
+      expect(find.text('Paused until 08:00 tomorrow'), findsOneWidget);
+      expect(find.text('Until 08:00 tomorrow'), findsOneWidget);
+
+      await tester.tap(find.text('Resume'));
+      await tester.pumpAndSettle();
+
+      expect((savedChange() as PauseChange).choice, isNull);
+      verifyOp(TelemetryEvent.opPauseNotifications, 'resume');
+    });
+
+    testWidgets('a pause that ended shows as off', (tester) async {
+      prefs = NotificationPrefs(pausedUntil: DateTime(2026, 11, 22, 21));
+      await pump(tester, const NotificationsScreen());
+      expect(find.text('Resume'), findsNothing);
+    });
+
     testWidgets('offers Turn on when never asked on this device',
         (tester) async {
       await pump(tester, const NotificationsScreen());
       expect(
           find.text('Notifications are off on this device.'), findsOneWidget);
 
+      await tester.ensureVisible(find.text('Turn on'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Turn on'));
       await tester.pumpAndSettle();
       verify(() => request(any())).called(1);
@@ -239,7 +323,7 @@ void main() {
       expect(find.text('Turn on'), findsNothing);
     });
 
-    testWidgets('says nothing about the device while notifications work',
+    testWidgets('says the device gets them while notifications work',
         (tester) async {
       setup = _setup(
           permission: NotificationPermission.granted,
@@ -247,52 +331,208 @@ void main() {
           promptHandled: true);
       await pump(tester, const NotificationsScreen());
 
-      expect(find.textContaining('Notifications are'), findsNothing);
+      expect(find.text('This device gets notifications.'), findsOneWidget);
       expect(find.text('Turn on'), findsNothing);
     });
   });
 
-  group('muting a group (R-9 AC4)', () {
-    Widget bar() => Scaffold(
-        appBar: AppBar(actions: const [GroupAppBarActions(groupId: 'g1')]));
+  group('Group activity (R-9 AC26–AC28)', () {
+    testWidgets('one switch per event with the defaults', (tester) async {
+      await pump(tester, const GroupActivitySettingsScreen());
 
-    testWidgets('Mute notifications mutes the group', (tester) async {
-      await pump(tester, bar(), group: shared);
-
-      await tester.tap(find.byTooltip('More'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Mute notifications'));
-      await tester.pumpAndSettle();
-
-      final params = verify(() => setMuted(captureAny())).captured.single
-          as SetGroupMutedParams;
-      expect((params.groupId, params.muted), ('g1', true));
-      verifyOp(TelemetryEvent.opMuteGroup, 'success');
+      bool on(String title) => tester
+          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, title))
+          .value;
+      expect(on('New expenses'), isTrue);
+      expect(on('Edited expenses'), isTrue);
+      expect(on('Deleted expenses'), isTrue);
+      expect(on('Settlements'), isTrue);
+      expect(on('Members joining'), isFalse);
+      expect(on('Only changes that involve me'), isFalse);
+      final radio = tester.widget<RadioGroup<ActivityBundle>>(
+          find.byType(RadioGroup<ActivityBundle>));
+      expect(radio.groupValue, ActivityBundle.tenMinutes);
     });
 
-    testWidgets('a muted group offers Unmute', (tester) async {
-      prefs = const NotificationPrefs(mutedGroups: ['g1']);
-      await pump(tester, bar(), group: shared);
+    testWidgets('an event switch saves and records it', (tester) async {
+      await pump(tester, const GroupActivitySettingsScreen());
+
+      await tester.tap(find.text('Members joining'));
+      await tester.pumpAndSettle();
+
+      final change = savedChange() as ActivityEventChange;
+      expect((change.event, change.on), (ActivityEvent.memberJoin, true));
+      verifyOp(TelemetryEvent.opSetActivityEvent, 'member_join_on');
+    });
+
+    testWidgets('only involving me saves and records it', (tester) async {
+      await pump(tester, const GroupActivitySettingsScreen());
+
+      await tester.tap(find.text('Only changes that involve me'));
+      await tester.pumpAndSettle();
+
+      expect((savedChange() as OnlyInvolvingMeChange).on, isTrue);
+      verifyOp(TelemetryEvent.opSetOnlyInvolvingMe, 'on');
+    });
+
+    testWidgets('a bundle saves and records it', (tester) async {
+      await pump(tester, const GroupActivitySettingsScreen());
+
+      await tester.ensureVisible(find.text('Every hour'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Every hour'));
+      await tester.pumpAndSettle();
+
+      expect((savedChange() as BundleChange).bundle, ActivityBundle.hour);
+      verifyOp(TelemetryEvent.opSetNotificationBundle, 'bundle_1h');
+    });
+  });
+
+  group('Settle reminders (R-9 AC32)', () {
+    testWidgets('day, time and debt age each save the whole choice',
+        (tester) async {
+      await pump(tester, const SettleReminderSettingsScreen());
+
+      await tester.tap(find.text('Fri'));
+      await tester.pumpAndSettle();
+      expect((savedChange() as SettleReminderChange).settle,
+          const SettleReminderPrefs(day: 5));
+      verifyOp(TelemetryEvent.opSetSettleReminder, 'day_5_at_1900_min_14d');
+
+      await tester.tap(find.text('20:30'));
+      await tester.pumpAndSettle();
+      expect((savedChange() as SettleReminderChange).settle.time.hhmm, '20:30');
+
+      await tester.tap(find.text('30 days'));
+      await tester.pumpAndSettle();
+      expect((savedChange() as SettleReminderChange).settle.minDays, 30);
+      expect(find.text('14 days (default)'), findsOneWidget);
+    });
+  });
+
+  group('Pause and quiet hours (R-9 AC30, AC31)', () {
+    testWidgets('a pause length saves and records it', (tester) async {
+      await pump(tester, const NotificationPauseScreen());
+
+      await tester.tap(find.text('Until 08:00 tomorrow'));
+      await tester.pumpAndSettle();
+
+      expect((savedChange() as PauseChange).choice, PauseChoice.untilMorning);
+      verifyOp(TelemetryEvent.opPauseNotifications, 'until_morning');
+    });
+
+    testWidgets('quiet hours offer only longer ranges', (tester) async {
+      await pump(tester, const QuietHoursScreen());
+
+      for (final shorter in ['22:00', '07:00', '23:00']) {
+        expect(find.text(shorter), findsNothing);
+      }
+      await tester.tap(find.text('20:00'));
+      await tester.pumpAndSettle();
+
+      final quiet = (savedChange() as QuietHoursChange).quietHours;
+      expect((quiet.from.hhmm, quiet.to.hhmm), ('20:00', '08:00'));
+      verifyOp(TelemetryEvent.opSetQuietHours, 'from_2000_to_0800');
+    });
+  });
+
+  group("a group's notifications (R-9 AC29)", () {
+    GoRouter router() => GoRouter(routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, __) => Scaffold(
+                appBar:
+                    AppBar(actions: const [GroupAppBarActions(groupId: 'g1')])),
+          ),
+          GoRoute(
+            path: '/settings/notifications/groups',
+            builder: (_, __) => const GroupNotificationsListScreen(),
+          ),
+          GoRoute(
+            path: '/groups/:groupId/notifications',
+            builder: (_, state) => GroupNotificationsScreen(
+                groupId: state.pathParameters['groupId']!),
+          ),
+        ]);
+
+    testWidgets('the group menu opens the four choices; Off saves it',
+        (tester) async {
+      await pump(tester, const SizedBox(), group: shared, router: router());
 
       await tester.tap(find.byTooltip('More'));
       await tester.pumpAndSettle();
-      expect(find.text('Mute notifications'), findsNothing);
-      await tester.tap(find.text('Unmute notifications'));
+      await tester.tap(find.text('Notifications'));
       await tester.pumpAndSettle();
 
-      final params = verify(() => setMuted(captureAny())).captured.single
-          as SetGroupMutedParams;
-      expect(params.muted, isFalse);
+      for (final choice in [
+        'All activity',
+        'Only changes that involve me',
+        'Off until 08:00 tomorrow',
+        'Off',
+      ]) {
+        expect(find.text(choice), findsOneWidget);
+      }
+      verify(() => track(BreadcrumbKind.tap,
+          TelemetryEvent.tapMenuGroupNotifications.wireName)).called(1);
+
+      await tester.tap(find.text('Off'));
+      await tester.pumpAndSettle();
+
+      final change = savedChange() as GroupChange;
+      expect((change.groupId, change.choice), ('g1', GroupNotifyChoice.off));
+      verifyOp(TelemetryEvent.opSetGroupNotifications, 'off');
+    });
+
+    testWidgets('a group muted before v2 shows as Off', (tester) async {
+      prefs = const NotificationPrefs(legacyMutedGroups: ['g1']);
+      await pump(tester, const SizedBox(), group: shared, router: router());
+      await tester.tap(find.byTooltip('More'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Notifications'));
+      await tester.pumpAndSettle();
+
+      final radio = tester.widget<RadioGroup<GroupNotifyChoice>>(
+          find.byType(RadioGroup<GroupNotifyChoice>));
+      expect(radio.groupValue, GroupNotifyChoice.off);
     });
 
     testWidgets('is not offered in a group without other accounts',
         (tester) async {
-      await pump(tester, bar(),
-          group: testGroup().copyWith(memberUids: ['alice']));
+      await pump(tester, const SizedBox(),
+          group: testGroup().copyWith(memberUids: ['alice']), router: router());
 
       await tester.tap(find.byTooltip('More'));
       await tester.pumpAndSettle();
-      expect(find.text('Mute notifications'), findsNothing);
+      expect(find.text('Notifications'), findsNothing);
+    });
+
+    testWidgets('By group lists shared groups with a bell-off when off',
+        (tester) async {
+      prefs = NotificationPrefs(groups: {
+        'g1': GroupNotifySetting(GroupNotifyMode.off,
+            offUntil: DateTime(2026, 11, 23, 8)),
+      });
+      final r = router()..go('/settings/notifications/groups');
+      await pump(tester, const SizedBox(), group: shared, router: r);
+
+      expect(find.text('Group g1'), findsOneWidget);
+      expect(find.text('Off until 08:00 tomorrow'), findsOneWidget);
+      expect(find.byIcon(Icons.notifications_off_outlined), findsOneWidget);
+
+      await tester.tap(find.text('Group g1'));
+      await tester.pumpAndSettle();
+      expect(find.text('Notifications from this group'), findsOneWidget);
+    });
+
+    testWidgets('only involving me shows no bell-off', (tester) async {
+      prefs = const NotificationPrefs(groups: {
+        'g1': GroupNotifySetting(GroupNotifyMode.involving),
+      });
+      final r = router()..go('/settings/notifications/groups');
+      await pump(tester, const SizedBox(), group: shared, router: r);
+
+      expect(find.text('Only changes that involve me'), findsOneWidget);
+      expect(find.byIcon(Icons.notifications_off_outlined), findsNothing);
     });
   });
 

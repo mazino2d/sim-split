@@ -162,6 +162,24 @@ group ID, so it stays out of usage events); rules and emulator
 tests for `devices` and `notificationPrefs`; `web/firebase-messaging-sw.js` (config from
 Hosting's `/__/firebase/init.js`) and `FCM_VAPID_KEY` in `firebase_deploy.yml`; privacy
 policy, Data safety and strategy updated (AC25).
+P8b in this repo: Settings → Notifications v2 (pause with Resume, one row per category
+with its choice as subtitle, quiet hours, By group) and its detail screens (Group
+activity: event switches, "Only changes that involve me", bundle; Settle reminders:
+day, time, debt age; Quiet hours: longer only; Pause; one screen per group with the
+four modes, also opened from the group menu's Notifications, which replaces Mute /
+Unmute; the bell-off mark shows for Off and Off until). The app moves `mutedGroups`
+into `groups` as `{mode: 'off'}` and deletes the old list in one write, then never
+writes it. "Send a test notification" is on the Diagnostics screen: it sets
+`testRequestedAt` (server time) on this install's device document. The rules validate
+every v2 field (types, enums, `HH:MM` bounds, at most 200 groups, `pausedUntil` at most
+8 days and `offUntil` at most 2 days ahead) and the device stamp; since rules can't loop
+over a map, the group values a write adds or changes must all be equal, which the app
+always does. Event names are checked against the `events` of `group_activity` in
+`crm/categories.yaml`. Usage events: a tap per control and `op_set_activity_event`,
+`op_set_only_involving_me`, `op_set_notification_bundle`, `op_set_group_notifications`,
+`op_pause_notifications`, `op_set_quiet_hours`, `op_set_settle_reminder`,
+`op_migrate_muted_groups`, `op_request_test_notification`, with the choice (never an
+ID) as the result; `op_mute_group` and `op_unmute_group` are gone.
 
 P2 must ship to production before any production send is configured. P3 needs P1 and
 P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 15 days without P7.

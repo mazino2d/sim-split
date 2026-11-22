@@ -15,4 +15,13 @@ abstract final class AppRoutes {
   static const activity = '/groups/:groupId/activity';
   static const diagnostics = '/settings/diagnostics';
   static const notificationSettings = '/settings/notifications';
+  static const notificationPause = '/settings/notifications/pause';
+  static const notificationActivity = '/settings/notifications/activity';
+  static const notificationSettle = '/settings/notifications/settle';
+  static const notificationQuietHours = '/settings/notifications/quiet-hours';
+  static const notificationGroups = '/settings/notifications/groups';
+  static const groupNotifications = '/groups/:groupId/notifications';
+
+  static String groupNotificationsOf(String groupId) =>
+      '/groups/$groupId/notifications';
 }

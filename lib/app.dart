@@ -76,6 +76,7 @@ class _SimSplitAppState extends ConsumerState<SimSplitApp> {
     ref.watch(deviceRegistrationRunnerProvider);
     ref.watch(notificationChannelsProvider);
     ref.watch(notificationOpenRunnerProvider);
+    ref.watch(mutedGroupsMigrationRunnerProvider);
     if (ref.watch(authAvailableProvider)) {
       ref.watch(pendingNotificationRouteProvider);
       ref.watch(currentUserProvider);
