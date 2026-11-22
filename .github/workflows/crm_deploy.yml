@@ -55,21 +55,25 @@ jobs:
             exit 1
           fi
           echo "sha=${SHA_INPUT:-$GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      # Checked through the API before anything is checked out.
+      - name: Check the commit is on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.ref.outputs.sha }}
+        run: |
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$SHA...main" --jq .status)
+          case "$status" in
+            identical | ahead) ;;
+            *) echo "::error::$SHA is not on main ($status)"; exit 1 ;;
+          esac
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.ref.outputs.sha }}
-          fetch-depth: 0
-      - name: Check the commit is on main
-        env:
-          SHA: ${{ steps.ref.outputs.sha }}
-        run: |
-          git fetch -q origin main
-          git merge-base --is-ancestor "$SHA" origin/main || { echo "::error::$SHA is not on main"; exit 1; }
+      # No dependency cache: this job builds the production image, so nothing
+      # restored from a cache other runs can write may reach it.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "26"
-          cache: npm
-          cache-dependency-path: services/crm/package-lock.json
       - run: npm ci --prefix services/crm
       - run: npm --prefix services/crm test
       - name: Compile crm/ into the image
