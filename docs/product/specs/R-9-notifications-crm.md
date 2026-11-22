@@ -21,7 +21,7 @@ code in the repo, reviewed in a pull request like the rest of the app.
 | Topic | Decision |
 | --- | --- |
 | Goals | Three, in order: group activity, settle reminders, notices from the maintainer (new versions, policy changes, nudges tied to the user's own data). Re-engagement is allowed only as an opt-in notice about the user's own groups, never "we miss you". |
-| Channels | Push (Android and the web app) and in-app banners. Email later, for account and policy messages only. No SMS: sign-in gives no phone number, and SMS costs money per message. iOS waits for R-3 P8. |
+| Channels | Push (Android and the web app) and in-app banners. No email (dropped 2026-11-22: it would need a domain of our own and a third-party sender for a handful of account and policy messages, which the app and the privacy policy page already cover). No SMS: sign-in gives no phone number, and SMS costs money per message. iOS waits for R-3 P8. |
 | Categories | **Group activity:** on once the user allows notifications, mutable per group. **Settle reminders:** off until the user turns them on. **Updates:** off until the user turns them on. In-app banners are not a category: they never interrupt and can be dismissed. |
 | Asking | The app asks for notification permission once, when the user first has a group with another member, with one line saying what they will get. Never on launch, never again after a refusal; Settings explains how to turn it on. Allowing it is the user asking for group activity (principle 1). |
 | Calm limits | Quiet hours 21:00–08:00 on the device's clock: a message due then waits until 08:00. Group activity is batched (several changes in a group become one message). Settle reminders and updates together: at most one message per user per week. These limits apply to every message and no single message can override them. |
@@ -201,12 +201,11 @@ change, and none of them can make notifications louder than the calm limits allo
 
 ## Out of scope
 
-- SMS, iOS push (until R-3 P8), marketing email.
+- Email of any kind (account, policy or marketing), SMS, iOS push (until R-3 P8).
 - An admin web page; free-form SQL or event-sequence audiences; real-time traits.
 - A notification inbox inside the app.
 - Notifications for invitations, comments or mentions (no such features yet).
 
 ## Open questions
 
-- Email in the last phase: which sender (Amazon SES, Resend or Brevo free tier) and from
-  which domain. Decide before that phase starts.
+- None open. (Email was dropped on 2026-11-22.)
