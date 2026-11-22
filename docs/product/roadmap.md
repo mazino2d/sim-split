@@ -43,7 +43,7 @@ and R-6 were named on 2026-11-21, after they shipped, from the work in 2026.11.2
 
 | ID | Item | Serves | I | C | E | Score | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| R-9 | Notifications and CRM as code: push for group activity (batched, mutable per group), opt-in settle reminders and updates, in-app banners; quiet hours and a weekly cap; triggers, schedules, campaigns, templates and trait-based audiences as config in `crm/`, previewed in the PR, applied to dev on merge and to production after approval | UC-4, UC-9, all UCs | 2 | 0.5 | 17 | 0.06 | Triaged 2026-11-21. Keeps principle 1 (Calm): nothing at night, nothing not allowed. No SMS, no admin page; email (account and policy only) last. Spec: [R-9](specs/R-9-notifications-crm.md). Plan: [implementation](../implementations/R-9-notifications-crm.md). |
+| R-9 | Notifications and CRM as code: push for group activity (batched, mutable per group), opt-in settle reminders and updates, in-app banners; quiet hours and a weekly cap; triggers, schedules, campaigns, templates and trait-based audiences as config in `crm/`, previewed in the PR, applied to dev on merge and to production after approval | UC-4, UC-9, all UCs | 2 | 0.5 | 15 | 0.07 | Triaged 2026-11-21. Keeps principle 1 (Calm): nothing at night, nothing not allowed. No SMS, no email (dropped 2026-11-22), no admin page. Spec: [R-9](specs/R-9-notifications-crm.md). Plan: [implementation](../implementations/R-9-notifications-crm.md). |
 
 ## Later
 

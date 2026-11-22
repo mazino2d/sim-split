@@ -126,7 +126,7 @@ the sender sets `webpush.fcm_options.link` to the web app's origin plus that rou
 | P4 Traits and audiences | data-platform, sim-split, everything-as-code | dbt `user_traits` (platform, language, app version, signup days, last active days, sessions 30 d, open groups, multi-member groups, owes / owed, oldest unsettled days, prefs); dataset `simsplit_crm` and its grant; `traits.yaml`; audience compiler with tests; freshness guard and alert | AC20–AC22 | 2.5 days |
 | P5 Campaigns | sim-split | Campaigns over `/tick` (dev: next tick, prd: `send_at`); in-app banner (home screen, one at a time, dismiss syncs per account); push campaigns under the weekly cap; `simsplit_raw.crm_sends` rows; `fct_crm_sends` + Evidence page | AC12, AC13, AC18, AC24 | 2.5 days |
 | P6 Settle reminders | sim-split | `settle-reminder` schedule (Sunday 19:00 device time), audience `owes-14d`, total and count across groups, tap → settle screen | AC11 | 1 day |
-| P7 Email | sim-split, everything-as-code | Account and policy emails only, once the sender is chosen (spec open question) | — | 2 days |
+| ~~P7 Email~~ | — | Dropped 2026-11-22: no domain of our own and no third-party sender for a handful of messages; policy changes reach users in the app | — | — |
 | P8 Settings v2 | sim-split, everything-as-code | More control with the same calm defaults: see § P8 below (P8a sender, P8b screens) | AC26–AC35 | 4.5 days |
 
 Done so far: P1 infrastructure in everything-as-code #259 (dev and prd), P1 code in
@@ -164,7 +164,7 @@ Hosting's `/__/firebase/init.js`) and `FCM_VAPID_KEY` in `firebase_deploy.yml`; 
 policy, Data safety and strategy updated (AC25).
 
 P2 must ship to production before any production send is configured. P3 needs P1 and
-P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.
+P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 15 days without P7.
 
 ## P8 Notification settings v2 (design, 2026-11-22)
 
