@@ -165,7 +165,8 @@ change, and none of them can make notifications louder than the calm limits allo
   (default Sunday), the time (default 19:00, between 08:00 and 21:00) and how old a
   debt must be (7, 14 (default) or 30 days). Still at most one per week, sharing the
   weekly cap with updates (AC13).
-- **AC33** "Send a test notification" sends one push to this device within a
+- **AC33** "Send a test notification", on the Diagnostics screen (with the other debug
+  tools, not in Settings → Notifications), sends one push to this device within a
   minute, outside the weekly cap and quiet hours, at most once every 10 minutes.
 - **AC34** All choices sync to every device of the account and are read by the
   sender at send time, like the switches today (AC3, AC22).
