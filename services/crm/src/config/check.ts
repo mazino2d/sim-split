@@ -17,7 +17,7 @@ import {
 } from '../calm.ts';
 import { checkAudience } from '../audience.ts';
 import { argumentsOf, renderCopy, sampleValues, variantsOf, type SourceKind } from '../templates.ts';
-import type { Config, Template } from './schema.ts';
+import { ACTIVITY_EVENTS, type Config, type Template } from './schema.ts';
 import type { Problem } from './load.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -65,6 +65,21 @@ export const checkConfig = (config: Config, options: CheckOptions = {}): { probl
   for (const c of config.categories) {
     if (c.default === 'on' && !c.per_group) {
       add('categories.yaml', `${c.id}: only a per-group category may default to on`);
+    }
+  }
+
+  // Event switches (R-9 AC26): only within a per-group category, each one a
+  // kind of change the sender knows (its camelCase id is the pref key).
+  for (const c of config.categories) {
+    if (!c.events) continue;
+    if (!c.per_group) add('categories.yaml', `${c.id}: only a per-group category may have events`);
+    const seen = new Set<string>();
+    for (const e of c.events) {
+      if (seen.has(e.id)) add('categories.yaml', `${c.id}: event "${e.id}" is defined twice`);
+      seen.add(e.id);
+      if (!(ACTIVITY_EVENTS as readonly string[]).includes(e.id)) {
+        add('categories.yaml', `${c.id}: unknown event "${e.id}" (known: ${ACTIVITY_EVENTS.join(', ')})`);
+      }
     }
   }
 
