@@ -127,6 +127,7 @@ the sender sets `webpush.fcm_options.link` to the web app's origin plus that rou
 | P5 Campaigns | sim-split | Campaigns over `/tick` (dev: next tick, prd: `send_at`); in-app banner (home screen, one at a time, dismiss syncs per account); push campaigns under the weekly cap; `simsplit_raw.crm_sends` rows; `fct_crm_sends` + Evidence page | AC12, AC13, AC18, AC24 | 2.5 days |
 | P6 Settle reminders | sim-split | `settle-reminder` schedule (Sunday 19:00 device time), audience `owes-14d`, total and count across groups, tap → settle screen | AC11 | 1 day |
 | P7 Email | sim-split, everything-as-code | Account and policy emails only, once the sender is chosen (spec open question) | — | 2 days |
+| P8 Settings v2 | sim-split, everything-as-code | More control with the same calm defaults: see § P8 below (P8a sender, P8b screens) | AC26–AC35 | 4.5 days |
 
 Done so far: P1 infrastructure in everything-as-code #259 (dev and prd), P1 code in
 this repo (`crm/`, `services/crm`, the CRM config check and `crm_deploy.yml`). P3 in
@@ -164,6 +165,103 @@ policy, Data safety and strategy updated (AC25).
 
 P2 must ship to production before any production send is configured. P3 needs P1 and
 P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.
+
+## P8 Notification settings v2 (design, 2026-11-22)
+
+Spec AC26–AC35. Today the screen is three switches plus Mute in the group menu. P8
+keeps that first screen as the entry point and moves the new choices one level
+down, so the defaults stay one glance away and nothing gets louder by itself.
+
+### Screens
+
+```
+Settings → Notifications                     Group activity
+┌──────────────────────────────────┐        ┌──────────────────────────────────┐
+│ Pause notifications       Off  › │        │ Group activity               [●] │
+│                                  │        │                                  │
+│ Group activity           [●]  › │──────► │ NOTIFY ME ABOUT                  │
+│  Every 10 min · all changes      │        │ New expenses                 [●] │
+│ Settle reminders         [ ]  › │        │ Edited expenses              [●] │
+│  Off                             │        │ Deleted expenses             [●] │
+│ Updates                  [ ]     │        │ Settlements                  [●] │
+│  Rare news about SimSplit        │        │ Members joining              [ ] │
+│                                  │        │ Only changes that involve me [ ] │
+│ Quiet hours   21:00 – 08:00   › │        │                                  │
+│ Groups                        › │        │ BUNDLE CHANGES                   │
+│                                  │        │ (•) Every 10 minutes             │
+│ Send a test notification         │        │ ( ) Every 30 minutes             │
+│ ⓘ Notifications are on for this  │        │ ( ) Every hour                   │
+│   device.                        │        │ ( ) Once a day at 19:00          │
+└──────────────────────────────────┘        └──────────────────────────────────┘
+
+Settle reminders (when on)                   Groups / group menu → Notifications
+┌──────────────────────────────────┐        ┌──────────────────────────────────┐
+│ Settle reminders             [●] │        │ Đi Đà Lạt                        │
+│ Day          Sunday           › │        │ (•) All activity                 │
+│ Time         19:00            › │        │ ( ) Only changes that involve me │
+│ Remind when a debt is older than │        │ ( ) Off until tomorrow 08:00     │
+│ ( ) 7 days (•) 14 days ( ) 30 d  │        │ ( ) Off                          │
+└──────────────────────────────────┘        └──────────────────────────────────┘
+```
+
+- Rows show their current choice as a subtitle, so the first screen still reads at a
+  glance. A paused state shows "Paused until 08:00 · Resume" at the top.
+- Quiet hours open a sheet with two time pickers limited to the allowed range
+  (start 12:00–21:00, end 08:00–12:00).
+- The group's bell-off mark stays for "Off" and "Off until …"; "Only changes that
+  involve me" shows no mark.
+- Pause uses a short list (1 hour, until tomorrow 08:00, 1 week); the subtitle
+  shows the end time.
+
+### Data (`users/{uid}.notificationPrefs`, version 2)
+
+| Field | Type | Default | Note |
+| --- | --- | --- | --- |
+| `groupActivity`, `settleReminder`, `updates` | bool | on, off, off | unchanged |
+| `activityEvents` | map of bool: `expenseCreate`, `expenseUpdate`, `expenseDelete`, `settlement`, `memberJoin` | all on, `memberJoin` off | AC26 |
+| `onlyInvolvingMe` | bool | false | AC27 |
+| `bundle` | `10m`, `30m`, `1h`, `daily` | `10m` | AC28 |
+| `groups` | map groupId → `{ mode: all, involving or off, offUntil?: Timestamp }`, at most 200 | `all` | AC29; replaces `mutedGroups`, which the app migrates (muted → `off`) and the sender still reads until every build has moved |
+| `pausedUntil` | Timestamp | absent | AC30 |
+| `quietHours` | `{ from: "HH:MM", to: "HH:MM" }` | absent = policy | AC31; rules and sender enforce "at least 21:00–08:00" |
+| `settle` | `{ day: 0–6, time: "HH:MM", minDays: 7, 14 or 30 }` | Sunday, 19:00, 14 | AC32 |
+
+The rules validate every field's type, enum and bounds, as they do for today's prefs.
+A missing field is its default, so old builds and old documents keep working.
+
+### Sender (`services/crm`)
+
+- **Activity:** filter each recipient's items by `activityEvents` and, when
+  `onlyInvolvingMe`, by their member being the payer, in the splits, or a settlement
+  party. The activity entry's snapshot already holds `paidByMemberId`, `splits`,
+  `fromMemberId` and `toMemberId`. The `group-activity` trigger adds `member`/`join`
+  to its events, and the prefs gate it (default off).
+- **Bundling:** the group batch stays 10 minutes. A recipient with `30m`, `1h` or
+  `daily` gets the items held in `crm_deferred` (merged per group, as quiet hours do)
+  with `deliverAfter` set to their window or the next 19:00. The tick delivers them,
+  one summary per group.
+- **Pause and per-group off-until:** checked at send time. Group activity during a
+  pause is held until `pausedUntil`; other kinds are dropped.
+- **Quiet hours:** `max(policy, user)`; `calm.ts` limits stay the floor.
+- **Settle reminders:** the user's `settle` replaces the schedule's cron for that
+  user (the config's cron stays the default), and `minDays` filters the live debts.
+  The weekly cap is unchanged.
+- **Test notification (AC33):** the app sets `testRequestedAt` on its device
+  document. A second Eventarc trigger on `users/{uid}/devices/{deviceId}` calls
+  `/events`, which sends one push if the request is under a minute old and the
+  device's last test is over 10 minutes old (ledger in `crm_ledger`).
+- `crm/categories.yaml` gains the event kinds and their defaults, and the codegen and
+  the category test in the app check them like the categories.
+
+### Phases
+
+| Phase | Repo | Scope | ACs | Effort |
+| --- | --- | --- | --- | --- |
+| P8a Prefs and sender | sim-split, everything-as-code | Prefs v2 in rules with emulator tests; `crm/categories.yaml` events; sender filters (events, involvement, bundle, pause, per-group modes, quiet hours, settle prefs); test-notification trigger (Eventarc on devices) and ledger; unit tests for each | AC26–AC34 (server) | 2 days |
+| P8b Screens | sim-split | Settings → Notifications redesign, Group activity, Settle reminders, Groups, quiet hours sheet, pause, test button; group menu modes; migration from `mutedGroups`; EN/VI copy; widget tests; usage events for every choice | AC26–AC35 (app) | 2.5 days |
+
+P8a ships first: the sender honours v2 fields, and old builds keep working because
+every new field has a default. P8b then writes them.
 
 ## Manual steps
 
