@@ -92,7 +92,6 @@ jobs:
     needs: gate
     uses: ./.github/workflows/crm_deploy.yml
     with:
-      sha: ${{ needs.gate.outputs.sha }}
       prd: true
     permissions:
       contents: read
@@ -109,7 +108,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.issue.number }}
-      SHA: ${{ needs.gate.outputs.sha }}
+      SHA: ${{ needs.deploy.outputs.sha || needs.gate.outputs.sha }}
       RESULT: ${{ needs.deploy.result }}
       RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
