@@ -1,11 +1,13 @@
 # Sunday 19:00 on the device's clock, for people who turned settle reminders
-# on and still owe money after two weeks (spec AC11). The amounts are worked
-# out from the groups at send time; the traits only pick the candidates.
+# on and still owe money (spec AC11). A user's own day, time and minimum debt
+# age (AC32, notificationPrefs.settle) replace the cron and the 14-day default.
+# The audience takes everyone who owes for more than a week (the shortest
+# choice); amounts and ages are worked out from the groups at send time.
 id: settle-reminder
 enabled: true
 kind: settle_reminder
 category: settle_reminder
 cron: "0 19 * * 0"
-audience: owes-14d
+audience: owes-7d
 template: settle-reminder
 channels: [push]

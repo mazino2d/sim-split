@@ -2,6 +2,9 @@
 // Tasks implement these in src/adapters/; tests use in-memory fakes.
 
 import type { Locale } from './config/schema.ts';
+import type { Prefs } from './prefs.ts';
+
+export type { Prefs } from './prefs.ts';
 
 export interface GroupDoc {
   name: string;
@@ -21,13 +24,17 @@ export interface PendingItem {
   amountCents: number;
   currencyCode: string;
   deleted: boolean;
+  /**
+   * Member ids the change involves (AC27): payer, split members, settlement
+   * parties. Missing on items batched before P8.
+   */
+  involved?: string[];
 }
 
-export interface Prefs {
-  groupActivity: boolean;
-  settleReminder: boolean;
-  updates: boolean;
-  mutedGroups: string[];
+/** A member of a group linked to an account. */
+export interface Member {
+  memberId: string;
+  name: string;
 }
 
 export interface Device {
@@ -37,12 +44,14 @@ export interface Device {
   locale: Locale;
   tzName?: string;
   tzOffsetMinutes: number;
+  /** Set by the app to ask for a test notification (AC33). */
+  testRequestedAt?: Date;
 }
 
 export interface Push {
   messageId: string;
   category: string;
-  /** `trigger:<id>`, `schedule:<id>` or `campaign:<id>`: config ids only, for open counts (AC24). */
+  /** `trigger:<id>`, `schedule:<id>`, `campaign:<id>` or `system:<id>`: config ids only, for open counts (AC24). */
   source: string;
   route: string;
   title: string;
@@ -51,7 +60,7 @@ export interface Push {
   tag: string;
 }
 
-/** A push held back by quiet hours, re-rendered when it is delivered. */
+/** A push held back (quiet hours, bundling, pause), re-rendered when it is delivered. */
 export interface Deferred {
   key: string;
   uid: string;
@@ -66,8 +75,8 @@ export interface Deferred {
 export interface Store {
   getActivity(groupId: string, entryId: string): Promise<Record<string, unknown> | undefined>;
   getGroup(groupId: string): Promise<GroupDoc | undefined>;
-  /** linkedUid → member name, for members still in the group. */
-  getMemberNames(groupId: string): Promise<Map<string, string>>;
+  /** linkedUid → member id and name, for members still in the group. */
+  getMembers(groupId: string): Promise<Map<string, Member>>;
   /**
    * Adds an item to the group's open batch, or opens one ending at `windowEnd`.
    * Returns the batch's end, and whether this call opened it (and must schedule its flush).
@@ -77,10 +86,19 @@ export interface Store {
   takePending(groupId: string, triggerId: string, windowEnd: Date): Promise<PendingItem[] | undefined>;
   getPrefs(uid: string): Promise<Prefs>;
   getDevices(uid: string): Promise<Device[]>;
+  getDevice(uid: string, deviceId: string): Promise<Device | undefined>;
+  /**
+   * Takes the device's test-notification slot (AC33): true, and records `now`,
+   * if its last test was at least `minGapMs` ago.
+   */
+  claimTest(uid: string, deviceId: string, now: Date, minGapMs: number): Promise<boolean>;
   deleteDevice(uid: string, deviceId: string): Promise<void>;
   /** Records that a message goes to a device; false if it already did (AC19). */
   claimSend(messageId: string, uid: string, deviceId: string): Promise<boolean>;
-  /** Adds items to the device's held-back message for the group (merging). */
+  /**
+   * Adds items to the device's held-back message for the group (merging). A
+   * merge keeps the earlier `deliverAfter`; delivery re-checks what still holds.
+   */
   defer(entry: Deferred): Promise<void>;
   dueDeferred(now: Date): Promise<Deferred[]>;
   deleteDeferred(key: string): Promise<void>;
@@ -94,6 +112,8 @@ export interface Debt {
   currencyCode: string;
   /** Members of the group with money to receive. */
   creditors: number;
+  /** Whole days since the oldest non-deleted expense in the group was created (AC32). */
+  oldestDays: number;
 }
 
 export interface Announcement {
@@ -110,7 +130,7 @@ export interface BroadcastStore {
    * if the last non-group push was over 7 days ago or was this same message.
    */
   takeWeeklySlot(uid: string, messageId: string, now: Date): Promise<boolean>;
-  debtsOf(uid: string): Promise<Debt[]>;
+  debtsOf(uid: string, now: Date): Promise<Debt[]>;
   writeAnnouncement(announcement: Announcement): Promise<void>;
 }
 
@@ -128,7 +148,7 @@ export interface FlushScheduler {
 export interface SendRow {
   sent_at: string;
   message_id: string;
-  source: 'trigger' | 'schedule' | 'campaign';
+  source: 'trigger' | 'schedule' | 'campaign' | 'system';
   source_id: string;
   category: string;
   uid: string;

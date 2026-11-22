@@ -125,7 +125,7 @@ the sender sets `webpush.fcm_options.link` to the web app's origin plus that rou
 | P3 Group activity | sim-split | Trigger on activity entries for expenses and settlements (create, edit, delete); batching; recipients (members except actor, not muted, not archived); localisation and money formatting shared with the app's rules (golden tests against `MoneyFormatter` output); FCM send, removal of invalid tokens; quiet hours (held back in `crm_deferred`, delivered by the tick) and ledger | AC6–AC10, AC14, AC19 | 3 days |
 | P4 Traits and audiences | data-platform, sim-split, everything-as-code | dbt `user_traits` (platform, language, app version, signup days, last active days, sessions 30 d, open groups, multi-member groups, owes / owed, oldest unsettled days, prefs); dataset `simsplit_crm` and its grant; `traits.yaml`; audience compiler with tests; freshness guard and alert | AC20–AC22 | 2.5 days |
 | P5 Campaigns | sim-split | Campaigns over `/tick` (dev: next tick, prd: `send_at`); in-app banner (home screen, one at a time, dismiss syncs per account); push campaigns under the weekly cap; `simsplit_raw.crm_sends` rows; `fct_crm_sends` + Evidence page | AC12, AC13, AC18, AC24 | 2.5 days |
-| P6 Settle reminders | sim-split | `settle-reminder` schedule (Sunday 19:00 device time), audience `owes-14d`, total and count across groups, tap → settle screen | AC11 | 1 day |
+| P6 Settle reminders | sim-split | `settle-reminder` schedule (Sunday 19:00 device time), audience `owes-14d` (`owes-7d` since P8), total and count across groups, tap → settle screen | AC11 | 1 day |
 | ~~P7 Email~~ | — | Dropped 2026-11-22: no domain of our own and no third-party sender for a handful of messages; policy changes reach users in the app | — | — |
 | P8 Settings v2 | sim-split, everything-as-code | More control with the same calm defaults: see § P8 below (P8a sender, P8b screens) | AC26–AC35 | 4.5 days |
 
@@ -149,6 +149,23 @@ writes) and their two composite indexes, and usage events `op_announcement_shown
 result is `campaign_<id>`. `op_notification_opened` now records the message's `source`
 data (`trigger:<id>`, `schedule:<id>` or `campaign:<id>`) as `<kind>_<id>`, which gives
 per-message open counts (AC24). Left in P5: the dashboard.
+P8a server side in everything-as-code #265 (Eventarc trigger `crm-devices` on device
+writes) and this repo (#189 and the sender PR): `crm/categories.yaml` lists the five
+group-activity events with their defaults; the sender reads notification prefs v2
+(`services/crm/src/prefs.ts`) at send time: event switches, "only changes that involve
+me" and the per-group modes (`groups` over the legacy `mutedGroups`), bundles held in
+`crm_deferred` (window + 20 or 50 minutes, or 19:00), pause (group activity held until it
+ends; settle reminders and campaign pushes dropped), the user's longer quiet hours, and
+the delivery time is the latest of these, re-checked by the tick. Settle reminders use
+the user's day, time and minimum age (`debtsOf` gives each group's oldest unsettled age;
+the audience is now `owes-7d`). Joins (`group/join` entries) are sent to members who
+turned them on (template branch "{actor} joined the group"). Test notification:
+`testRequestedAt` under a minute old → one push from `templates/test-notification.yaml`
+in the group activity channel, at most once per device every 10 minutes
+(`crm_ledger/{uid}.tests`), outside quiet hours, the cap and prefs; message source
+`system:test-notification`. Left in P8a: the rules for prefs v2 and `testRequestedAt`
+with emulator tests. Known gap: Resume before `pausedUntil` does not release held
+group activity early (it arrives at the original pause end).
 P2 in this
 repo: `firebase_messaging` and `flutter_timezone`; device registration
 (`lib/data/notifications/`) on sign-in, app start, language change and token refresh,

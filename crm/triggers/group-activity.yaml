@@ -1,11 +1,16 @@
-# A member adds, edits or deletes an expense or settlement: the other members
-# get one push per group per batch window. On since R-9 P3.
+# A member adds, edits or deletes an expense or settlement, or someone joins
+# the group (the app records a join as group/join): the other members get one
+# push per group per batch window. Each user's notificationPrefs decide which
+# kinds they hear about (the events in crm/categories.yaml; joins are off by
+# default) and, with their bundle, pause and quiet hours, when. Other changes
+# these lists match (a group renamed, a member edited) are never sent.
+# On since R-9 P3.
 id: group-activity
 enabled: true
 category: group_activity
 "on":
-  entities: [expense, settlement]
-  actions: [create, update, delete]
+  entities: [expense, settlement, group, member]
+  actions: [create, update, delete, join]
 recipients: group_members_except_actor
 batch_window: 10m
 template: group-activity

@@ -1,0 +1,11 @@
+# Sent by the service itself when the app asks for a test notification from
+# Diagnostics (spec AC33); no trigger, schedule or campaign uses it.
+id: test-notification
+vars: []
+push:
+  en:
+    title: "Test notification"
+    body: "This is how SimSplit will notify you."
+  vi:
+    title: "Thông báo thử"
+    body: "SimSplit sẽ báo bạn như thế này."
