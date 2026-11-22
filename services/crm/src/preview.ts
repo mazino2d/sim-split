@@ -118,6 +118,6 @@ export const renderPlan = (base: Config | undefined, head: Config): string => {
     }
   }
   if (changes === 0) out.push('No change to what is sent.');
-  out.push('', '_Merging applies this to dev; production waits for approval in the `crm-prd` environment._');
+  out.push('', '_Comment `crm apply` to merge and ship this to dev and prd; a plain merge ships to dev only._');
   return out.join('\n');
 };

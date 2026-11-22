@@ -1,0 +1,122 @@
+name: CRM Apply
+
+# Production for the R-9 notifications config, from a PR comment: a repo admin
+# comments exactly "crm apply" on a PR whose CRM plan they have read.
+#   - open PR: refused unless it comes from this repo, every check is green and
+#     it can merge; then it is squash-merged and that commit goes to dev, then prd.
+#   - merged PR: the latest main goes to dev, then prd (main is the truth).
+# The result is commented back on the PR. issue_comment always runs this file
+# from main, never the PR's version, and PR code is only built after it is
+# merged. A merge made with GITHUB_TOKEN starts no push workflows, so this
+# calls crm_deploy.yml itself.
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crm-apply
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    if: github.event.issue.pull_request && github.event.comment.body == 'crm apply'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    outputs:
+      sha: ${{ steps.merge.outputs.sha }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.issue.number }}
+      COMMENT_ID: ${{ github.event.comment.id }}
+      ACTOR: ${{ github.event.comment.user.login }}
+    steps:
+      - name: Acknowledge
+        run: gh api -X POST "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID/reactions" -f content=eyes > /dev/null
+
+      - name: Check who asked
+        run: |
+          permission=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$ACTOR/permission" --jq .permission)
+          if [ "$permission" != admin ]; then
+            echo "::error::$ACTOR is $permission; only an admin can apply"
+            echo "REFUSED=Only a repo admin can run \`crm apply\` ($ACTOR is $permission)." >> "$GITHUB_ENV"
+            exit 1
+          fi
+
+      - name: Check the PR
+        id: pr
+        run: |
+          pr=$(gh pr view "$PR" -R "$GITHUB_REPOSITORY" --json state,isCrossRepository,mergeable,statusCheckRollup,headRefOid)
+          state=$(jq -r .state <<< "$pr")
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          if [ "$state" = MERGED ]; then exit 0; fi
+          refuse() { echo "::error::$1"; echo "REFUSED=$1" >> "$GITHUB_ENV"; exit 1; }
+          [ "$state" = OPEN ] || refuse "The PR is $state."
+          [ "$(jq -r .isCrossRepository <<< "$pr")" = false ] || refuse "PRs from forks can't be applied."
+          [ "$(jq -r .mergeable <<< "$pr")" = MERGEABLE ] || refuse "The PR can't be merged as it is (conflicts or not up to date)."
+          # Every check must have finished green (skipped and neutral count as green).
+          bad=$(jq -r '[.statusCheckRollup[]
+              | {name: (.name // .context), result: (.conclusion // .state // .status)}
+              | select(.result as $r | ["SUCCESS", "SKIPPED", "NEUTRAL"] | index($r) | not)
+              | "\(.name) (\(.result))"] | join(", ")' <<< "$pr")
+          [ -z "$bad" ] || refuse "Not every check is green yet: $bad. Comment again once CI passes."
+          echo "head=$(jq -r .headRefOid <<< "$pr")" >> "$GITHUB_OUTPUT"
+
+      - name: Merge
+        id: merge
+        env:
+          STATE: ${{ steps.pr.outputs.state }}
+          HEAD: ${{ steps.pr.outputs.head }}
+        run: |
+          if [ "$STATE" != MERGED ]; then
+            # --match-head-commit: nothing pushed after the checks ran gets merged.
+            gh pr merge "$PR" -R "$GITHUB_REPOSITORY" --squash --match-head-commit "$HEAD"
+            sha=$(gh pr view "$PR" -R "$GITHUB_REPOSITORY" --json mergeCommit --jq .mergeCommit.oid)
+          else
+            sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Report a refusal
+        if: failure() && env.REFUSED != ''
+        run: |
+          gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body "❌ \`crm apply\` refused: $REFUSED"
+
+  deploy:
+    needs: gate
+    uses: ./.github/workflows/crm_deploy.yml
+    with:
+      prd: true
+    permissions:
+      contents: read
+      id-token: write
+
+  report:
+    needs: [gate, deploy]
+    if: always() && needs.gate.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.issue.number }}
+      SHA: ${{ needs.deploy.outputs.sha || needs.gate.outputs.sha }}
+      RESULT: ${{ needs.deploy.result }}
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Comment the result
+        run: |
+          if [ "$RESULT" = success ]; then
+            body="✅ \`crm apply\`: dev and prd run \`${SHA:0:7}\`. [Run]($RUN)"
+          else
+            body="❌ \`crm apply\` failed ($RESULT) for \`${SHA:0:7}\`; prd keeps its previous revision unless the prd job ran. [Run]($RUN)"
+          fi
+          gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body "$body"

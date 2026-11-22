@@ -11,7 +11,8 @@ name: Telemetry Deploy
 #     against pubspec.yaml, or a manual run from such a tag (to redeploy
 #     without a new release) → simsplit-as-se1-prd.
 # Each job runs in the GitHub Environment of the same name, which holds the
-# image repository and deployer; prd waits for the maintainer's approval.
+# image repository and deployer; prd deploys only from a vYYYY.M.D tag
+# (checked below), with no approval step.
 # PRs test the endpoint in pr_validate.yml.
 on:
   push:

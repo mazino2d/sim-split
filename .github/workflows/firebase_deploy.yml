@@ -10,8 +10,9 @@ name: Firebase Deploy
 #     the tag against pubspec.yaml and uploading the Android build
 #     → simsplit-as-se1-prd, web app at simsplit.web.app.
 # Each job runs in the GitHub Environment of the same name (managed in
-# mazino2d/everything-as-code): dev admits main only; prd admits v* tags and
-# waits for the maintainer's approval. Both hold the same variable names.
+# mazino2d/everything-as-code): dev admits main only; prd deploys only from a
+# vYYYY.M.D tag (checked below), with no approval step. Both hold the same
+# variable names.
 on:
   push:
     branches: [main]

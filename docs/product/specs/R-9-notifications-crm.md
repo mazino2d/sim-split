@@ -41,7 +41,7 @@ code in the repo, reviewed in a pull request like the rest of the app.
 - As any user, I am never woken up, spammed or nagged: nothing at night, nothing I did not
   allow, and one switch per kind of message.
 - As the maintainer, I write a notice or change a rule in a pull request, see exactly who
-  would get what in which language, and approve it before any real user receives it.
+  would get what in which language, and ship it with a comment on the PR once I am happy.
 
 ## Acceptance criteria
 
@@ -110,8 +110,8 @@ code in the repo, reviewed in a pull request like the rest of the app.
 - **AC18** Merging applies the config to dev only; dev users (the SimSplit [Dev] build and
   the dev web app) get the messages first, and a campaign goes out on dev at the next
   tick after the merge. Production runs the exact build dev ran, only after the maintainer
-  approves; there it follows each campaign's send time. Audiences are not counted before
-  approval.
+  comments `crm apply` on the PR; there it follows each campaign's send time. Audiences
+  are not counted before that.
 - **AC19** A campaign is sent at most once to each device, even if a send is retried or the
   config is applied again.
 

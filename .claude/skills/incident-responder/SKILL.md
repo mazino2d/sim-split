@@ -29,8 +29,8 @@ especially:
   deploy` / `update-traffic`, never Firebase console or `firebase` CLI writes,
   never `scripts/wipe_accounts.py --yes`. No data is deleted to "clean up" an
   incident; list it for the user instead.
-- **Never approve a `prd` deployment**, never push a tag, never run
-  `play_rollout.yml` without the user's explicit yes. Give the user the command
+- **Never push a tag** (it ships to prd with no approval step), never comment
+  `crm apply`, never run `play_rollout.yml` without the user's explicit yes. Give the user the command
   or run URL and wait.
 - **No personal data in chat, PRs or docs.** Error reports are anonymous by
   design; usage events carry a uid. Report counts and versions, not uids,
@@ -134,7 +134,7 @@ carry it.
 4. **Hand off to `release-manager`** for the production tag. One production
    release per day: a hotfix on the day of a release takes the next day's CalVer
    date (`release-manager` § Version scheme). Prd web, rules and the telemetry
-   endpoint ship only with that tag, after the user approves each `prd` job.
+   endpoint ship only with that tag, which deploys as soon as it is pushed.
 
 While the fix is on its way:
 

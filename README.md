@@ -153,18 +153,20 @@ lib/
 | Workflow | Trigger | Result |
 | --- | --- | --- |
 | `pr_validate` | Every PR → `main` | Parallel format/analyze/test, store-metadata check, Firestore rules tests, telemetry endpoint tests and actionlint, each skipped unless its files change; `PR Validation` is the required check |
-| `build_android` | Push to `main` touching app code, manual (`workflow_dispatch`), or called by `release` / `release_candidate` | Signed AAB → Google Play. Push and manual runs build the `dev` flavor for SimSplit [Dev] (`com.mazino2d.simsplit.dev`): on push straight to internal testers, manual runs pick the track (default `internal`). Tags build the `prd` flavor for `com.mazino2d.simsplit`, after the maintainer approves |
+| `build_android` | Push to `main` touching app code, manual (`workflow_dispatch`), or called by `release` / `release_candidate` | Signed AAB → Google Play. Push and manual runs build the `dev` flavor for SimSplit [Dev] (`com.mazino2d.simsplit.dev`): on push straight to internal testers, manual runs pick the track (default `internal`). Tags build the `prd` flavor for `com.mazino2d.simsplit`, only from that tag |
 | `build_ios` | Manual (`workflow_dispatch`) | Unsigned iOS build (signing disabled until the Apple account is active) |
-| `release_candidate` | Push a `vYYYY.M.D-rc.N` tag | After approval, uploads the AAB as `YYYY.M.D-rc.N` with release notes to the closed testing track (`alpha`), creates a GitHub pre-release |
-| `release` | Push a `vYYYY.M.D` tag | Validates the tag, uploads the AAB with release notes to the `production` track at 100 % (sent for review), then deploys the web app and Firestore rules and indexes to prd (`firebase_deploy`), deploys the telemetry endpoint (`telemetry_deploy`), creates a GitHub Release; the upload and each deploy wait for the maintainer's approval |
+| `release_candidate` | Push a `vYYYY.M.D-rc.N` tag | Uploads the AAB as `YYYY.M.D-rc.N` with release notes to the closed testing track (`alpha`), creates a GitHub pre-release |
+| `release` | Push a `vYYYY.M.D` tag | Validates the tag, uploads the AAB with release notes to the `production` track at 100 % (sent for review), then deploys the web app and Firestore rules and indexes to prd (`firebase_deploy`), deploys the telemetry endpoint (`telemetry_deploy`), creates a GitHub Release; nothing waits for approval, so pushing the tag ships the release |
 | `play_rollout` | Manual, from `main` | Widens the production rollout to 50 % or 100 %, or halts / resumes it |
 | `play_metadata` | Push to `main` touching `android/fastlane/metadata/**`, or manual (dry run by default) | Syncs the Play store listing, images, contact details and Data safety form to both apps (prd, then SimSplit [Dev] under its own title) — see [android/fastlane/README.md](android/fastlane/README.md) |
 | `firebase_deploy` | Push to `main` touching the app, `web/` or `firebase/**`, manual, or called by `release` | Builds the web app and deploys it with the Firestore rules and indexes: to dev ([simsplit-as-se1-dev.web.app](https://simsplit-as-se1-dev.web.app)) from `main` and manual runs, then smoke-tests the live dev site; to prd ([simsplit.web.app](https://simsplit.web.app)) only from `release` |
-| `telemetry_deploy` | Called by `release`, or manual from a `vYYYY.M.D` tag | Builds the error report and usage endpoint (R-4) and deploys it to Cloud Run, after the maintainer approves |
+| `telemetry_deploy` | Called by `release`, or manual from a `vYYYY.M.D` tag | Builds the error report and usage endpoint (R-4) and deploys it to Cloud Run |
+| `crm_deploy` | Push to `main` touching `crm/` or `services/crm/`, manual, or called by `crm_apply` | Builds the R-9 notifications service with the `crm/` config baked in and deploys it to Cloud Run `crm` on dev; called by `crm_apply` it goes on to prd with the same image |
+| `crm_apply` | A repo admin comments `crm apply` on a PR | Refuses unless the PR is from this repo, green and mergeable; squash-merges it, runs `crm_deploy` for dev and prd, and comments the result (on a merged PR: ships the latest `main`) |
 | `pages` | Push to `main` touching `docs/**`, or manual; PRs build only | Publishes `docs/` (landing page, privacy policy) to [mazino2d.github.io/sim-split](https://mazino2d.github.io/sim-split/) |
 | `codeql` | Workflow changes, weekly | CodeQL scan of the workflows |
 
-Deploying jobs run in GitHub Environments: `dev` (`main` only), `prd` (`v*` tags only, every job approved by the maintainer) and `store` (`main` only, Play listing and rollout), set up in [mazino2d/everything-as-code](https://github.com/mazino2d/everything-as-code).
+Deploying jobs run in GitHub Environments: `dev` (`main` only), `prd` (`v*` tags for app deploys, `main` for `crm apply`; no approval step, and only the maintainer can push `v*` tags) and `store` (`main` only, Play listing and rollout), set up in [mazino2d/everything-as-code](https://github.com/mazino2d/everything-as-code).
 
 Shared logic comes from [mazino2d/github-workflows](https://github.com/mazino2d/github-workflows) (`@v1`): `pages`, `codeql` and the actionlint job of `pr_validate` call its reusable workflows, and `.github/actions/flutter-setup` pins the Flutter version for its shared `flutter-setup` action.
 
@@ -265,8 +267,7 @@ git push origin v2026.10.22
 uploads the AAB with the release notes to the Play **production** track at 100 %
 (no staged rollout while the user base is small), then deploys the web app and Firestore rules and indexes to prd,
 deploys the telemetry endpoint, and creates a GitHub Release with the AAB attached.
-The upload and each deploy wait for approval in the `prd` environment (GitHub → Actions → the run → **Review
-deployments**). Managed
+Nothing waits for approval: pushing the tag is the go-ahead. Managed
 publishing is off, so the upload goes to review at once and reaches every user when
 approved. **Play Rollout** (`50%`, `100%`, `halt` / `resume`) applies again once
 `release.yml` goes back to a staged rollout.

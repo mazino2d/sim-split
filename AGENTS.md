@@ -69,8 +69,9 @@ Android, the matching `--flavor dev|prd`: **dev** (`simsplit-as-se1-dev`,
 (`simsplit-as-se1-prd`, `com.mazino2d.simsplit`, `simsplit.web.app`) gets only tags
 (`vYYYY.M.D-rc.N` → Play alpha, `vYYYY.M.D` → Play production, web, Firestore rules and
 indexes). CI jobs that deploy run in the GitHub Environment of the same name (plus
-`store` for Play listing and rollout); every `prd` job waits for the maintainer's
-approval. Anything that differs per environment reads `appEnv`
+`store` for Play listing and rollout). `prd` has no approval step: pushing a
+`vYYYY.M.D` tag ships the release, and a repo admin's `crm apply` comment on a PR ships
+the notifications config (`crm_apply.yml`); only the maintainer may push `v*` tags. Anything that differs per environment reads `appEnv`
 (`lib/core/constants/app_env.dart`); never hardcode a project, package or domain.
 
 ## Destructive and production actions
@@ -84,11 +85,12 @@ when a skill or a script's docstring shows the command: list what would be affec
   `simsplit_raw` (`dataplatform-as-se1-prd`). Without `--yes` it only counts.
 - **Never delete** tags or branches on `origin`, GitHub Releases, Play releases, Firestore
   documents or BigQuery tables and rows.
-- **Never approve a `prd` deployment** — not in the run's **Review deployments**, not
-  through the `pending_deployments` API. The maintainer approves every `prd` job in the
-  run UI.
-- Pushing a `v*` tag, running `play_rollout.yml` and merging to `main` (which deploys dev
-  and syncs both Play listings) wait for the user's explicit go-ahead.
+- **Pushing a `v*` tag is a production release** — there is no approval step after it.
+  Never push one, and never comment `crm apply` on a PR (it merges and ships the
+  notifications config to prd), without the user's explicit go-ahead for that release
+  or that PR.
+- Running `play_rollout.yml` and merging to `main` (which deploys dev and syncs both
+  Play listings) wait for the user's explicit go-ahead.
 
 ## Skills
 
