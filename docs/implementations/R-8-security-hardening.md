@@ -1,6 +1,6 @@
 # R-8 Security hardening — implementation plan
 
-Status: in progress (P1–P6 done and the CSP enforced; P2–P4 and the CSP reach prd with the next release)   ·   Spec: no spec document; the findings of the first `security-reviewer` scan (2026-11-21) are the scope   ·   Written 2026-11-21
+Status: in progress (P1–P6 done and the CSP enforced; P2–P4 and the CSP reach prd in 2026.11.23)   ·   Spec: no spec document; the findings of the first `security-reviewer` scan (2026-11-21) are the scope   ·   Written 2026-11-21
 
 How R-8 gets built. The first full scan with the
 [`security-reviewer`](../../.claude/skills/security-reviewer/SKILL.md) skill found no
@@ -45,8 +45,8 @@ clean through sign-in, reCAPTCHA, sharing, saving images and web push, so it is
 enforced on dev and prd since 2026-11-22. The first enforced deploy blocked the inline
 scripts FlutterFire injects for the Firebase JS SDK (the reports had been missed);
 `web/firebase_sdk.js` now loads the SDK as a file of our own, and the smoke test
-fails on any CSP violation, report-only included. P2–P4 and the enforced CSP reach prd with
-the next release.
+fails on any CSP violation, report-only included. P2–P4 and the enforced CSP reach prd in
+2026.11.23.
 
 P2–P6 are independent of each other. P2 changes what released clients may write;
 it is written so that builds already released keep working (see Risks).
