@@ -5,7 +5,7 @@ import { IntlMessageFormat } from 'intl-messageformat';
 import { parse, TYPE, type MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import type { Locale, Template } from './config/schema.ts';
 
-export type SourceKind = 'trigger' | 'settle_reminder' | 'campaign';
+export type SourceKind = 'trigger' | 'settle_reminder' | 'campaign' | 'system';
 
 /** Variables each source kind fills in, with the sample values `crm render` uses. */
 export const SOURCE_VARS: Record<SourceKind, Record<string, Record<Locale, string | number>>> = {
@@ -24,6 +24,7 @@ export const SOURCE_VARS: Record<SourceKind, Record<string, Record<Locale, strin
     group: { en: 'Đà Lạt trip', vi: 'Đi Đà Lạt' },
   },
   campaign: {},
+  system: {},
 };
 
 /** Names of the arguments a message uses, including those inside select/plural branches. */

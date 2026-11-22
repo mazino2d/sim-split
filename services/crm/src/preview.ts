@@ -3,6 +3,7 @@
 
 import { describeAudience } from './audience.ts';
 import { renderCopy, sampleValues, type SourceKind } from './templates.ts';
+import { TEST_TEMPLATE } from './test_notification.ts';
 import type { Config, Template } from './config/schema.ts';
 
 const KINDS = ['triggers', 'schedules', 'campaigns', 'audiences', 'templates'] as const;
@@ -11,6 +12,7 @@ type Kind = (typeof KINDS)[number];
 const escapeCell = (s: string) => s.replaceAll('|', '\\|').replaceAll('\n', ' ');
 
 const kindOf = (config: Config, templateId: string): SourceKind => {
+  if (templateId === TEST_TEMPLATE) return 'system';
   if (config.triggers.some((t) => t.template === templateId)) return 'trigger';
   const schedule = config.schedules.find((s) => s.template === templateId);
   return schedule ? schedule.kind : 'campaign';

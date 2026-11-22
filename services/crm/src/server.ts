@@ -13,6 +13,7 @@ import { createFcmPusher } from './adapters/fcm.ts';
 import { createTasksScheduler } from './adapters/tasks.ts';
 import { createBigQuerySource } from './adapters/bigquery.ts';
 import { createBigQuerySendLog } from './adapters/send_log.ts';
+import { prefDefaults } from './prefs.ts';
 import type { Config } from './config/schema.ts';
 
 const env = (name: string): string => {
@@ -28,7 +29,6 @@ const { version, config } = JSON.parse(readFileSync(new URL('../config.json', im
 
 const projectId = env('FIREBASE_PROJECT_ID');
 const app = initializeApp({ projectId });
-const isOn = (id: string) => config.categories.find((c) => c.id === id)?.default === 'on';
 const MAX_BODY_BYTES = 16 * 1024;
 
 // The service's own URL, learned from the first request (Cloud Run sets Host),
@@ -41,11 +41,7 @@ const handle = createHandler({
   version,
   log,
   now: () => new Date(),
-  store: createFirestoreStore(getFirestore(app), {
-    groupActivity: isOn('group_activity'),
-    settleReminder: isOn('settle_reminder'),
-    updates: isOn('updates'),
-  }),
+  store: createFirestoreStore(getFirestore(app), prefDefaults(config)),
   pusher: createFcmPusher(
     getMessaging(app),
     env('CRM_ENV') === 'prd' ? 'https://simsplit.web.app' : `https://${projectId}.web.app`,

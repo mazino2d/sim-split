@@ -1,6 +1,15 @@
 // In-memory Store, Pusher and FlushScheduler for tests.
 
+import { parsePrefs, type PrefDefaults } from '../src/prefs.ts';
 import type { Announcement, BroadcastStore, Debt, Deferred, Device, FlushScheduler, GroupDoc, PendingItem, Prefs, Push, Pusher, SendResult, Store } from '../src/ports.ts';
+
+/** The defaults in crm/categories.yaml. */
+export const DEFAULTS: PrefDefaults = {
+  groupActivity: true,
+  settleReminder: false,
+  updates: false,
+  activityEvents: { expenseCreate: true, expenseUpdate: true, expenseDelete: true, settlement: true, memberJoin: false },
+};
 
 export class FakeStore implements Store, BroadcastStore {
   ledger = new Map<string, { at: Date; messageId: string }>();
@@ -8,9 +17,15 @@ export class FakeStore implements Store, BroadcastStore {
   announcements = new Map<string, Announcement>();
   activity = new Map<string, Record<string, unknown>>();
   groups = new Map<string, GroupDoc>();
+  /** groupId → linkedUid → name. */
   members = new Map<string, Map<string, string>>();
+  /** groupId → linkedUid → member id; `m-<uid>` when not set. */
+  memberIds = new Map<string, Map<string, string>>();
   pending = new Map<string, { windowEnd: Date; items: PendingItem[] }>();
-  prefs = new Map<string, Partial<Prefs>>();
+  /** notificationPrefs as stored (Dates stand in for Timestamps). */
+  prefs = new Map<string, Record<string, unknown>>();
+  /** uid → deviceId → when its last test notification went out. */
+  tests = new Map<string, Map<string, Date>>();
   devices = new Map<string, Device[]>();
   sends = new Set<string>();
   deferred = new Map<string, Deferred>();
@@ -21,8 +36,9 @@ export class FakeStore implements Store, BroadcastStore {
   async getGroup(g: string) {
     return this.groups.get(g);
   }
-  async getMemberNames(g: string) {
-    return this.members.get(g) ?? new Map();
+  async getMembers(g: string) {
+    const names = this.members.get(g) ?? new Map<string, string>();
+    return new Map([...names].map(([uid, name]) => [uid, { memberId: this.memberIds.get(g)?.get(uid) ?? `m-${uid}`, name }]));
   }
   async addPending(g: string, t: string, item: PendingItem, windowEnd: Date) {
     const key = `${g}_${t}`;
@@ -42,10 +58,20 @@ export class FakeStore implements Store, BroadcastStore {
     return current.items;
   }
   async getPrefs(uid: string): Promise<Prefs> {
-    return { groupActivity: true, settleReminder: false, updates: false, mutedGroups: [], ...this.prefs.get(uid) };
+    return parsePrefs(this.prefs.get(uid), DEFAULTS);
   }
   async getDevices(uid: string) {
     return this.devices.get(uid) ?? [];
+  }
+  async getDevice(uid: string, id: string) {
+    return this.devices.get(uid)?.find((d) => d.id === id);
+  }
+  async claimTest(uid: string, id: string, now: Date, minGapMs: number) {
+    const byDevice = this.tests.get(uid) ?? new Map<string, Date>();
+    const last = byDevice.get(id);
+    if (last && now.getTime() - last.getTime() < minGapMs) return false;
+    this.tests.set(uid, byDevice.set(id, now));
+    return true;
   }
   async deleteDevice(uid: string, id: string) {
     this.devices.set(uid, (this.devices.get(uid) ?? []).filter((d) => d.id !== id));
@@ -59,7 +85,8 @@ export class FakeStore implements Store, BroadcastStore {
   async defer(entry: Deferred) {
     const current = this.deferred.get(entry.key);
     const items = current ? [...current.items, ...entry.items.filter((i) => !current.items.some((x) => x.id === i.id))] : entry.items;
-    this.deferred.set(entry.key, { ...entry, messageId: current?.messageId ?? entry.messageId, items });
+    const deliverAfter = current && current.deliverAfter < entry.deliverAfter ? current.deliverAfter : entry.deliverAfter;
+    this.deferred.set(entry.key, { ...entry, messageId: current?.messageId ?? entry.messageId, deliverAfter, items });
   }
   async dueDeferred(now: Date) {
     return [...this.deferred.values()].filter((d) => d.deliverAfter <= now);
@@ -74,7 +101,7 @@ export class FakeStore implements Store, BroadcastStore {
     this.ledger.set(uid, { at: now, messageId });
     return true;
   }
-  async debtsOf(uid: string) {
+  async debtsOf(uid: string, _now: Date) {
     return this.debts.get(uid) ?? [];
   }
   async writeAnnouncement(a: Announcement) {

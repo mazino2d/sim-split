@@ -19,6 +19,9 @@ import { checkAudience } from '../audience.ts';
 import { argumentsOf, renderCopy, sampleValues, variantsOf, type SourceKind } from '../templates.ts';
 import { ACTIVITY_EVENTS, type Config, type Template } from './schema.ts';
 import type { Problem } from './load.ts';
+import { TEST_TEMPLATE } from '../test_notification.ts';
+
+const SYSTEM_TEMPLATES = [TEST_TEMPLATE];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -164,10 +167,13 @@ export const checkConfig = (config: Config, options: CheckOptions = {}): { probl
     }
   }
 
+  // Templates the service sends by itself (AC33 test notification).
+  for (const id of SYSTEM_TEMPLATES) useTemplate(`templates/${id}.yaml`, id, 'system', ['push']);
+
   for (const t of config.templates) {
     const file = `templates/${t.id}.yaml`;
     const kinds = usedTemplates.get(t.id);
-    if (!kinds) warnings.push({ file, message: 'not used by any trigger, schedule or campaign' });
+    if (!kinds) warnings.push({ file, message: 'not used by any trigger, schedule, campaign or the service itself' });
     problems.push(...checkTemplate(t, kinds ?? []).map((message) => ({ file, message })));
   }
 

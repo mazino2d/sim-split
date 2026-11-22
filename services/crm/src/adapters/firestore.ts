@@ -1,15 +1,34 @@
 // Store on Firestore (firebase-admin). Server-only collections (crm_*) are
 // out of reach for clients: no rule in firebase/firestore.rules matches them.
 
-import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
-import type { BroadcastStore, Debt, Deferred, Device, GroupDoc, PendingItem, Prefs, Store } from '../ports.ts';
+import { FieldValue, Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
+import { parsePrefs, type PrefDefaults } from '../prefs.ts';
+import type { BroadcastStore, Debt, Deferred, Device, GroupDoc, Member, PendingItem, Store } from '../ports.ts';
 
 const STALE_BATCH_MS = 5 * 60_000;
 const ALREADY_EXISTS = 6;
 
-const WEEK_MS = 7 * 24 * 60 * 60_000;
+const DAY_MS = 24 * 60 * 60_000;
+const WEEK_MS = 7 * DAY_MS;
 
-export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'mutedGroups'>): Store & BroadcastStore => {
+const toDevice = (id: string, d: DocumentData): Device | undefined => {
+  if (typeof d.token !== 'string' || (d.platform !== 'android' && d.platform !== 'web')) return undefined;
+  return {
+    id,
+    token: d.token,
+    platform: d.platform,
+    locale: d.locale === 'vi' ? 'vi' : 'en',
+    tzName: typeof d.tzName === 'string' ? d.tzName : undefined,
+    tzOffsetMinutes: typeof d.tzOffsetMinutes === 'number' ? d.tzOffsetMinutes : 420,
+    testRequestedAt: d.testRequestedAt instanceof Timestamp ? d.testRequestedAt.toDate() : undefined,
+  };
+};
+
+/** Epoch milliseconds (as the app writes them) or a Timestamp. */
+const millis = (v: unknown): number | undefined =>
+  typeof v === 'number' ? v : v instanceof Timestamp ? v.toMillis() : undefined;
+
+export const createFirestoreStore = (db: Firestore, defaults: PrefDefaults): Store & BroadcastStore => {
   const pendingRef = (groupId: string, triggerId: string) => db.doc(`crm_pending/${groupId}_${triggerId}`);
   return {
     async getActivity(groupId, entryId) {
@@ -30,16 +49,16 @@ export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'muted
       return group;
     },
 
-    async getMemberNames(groupId) {
+    async getMembers(groupId) {
       const snap = await db.collection(`groups/${groupId}/members`).get();
-      const names = new Map<string, string>();
+      const members = new Map<string, Member>();
       for (const doc of snap.docs) {
         const d = doc.data();
-        if (d.deleted !== true && typeof d.linkedUid === 'string' && typeof d.name === 'string') {
-          names.set(d.linkedUid, d.name);
+        if (d.deleted !== true && typeof d.linkedUid === 'string') {
+          members.set(d.linkedUid, { memberId: doc.id, name: typeof d.name === 'string' ? d.name : '' });
         }
       }
-      return names;
+      return members;
     },
 
     addPending(groupId, triggerId, item, windowEnd) {
@@ -73,31 +92,27 @@ export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'muted
 
     async getPrefs(uid) {
       const snap = await db.doc(`users/${uid}`).get();
-      const p = (snap.data()?.notificationPrefs ?? {}) as Partial<Prefs>;
-      const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fallback);
-      return {
-        groupActivity: bool(p.groupActivity, defaults.groupActivity),
-        settleReminder: bool(p.settleReminder, defaults.settleReminder),
-        updates: bool(p.updates, defaults.updates),
-        mutedGroups: Array.isArray(p.mutedGroups) ? p.mutedGroups.filter((g) => typeof g === 'string') : [],
-      };
+      return parsePrefs(snap.data()?.notificationPrefs, defaults);
     },
 
     async getDevices(uid) {
       const snap = await db.collection(`users/${uid}/devices`).get();
-      return snap.docs.flatMap((doc): Device[] => {
-        const d = doc.data();
-        if (typeof d.token !== 'string' || (d.platform !== 'android' && d.platform !== 'web')) return [];
-        return [
-          {
-            id: doc.id,
-            token: d.token,
-            platform: d.platform,
-            locale: d.locale === 'vi' ? 'vi' : 'en',
-            tzName: typeof d.tzName === 'string' ? d.tzName : undefined,
-            tzOffsetMinutes: typeof d.tzOffsetMinutes === 'number' ? d.tzOffsetMinutes : 420,
-          },
-        ];
+      return snap.docs.flatMap((doc) => toDevice(doc.id, doc.data()) ?? []);
+    },
+
+    async getDevice(uid, deviceId) {
+      const snap = await db.doc(`users/${uid}/devices/${deviceId}`).get();
+      return snap.exists ? toDevice(snap.id, snap.data()!) : undefined;
+    },
+
+    claimTest(uid, deviceId, now, minGapMs) {
+      // crm_ledger/{uid}.tests.<deviceId>: when each device last got a test push.
+      const ref = db.doc(`crm_ledger/${uid}`);
+      return db.runTransaction(async (tx) => {
+        const last = (await tx.get(ref)).data()?.tests?.[deviceId];
+        if (last instanceof Timestamp && now.getTime() - last.toMillis() < minGapMs) return false;
+        tx.set(ref, { tests: { [deviceId]: Timestamp.fromDate(now) } }, { merge: true });
+        return true;
       });
     },
 
@@ -120,6 +135,7 @@ export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'muted
       return db.runTransaction(async (tx) => {
         const snap = await tx.get(ref);
         const items = snap.exists ? (snap.data()!.items as PendingItem[]) : [];
+        const held = snap.exists && snap.data()!.deliverAfter instanceof Timestamp ? (snap.data()!.deliverAfter as Timestamp).toDate() : undefined;
         const merged = [...items, ...entry.items.filter((i) => !items.some((x) => x.id === i.id))];
         tx.set(ref, {
           uid: entry.uid,
@@ -128,7 +144,8 @@ export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'muted
           triggerId: entry.triggerId,
           // The first held-back message names the delivery, so a retry stays one send.
           messageId: snap.exists ? snap.data()!.messageId : entry.messageId,
-          deliverAfter: Timestamp.fromDate(entry.deliverAfter),
+          // The earlier time wins; the tick holds it again if it is still too early.
+          deliverAfter: Timestamp.fromDate(held && held < entry.deliverAfter ? held : entry.deliverAfter),
           items: merged,
         });
       });
@@ -162,12 +179,12 @@ export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'muted
         const last = d?.lastNonGroupAt instanceof Timestamp ? d.lastNonGroupAt.toMillis() : 0;
         if (d?.lastMessageId === messageId) return true;
         if (now.getTime() - last < WEEK_MS) return false;
-        tx.set(ref, { lastNonGroupAt: Timestamp.fromDate(now), lastMessageId: messageId });
+        tx.set(ref, { lastNonGroupAt: Timestamp.fromDate(now), lastMessageId: messageId }, { merge: true });
         return true;
       });
     },
 
-    async debtsOf(uid) {
+    async debtsOf(uid, now) {
       const groups = await db.collection('groups').where('memberUids', 'array-contains', uid).get();
       const debts: Debt[] = [];
       for (const g of groups.docs) {
@@ -177,11 +194,13 @@ export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'muted
           ['members', 'expenses', 'settlements'].map((c) => db.collection(`groups/${g.id}/${c}`).get()),
         );
         const net = new Map<string, number>();
+        let oldest = Infinity;
         const add = (memberId: unknown, cents: unknown) => {
           if (typeof memberId === 'string' && typeof cents === 'number') net.set(memberId, (net.get(memberId) ?? 0) + cents);
         };
         for (const e of expenses.docs.map((x) => x.data())) {
           if (e.deleted === true) continue;
+          oldest = Math.min(oldest, millis(e.createdAt) ?? Infinity);
           add(e.paidByMemberId, e.amountCents);
           for (const split of (e.splits ?? []) as { memberId?: unknown; amountCents?: unknown }[]) {
             add(split.memberId, -(Number(split.amountCents) || 0));
@@ -201,6 +220,7 @@ export const createFirestoreStore = (db: Firestore, defaults: Omit<Prefs, 'muted
             owesCents: -balance,
             currencyCode: typeof gd.currencyCode === 'string' ? gd.currencyCode : 'VND',
             creditors: [...net.values()].filter((v) => v >= 1).length,
+            oldestDays: Number.isFinite(oldest) ? Math.max(0, Math.floor((now.getTime() - oldest) / DAY_MS)) : 0,
           });
         }
       }

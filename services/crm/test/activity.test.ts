@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { loadConfig } from '../src/config/load.ts';
-import { bucket, deliverDeferred, onActivity, onFlush, type ActivityDeps } from '../src/activity.ts';
+import { bucket, deliverDeferred, onActivity, onFlush, toItem, type ActivityDeps } from '../src/activity.ts';
 import type { Device } from '../src/ports.ts';
 import { FakePusher, FakeScheduler, FakeSendLog, FakeStore } from './fakes.ts';
 
@@ -190,4 +190,176 @@ test('a disabled trigger and unknown paths do nothing', async () => {
   await onActivity(s.deps, 'groups/g1/expenses/x1');
   await onActivity(s.deps, undefined);
   assert.equal(s.scheduler.scheduled.length, 0);
+});
+
+// R-9 P8: notification settings v2.
+
+const byDevice = (s: ReturnType<typeof setup>) => Object.fromEntries(s.pusher.sent.map((x) => [x.device.id, x.push.body]));
+
+test('only the kinds of change a user has on are sent (AC26)', async () => {
+  const s = setup();
+  s.store.prefs.set('ub', { activityEvents: { expenseUpdate: false } });
+  await add(s, 'x1', expense('ua', 'A', 100, 'update'));
+  await flush(s);
+  assert.deepEqual(byDevice(s), { c1: 'An edited A · 1 ₫' });
+});
+
+test('a join is sent only to members who turned it on; other group changes never batch', async () => {
+  const s = setup();
+  s.store.prefs.set('ub', { activityEvents: { memberJoin: true } });
+  await add(s, 'x0', { actorUid: 'ua', action: 'update', entityType: 'group', entityId: 'g1', after: { name: 'Đà Lạt 2' } });
+  assert.equal(s.scheduler.scheduled.length, 0);
+  await add(s, 'x1', { actorUid: 'ua', action: 'join', entityType: 'group', entityId: 'g1', before: null, after: {} });
+  await flush(s);
+  assert.deepEqual(byDevice(s), { b1: 'An đã vào nhóm' });
+  const en = setup();
+  en.store.prefs.set('uc', { activityEvents: { memberJoin: true } });
+  await add(en, 'x1', { actorUid: 'ua', action: 'join', entityType: 'group', entityId: 'g1', before: null, after: {} });
+  await flush(en);
+  assert.deepEqual(byDevice(en), { c1: 'An joined the group' });
+});
+
+test('the item carries who the change involves, from after or before (AC27)', () => {
+  const e = toItem('x', {
+    actorUid: 'ua',
+    action: 'create',
+    entityType: 'expense',
+    entityId: 'e1',
+    after: { paidByMemberId: 'm1', splits: [{ memberId: 'm1' }, { memberId: 'm2' }, { memberId: 3 }] },
+  });
+  assert.deepEqual(e?.involved, ['m1', 'm2']);
+  const st = toItem('y', {
+    actorUid: 'ua',
+    action: 'delete',
+    entityType: 'settlement',
+    entityId: 's1',
+    after: null,
+    before: { fromMemberId: 'm3', toMemberId: 'm4' },
+  });
+  assert.deepEqual(st?.involved, ['m3', 'm4']);
+});
+
+const involving = (actorUid: string, title: string, paidBy: string, splits: string[]) => ({
+  ...expense(actorUid, title, 100),
+  after: { title, amountCents: 100, currencyCode: 'VND', paidByMemberId: paidBy, splits: splits.map((memberId) => ({ memberId, amountCents: 50 })) },
+});
+
+test('"only changes that involve me": payer or a share, globally or per group (AC27, AC29)', async () => {
+  const s = setup();
+  s.store.prefs.set('ub', { onlyInvolvingMe: true });
+  s.store.prefs.set('uc', { groups: { g1: { mode: 'involving' } } });
+  await add(s, 'x1', involving('ua', 'Taxi', 'm-ua', ['m-ua', 'm-uc']));
+  await flush(s);
+  assert.deepEqual(byDevice(s), { c1: 'An added Taxi · 1 ₫' });
+
+  const t = setup();
+  t.store.prefs.set('ub', { onlyInvolvingMe: true });
+  t.store.memberIds.set('g1', new Map([['ub', 'member-b']]));
+  await add(t, 'x1', {
+    actorUid: 'ua',
+    action: 'create',
+    entityType: 'settlement',
+    entityId: 's1',
+    after: { amountCents: 100, currencyCode: 'VND', fromMemberId: 'm-ua', toMemberId: 'member-b' },
+  });
+  await flush(t);
+  assert.deepEqual(Object.keys(byDevice(t)).sort(), ['b1', 'c1']);
+});
+
+test('group modes: off, off until a past time, and groups over the legacy mutedGroups (AC29)', async () => {
+  const s = setup();
+  s.store.prefs.set('ua', { groups: { g1: { mode: 'off', offUntil: new Date(NOON.getTime() + 3600_000) } } });
+  s.store.prefs.set('ub', { groups: { g1: { mode: 'off', offUntil: new Date(NOON.getTime() - 60_000) } } });
+  s.store.prefs.set('uc', { mutedGroups: ['g1'], groups: { g1: { mode: 'all' } } });
+  s.store.groups.get('g1')!.memberUids.push('ux');
+  await add(s, 'x1', expense('ux', 'A', 100));
+  await flush(s);
+  assert.deepEqual(Object.keys(byDevice(s)).sort(), ['b1', 'c1']);
+});
+
+test('bundling every 30 minutes holds and merges until the window, then the tick delivers (AC28)', async () => {
+  const s = setup();
+  s.store.prefs.set('uc', { bundle: '30m' });
+  await add(s, 'x1', expense('ua', 'A', 100));
+  await flush(s); // window ends 12:10
+  assert.deepEqual(Object.keys(byDevice(s)), ['b1']);
+  const held = s.store.deferred.get('uc_c1_g1_group-activity')!;
+  assert.equal(held.deliverAfter.toISOString(), '2026-12-01T05:30:00.000Z');
+  s.setNow(new Date('2026-12-01T05:12:00Z'));
+  await add(s, 'x2', expense('ua', 'B', 200));
+  await flush(s); // window ends 12:22, would deliver 12:42: the earlier time stays
+  assert.equal(s.store.deferred.get('uc_c1_g1_group-activity')!.deliverAfter.toISOString(), '2026-12-01T05:30:00.000Z');
+  s.setNow(new Date('2026-12-01T05:25:00Z'));
+  await deliverDeferred(s.deps);
+  assert.equal(s.pusher.sent.filter((x) => x.device.id === 'c1').length, 0);
+  s.setNow(new Date('2026-12-01T05:30:00Z'));
+  await deliverDeferred(s.deps);
+  assert.equal(byDevice(s).c1, '2 new changes');
+});
+
+test('hourly and daily bundles: window + 50 minutes, the next 19:00 on the device (AC28)', async () => {
+  const s = setup();
+  s.store.prefs.set('ub', { bundle: '1h' });
+  s.store.prefs.set('uc', { bundle: 'daily' });
+  await add(s, 'x1', expense('ua', 'A', 100));
+  await flush(s);
+  assert.equal(s.pusher.sent.length, 0);
+  assert.equal(s.store.deferred.get('ub_b1_g1_group-activity')!.deliverAfter.toISOString(), '2026-12-01T06:00:00.000Z');
+  assert.equal(s.store.deferred.get('uc_c1_g1_group-activity')!.deliverAfter.toISOString(), '2026-12-01T12:00:00.000Z');
+});
+
+test('a pause holds group activity until it ends, or later if that is in quiet hours (AC30)', async () => {
+  const s = setup();
+  s.store.prefs.set('ub', { pausedUntil: new Date('2026-12-01T07:00:00Z') }); // 14:00
+  s.store.prefs.set('uc', { pausedUntil: new Date('2026-12-01T15:00:00Z'), bundle: '30m' }); // 22:00
+  await add(s, 'x1', expense('ua', 'A', 100));
+  await flush(s);
+  assert.equal(s.pusher.sent.length, 0);
+  assert.equal(s.store.deferred.get('ub_b1_g1_group-activity')!.deliverAfter.toISOString(), '2026-12-01T07:00:00.000Z');
+  s.setNow(new Date('2026-12-01T07:00:00Z'));
+  await deliverDeferred(s.deps);
+  assert.deepEqual(Object.keys(byDevice(s)), ['b1']);
+  // uc's pause ends at 22:00, in quiet hours: it goes out at 08:00.
+  s.setNow(new Date('2026-12-01T15:00:00Z'));
+  await deliverDeferred(s.deps);
+  assert.deepEqual(Object.keys(byDevice(s)), ['b1']);
+  assert.equal(s.store.deferred.get('uc_c1_g1_group-activity')!.deliverAfter.toISOString(), '2026-12-02T01:00:00.000Z');
+  s.setNow(new Date('2026-12-02T01:00:00Z'));
+  await deliverDeferred(s.deps);
+  assert.deepEqual(Object.keys(byDevice(s)).sort(), ['b1', 'c1']);
+});
+
+test('delivery re-checks quiet hours and a pause set after the hold', async () => {
+  const s = setup(new Date('2026-12-01T13:30:00Z')); // 20:30
+  s.store.prefs.set('ub', { bundle: '1h' });
+  s.store.prefs.set('uc', { bundle: '30m' });
+  await add(s, 'x1', expense('ua', 'A', 100));
+  await flush(s); // window ends 20:40
+  s.store.prefs.set('uc', { bundle: '30m', pausedUntil: new Date('2026-12-01T16:00:00Z') });
+  s.setNow(new Date('2026-12-01T14:30:00Z')); // 21:30: quiet hours for ub, uc paused
+  await deliverDeferred(s.deps);
+  assert.equal(s.pusher.sent.length, 0);
+  assert.equal(s.store.deferred.get('ub_b1_g1_group-activity')!.deliverAfter.toISOString(), '2026-12-02T01:00:00.000Z');
+  assert.equal(s.store.deferred.get('uc_c1_g1_group-activity')!.deliverAfter.toISOString(), '2026-12-02T01:00:00.000Z');
+});
+
+test('a user’s longer quiet hours hold the push until their end (AC31)', async () => {
+  const s = setup(new Date('2026-12-01T13:30:00Z')); // 20:30
+  s.store.prefs.set('uc', { quietHours: { from: '20:00', to: '09:00' } });
+  await add(s, 'x1', expense('ua', 'A', 100));
+  await flush(s);
+  assert.deepEqual(Object.keys(byDevice(s)), ['b1']);
+  assert.equal(s.store.deferred.get('uc_c1_g1_group-activity')!.deliverAfter.toISOString(), '2026-12-02T02:00:00.000Z');
+});
+
+test('choices changed while held apply at delivery (AC34)', async () => {
+  const s = setup();
+  s.store.prefs.set('uc', { bundle: '30m' });
+  await add(s, 'x1', expense('ua', 'A', 100));
+  await flush(s);
+  s.store.prefs.set('uc', { bundle: '30m', groups: { g1: { mode: 'off' } } });
+  s.setNow(new Date('2026-12-01T05:30:00Z'));
+  await deliverDeferred(s.deps);
+  assert.deepEqual(Object.keys(byDevice(s)), ['b1']);
+  assert.equal(s.store.deferred.size, 0);
 });

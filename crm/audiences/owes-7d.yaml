@@ -1,0 +1,6 @@
+id: owes-7d
+description: Owes money in an open group for more than a week
+match: all
+rules:
+  - { trait: owes_groups, op: gte, value: 1 }
+  - { trait: oldest_unsettled_days, op: gt, value: 7 }
