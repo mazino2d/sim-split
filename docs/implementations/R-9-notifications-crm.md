@@ -1,6 +1,6 @@
 # R-9 Notifications and CRM as code — implementation plan
 
-Status: in progress (P1–P4, P6 and P5 except the dashboard done)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
+Status: shipped in 2026.11.23 (P1–P6 and P8 done; P7 email dropped)   ·   Spec: [R-9](../product/specs/R-9-notifications-crm.md)   ·   Written 2026-11-21
 
 How R-9 gets built. One new service, `services/crm`, sends every message. Its config
 lives in `crm/` in this repo. The traits that audiences select on come from a dbt model
@@ -129,8 +129,8 @@ the sender sets `webpush.fcm_options.link` to the web app's origin plus that rou
 | ~~P7 Email~~ | — | Dropped 2026-11-22: no domain of our own and no third-party sender for a handful of messages; policy changes reach users in the app | — | — |
 | P8 Settings v2 | sim-split, everything-as-code | More control with the same calm defaults: see § P8 below (P8a sender, P8b screens) | AC26–AC35 | 4.5 days |
 
-The app side (P2 devices and settings, the P5 in-app banner, the P8b screens) reaches
-production in 2026.11.23; the sender already runs on prd.
+The app side (P2 devices and settings, the P5 in-app banner, the P8b screens) reached
+production in 2026.11.23; the sender runs on prd since 2026-11-22.
 
 Done so far: P1 infrastructure in everything-as-code #259 (dev and prd), P1 code in
 this repo (`crm/`, `services/crm`, the CRM config check and `crm_deploy.yml`). P3 in
