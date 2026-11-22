@@ -10,6 +10,7 @@ import 'package:simsplit/domain/entities/notifications/notification_category.dar
 import 'package:simsplit/domain/entities/notifications/notification_open.dart';
 import 'package:simsplit/domain/entities/notifications/notification_setup.dart';
 import 'package:simsplit/domain/failures/core_failure.dart';
+import 'package:simsplit/domain/failures/notification_failure.dart';
 import 'package:simsplit/domain/repositories/notification_repository.dart';
 
 /// Push through Firebase Cloud Messaging (R-9 P2).
@@ -192,6 +193,34 @@ class FirebaseNotificationRepository implements NotificationRepository {
       // ignore: deprecated_member_use
       ? _messaging().onTokenRefresh.map((_) => unit)
       : const Stream.empty();
+
+  @override
+  Future<Either<Failure, Unit>> requestTestNotification() async {
+    final uid = _currentUid();
+    if (!_supported || uid == null) {
+      return left(const NotificationFailure.deviceNotRegistered());
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getString(deviceIdKey);
+    if (id == null || prefs.getString(registeredKey(uid)) == null) {
+      return left(const NotificationFailure.deviceNotRegistered());
+    }
+    try {
+      // Only this field changes; the rules check it is the server time.
+      await _device(uid, id)
+          .update({'testRequestedAt': FieldValue.serverTimestamp()}).timeout(
+              _writeTimeout);
+      return right(unit);
+    } on FirebaseException catch (e) {
+      if (e.code == 'not-found') {
+        await prefs.remove(registeredKey(uid));
+        return left(const NotificationFailure.deviceNotRegistered());
+      }
+      return left(Failure.unexpected('${e.code} ${e.message}'));
+    } on TimeoutException {
+      return left(const Failure.unexpected('test request timed out'));
+    }
+  }
 
   @override
   Future<Either<Failure, Unit>> unregisterDevice() async {

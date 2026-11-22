@@ -14,7 +14,8 @@ import 'package:simsplit/presentation/utils/tracking.dart';
 part 'notification_notifier.g.dart';
 
 /// Notification actions (R-9): asking for the permission, the switches in
-/// Settings → Notifications and muting a group. Methods return the use
+/// Settings → Notifications and below, a group's notifications and the
+/// test notification. Methods return the use
 /// case result; [state] only reflects loading.
 @riverpod
 class NotificationNotifier extends _$NotificationNotifier {
@@ -72,12 +73,29 @@ class NotificationNotifier extends _$NotificationNotifier {
     return _run(TelemetryEvent.opDismissAnnouncement, () => useCase(id));
   }
 
-  Future<Either<Failure, Unit>> setGroupMuted(String groupId, bool muted) {
-    final useCase = ref.read(setGroupMutedProvider);
+  /// One choice below the first Notifications screen (AC26–AC32), recorded
+  /// with the choice as its result.
+  Future<Either<Failure, Unit>> change(NotificationPrefsChange change) {
+    final useCase = ref.read(updateNotificationPrefsProvider);
     final current = ref.read(notificationPrefsProvider).value;
-    return _run(
-        muted ? TelemetryEvent.opMuteGroup : TelemetryEvent.opUnmuteGroup,
-        () => useCase(
-            SetGroupMutedParams(groupId, muted: muted, current: current)));
+    final event = switch (change) {
+      ActivityEventChange() => TelemetryEvent.opSetActivityEvent,
+      OnlyInvolvingMeChange() => TelemetryEvent.opSetOnlyInvolvingMe,
+      BundleChange() => TelemetryEvent.opSetNotificationBundle,
+      GroupChange() => TelemetryEvent.opSetGroupNotifications,
+      PauseChange() => TelemetryEvent.opPauseNotifications,
+      QuietHoursChange() => TelemetryEvent.opSetQuietHours,
+      SettleReminderChange() => TelemetryEvent.opSetSettleReminder,
+    };
+    return _run(event,
+        () => useCase(UpdateNotificationPrefsParams(change, current: current)),
+        successResult: (_) => change.usageResult);
+  }
+
+  /// "Send a test notification" on the Diagnostics screen (AC33).
+  Future<Either<Failure, Unit>> requestTestNotification() {
+    final useCase = ref.read(requestTestNotificationProvider);
+    return _run(TelemetryEvent.opRequestTestNotification,
+        () => useCase(const NoParams()));
   }
 }

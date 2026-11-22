@@ -21,6 +21,7 @@ import 'package:simsplit/presentation/screens/groups/group_list_screen.dart';
 import 'package:simsplit/presentation/screens/groups/join_group_screen.dart';
 import 'package:simsplit/presentation/screens/members/member_form_screen.dart';
 import 'package:simsplit/presentation/screens/settings/diagnostics_screen.dart';
+import 'package:simsplit/presentation/screens/settings/notification_detail_screens.dart';
 import 'package:simsplit/presentation/screens/settings/notifications_screen.dart';
 import 'package:simsplit/presentation/screens/settings/settings_screen.dart';
 import 'package:simsplit/presentation/screens/settlements/settlement_form_screen.dart';
@@ -138,6 +139,32 @@ GoRouter _buildRouter({
                 GoRoute(
                   path: 'notifications',
                   builder: (context, state) => const NotificationsScreen(),
+                  routes: [
+                    GoRoute(
+                      path: 'pause',
+                      builder: (context, state) =>
+                          const NotificationPauseScreen(),
+                    ),
+                    GoRoute(
+                      path: 'activity',
+                      builder: (context, state) =>
+                          const GroupActivitySettingsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'settle',
+                      builder: (context, state) =>
+                          const SettleReminderSettingsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'quiet-hours',
+                      builder: (context, state) => const QuietHoursScreen(),
+                    ),
+                    GoRoute(
+                      path: 'groups',
+                      builder: (context, state) =>
+                          const GroupNotificationsListScreen(),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -208,6 +235,11 @@ GoRouter _buildRouter({
                     return MemberFormScreen(
                         groupId: groupId, editMember: member);
                   },
+                ),
+                GoRoute(
+                  path: 'notifications',
+                  builder: (context, state) => GroupNotificationsScreen(
+                      groupId: state.pathParameters['groupId']!),
                 ),
                 GoRoute(
                   path: 'activity',

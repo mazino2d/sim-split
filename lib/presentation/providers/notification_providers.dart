@@ -44,6 +44,30 @@ Stream<NotificationPrefs> notificationPrefs(Ref ref) {
       );
 }
 
+/// The device clock for notification choices ("until 08:00 tomorrow",
+/// whether a pause or an "Off until" has ended); tests override it.
+@riverpod
+DateTime Function() notificationClock(Ref ref) => DateTime.now;
+
+/// Moves the groups muted before settings v2 into per-group choices
+/// (R-9 AC29) whenever the account still has some, e.g. muted from an older
+/// build. Watch it once from the app root.
+@Riverpod(keepAlive: true)
+void mutedGroupsMigrationRunner(Ref ref) {
+  if (!ref.watch(authAvailableProvider)) return;
+  var running = false;
+  ref.listen(notificationPrefsProvider, (_, next) async {
+    final prefs = next.value;
+    if (prefs == null || prefs.legacyMutedGroups.isEmpty || running) return;
+    running = true;
+    final track = ref.read(trackEventProvider);
+    final result = await trackOp(track, TelemetryEvent.opMigrateMutedGroups,
+        () => ref.read(migrateMutedGroupsProvider)(prefs));
+    running = false;
+    result.fold((f) => debugPrint('[push] muted groups not moved: $f'), (_) {});
+  }, fireImmediately: true);
+}
+
 /// The in-app banner to show on the home screen (R-9 AC12), or null.
 @riverpod
 Stream<Announcement?> currentAnnouncement(Ref ref) {

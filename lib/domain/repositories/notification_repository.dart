@@ -40,6 +40,12 @@ abstract interface class NotificationRepository {
   /// Emits when the push token changes, so the device registers again.
   Stream<Unit> tokenRefreshes();
 
+  /// Asks the sender for one test push to this device (AC33) by stamping
+  /// `testRequestedAt` on its document. Fails with
+  /// `NotificationFailure.deviceNotRegistered` when this device is not
+  /// registered with the account.
+  Future<Either<Failure, Unit>> requestTestNotification();
+
   /// Removes this device from the signed-in account (sign-out, AC23).
   Future<Either<Failure, Unit>> unregisterDevice();
 

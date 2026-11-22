@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simsplit/data/notifications/firebase_notification_repository.dart';
 import 'package:simsplit/domain/entities/notifications/notification_category.dart';
 import 'package:simsplit/domain/entities/notifications/notification_setup.dart';
+import 'package:simsplit/domain/failures/notification_failure.dart';
 import 'package:simsplit/domain/repositories/notification_repository.dart';
 
 class _MockMessaging extends Mock implements FirebaseMessaging {}
@@ -164,6 +165,30 @@ void main() {
     expect(result.isRight(), isTrue);
     expect(await devices('alice'), isEmpty);
     expect(await devices('bob'), hasLength(1));
+  });
+
+  group('a test notification (R-9 AC33)', () {
+    test('stamps testRequestedAt on this device, and nothing else', () async {
+      await repo().registerDevice('vi');
+      final before = (await devices('alice')).single;
+
+      final result = await repo().requestTestNotification();
+
+      expect(result.isRight(), isTrue);
+      final after = (await devices('alice')).single;
+      expect(after.containsKey('testRequestedAt'), isTrue);
+      expect(after..remove('testRequestedAt'), before);
+    });
+
+    test('fails on a device that is not registered', () async {
+      final result = await repo().requestTestNotification();
+      expect(result.getLeft().toNullable(),
+          isA<NotificationDeviceNotRegistered>());
+      expect(await devices('alice'), isEmpty);
+
+      final unsupported = await repo(platform: null).requestTestNotification();
+      expect(unsupported.isLeft(), isTrue);
+    });
   });
 
   group('permission', () {

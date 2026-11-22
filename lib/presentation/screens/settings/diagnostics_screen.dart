@@ -7,6 +7,9 @@ import 'package:simsplit/core/constants/app_links.dart';
 import 'package:simsplit/core/l10n/generated/app_localizations.dart';
 import 'package:simsplit/domain/entities/telemetry/error_report_settings.dart';
 import 'package:simsplit/presentation/notifiers/error_reports_notifier.dart';
+import 'package:simsplit/presentation/notifiers/notification_notifier.dart';
+import 'package:simsplit/presentation/providers/notification_providers.dart';
+import 'package:simsplit/presentation/utils/failure_message.dart';
 import 'package:simsplit/presentation/providers/telemetry_providers.dart';
 import 'package:simsplit/presentation/theme/app_theme.dart';
 import 'package:simsplit/domain/entities/telemetry/telemetry_event.dart';
@@ -14,7 +17,8 @@ import 'package:simsplit/presentation/utils/tracking.dart';
 
 /// Debug details kept out of the main Settings list (R-4 AC25–AC27): the
 /// error report switch, the report ID testers quote, the app version and
-/// platform, and how many reports wait to be sent. Opened from the wrench
+/// platform, how many reports wait to be sent, and "Send a test
+/// notification" where push is offered (R-9 AC33). Opened from the wrench
 /// in the Settings app bar.
 class DiagnosticsScreen extends ConsumerWidget {
   const DiagnosticsScreen({super.key});
@@ -26,6 +30,22 @@ class DiagnosticsScreen extends ConsumerWidget {
     final settings = ref.watch(errorReportSettingsProvider).value;
     // Keep the notifier alive while the switch saves.
     final busy = ref.watch(errorReportsProvider).isLoading;
+    final push = ref.watch(notificationSetupProvider).value;
+    // Keeps the notifier alive while the request saves.
+    final requesting = push != null &&
+        push.supported &&
+        ref.watch(notificationProvider).isLoading;
+
+    Future<void> sendTest() async {
+      final messenger = ScaffoldMessenger.of(context);
+      final result = await ref
+          .read(notificationProvider.notifier)
+          .requestTestNotification();
+      messenger.showSnackBar(SnackBar(
+        content: Text(result.fold((failure) => failureMessage(failure, l10n),
+            (_) => l10n.testNotificationRequested)),
+      ));
+    }
 
     Future<void> copy(String text) async {
       final messenger = ScaffoldMessenger.of(context);
@@ -120,6 +140,20 @@ class DiagnosticsScreen extends ConsumerWidget {
                   title: Text(l10n.errorReportsWaiting),
                   trailing: Text('${settings.waitingCount}'),
                 ),
+                if (push != null && push.supported)
+                  ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: AppTheme.gutter),
+                    leading: const Icon(Icons.notifications_none_outlined),
+                    title: Text(l10n.sendTestNotification),
+                    subtitle: Text(push.active
+                        ? l10n.sendTestNotificationHint
+                        : l10n.errorTestNotificationNotRegistered),
+                    enabled: push.active && !requesting,
+                    onTap: context.tracked(
+                        TelemetryEvent.tapSendTestNotification,
+                        push.active && !requesting ? sendTest : null),
+                  ),
               ],
             ),
     );

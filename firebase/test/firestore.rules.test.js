@@ -15,12 +15,14 @@ import {
   arrayUnion,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
   query,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   where,
   writeBatch,
@@ -570,6 +572,133 @@ describe('notification preferences (R-9 AC3, AC4)', () => {
   });
 });
 
+describe('notification preferences v2 (R-9 AC26–AC32)', () => {
+  const set = (changes, uid = 'alice') => updateDoc(doc(db(uid), 'users/alice'), changes);
+  const inHours = (h) => Timestamp.fromMillis(Date.now() + h * 3600 * 1000);
+
+  test('event switches: the five known events, as bools', async () => {
+    await assertSucceeds(set({ 'notificationPrefs.activityEvents.expenseDelete': false }));
+    await assertSucceeds(set({ 'notificationPrefs.activityEvents.memberJoin': true }));
+    await assertSucceeds(set({
+      'notificationPrefs.activityEvents': {
+        expenseCreate: true, expenseUpdate: false, expenseDelete: true, settlement: false, memberJoin: true,
+      },
+    }));
+    await assertFails(set({ 'notificationPrefs.activityEvents.expenseRename': true }));
+    await assertFails(set({ 'notificationPrefs.activityEvents.settlement': 'off' }));
+    await assertFails(set({ 'notificationPrefs.activityEvents': true }));
+  });
+
+  test('only involving me is a bool and the bundle one of four', async () => {
+    await assertSucceeds(set({ 'notificationPrefs.onlyInvolvingMe': true }));
+    for (const bundle of ['10m', '30m', '1h', 'daily']) {
+      await assertSucceeds(set({ 'notificationPrefs.bundle': bundle }));
+    }
+    await assertFails(set({ 'notificationPrefs.onlyInvolvingMe': 'yes' }));
+    await assertFails(set({ 'notificationPrefs.bundle': '5m' }));
+    await assertFails(set({ 'notificationPrefs.bundle': 10 }));
+  });
+
+  test('a group is all, involving or off, optionally until a time', async () => {
+    await assertSucceeds(set({ 'notificationPrefs.groups.g1': { mode: 'involving' } }));
+    await assertSucceeds(set({ 'notificationPrefs.groups.g2': { mode: 'off' } }));
+    await assertSucceeds(set({ 'notificationPrefs.groups.g3': { mode: 'off', offUntil: inHours(20) } }));
+    await assertSucceeds(set({ 'notificationPrefs.groups.g1': { mode: 'all' } }));
+    // Back to All activity removes the entry.
+    await assertSucceeds(set({ 'notificationPrefs.groups.g1': deleteField() }));
+
+    await assertFails(set({ 'notificationPrefs.groups.g4': { mode: 'mute' } }));
+    await assertFails(set({ 'notificationPrefs.groups.g4': { mode: 'off', offUntil: '08:00' } }));
+    await assertFails(set({ 'notificationPrefs.groups.g4': { mode: 'off', offUntil: inHours(24 * 3) } }));
+    await assertFails(set({ 'notificationPrefs.groups.g4': { mode: 'off', extra: true } }));
+    await assertFails(set({ 'notificationPrefs.groups.g4': { offUntil: inHours(1) } }));
+    await assertFails(set({ 'notificationPrefs.groups.g4': 'off' }));
+    await assertFails(set({ 'notificationPrefs.groups': ['g1'] }));
+    // Changing an existing group to a bad value fails too.
+    await assertFails(set({ 'notificationPrefs.groups.g2': { mode: 'loud' } }));
+    // Two different new values in one write can't be checked, so they fail.
+    await assertFails(set({
+      'notificationPrefs.groups.g5': { mode: 'all' },
+      'notificationPrefs.groups.g6': { mode: 'involving' },
+    }));
+  });
+
+  test('legacy mutedGroups move to groups as off in one write', async () => {
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await updateDoc(doc(admin.firestore(), 'users/alice'), {
+        'notificationPrefs.mutedGroups': ['g1', 'g2', 'g3'],
+        'notificationPrefs.groups': { g9: { mode: 'involving' } },
+      });
+    });
+    await assertSucceeds(set({
+      'notificationPrefs.groups.g1': { mode: 'off' },
+      'notificationPrefs.groups.g2': { mode: 'off' },
+      'notificationPrefs.groups.g3': { mode: 'off' },
+      'notificationPrefs.mutedGroups': deleteField(),
+    }));
+    // Documents that still have the old list stay writable.
+    await env.withSecurityRulesDisabled(async (admin) => {
+      await updateDoc(doc(admin.firestore(), 'users/alice'), { 'notificationPrefs.mutedGroups': ['g7'] });
+    });
+    await assertSucceeds(set({ 'notificationPrefs.bundle': '1h' }));
+  });
+
+  test('at most 200 groups', async () => {
+    const groups = Object.fromEntries(Array.from({ length: 200 }, (_, i) => [`g${i}`, { mode: 'off' }]));
+    await assertSucceeds(set({ 'notificationPrefs.groups': groups }));
+    await assertFails(set({ 'notificationPrefs.groups.one-more': { mode: 'off' } }));
+    await assertSucceeds(set({ 'notificationPrefs.groups.g0': { mode: 'involving' } }));
+  });
+
+  test('a pause ends at a time at most a week (and a day) away; resume deletes it', async () => {
+    await assertSucceeds(set({ 'notificationPrefs.pausedUntil': inHours(1) }));
+    await assertSucceeds(set({ 'notificationPrefs.pausedUntil': inHours(24 * 7) }));
+    await assertSucceeds(set({ 'notificationPrefs.pausedUntil': deleteField() }));
+    await assertFails(set({ 'notificationPrefs.pausedUntil': inHours(24 * 9) }));
+    await assertFails(set({ 'notificationPrefs.pausedUntil': '2026-12-01' }));
+    await assertFails(set({ 'notificationPrefs.pausedUntil': Date.now() }));
+  });
+
+  test('quiet hours can only be longer than 21:00–08:00', async () => {
+    await assertSucceeds(set({ 'notificationPrefs.quietHours': { from: '21:00', to: '08:00' } }));
+    await assertSucceeds(set({ 'notificationPrefs.quietHours': { from: '19:00', to: '10:00' } }));
+    await assertSucceeds(set({ 'notificationPrefs.quietHours': { from: '12:00', to: '12:00' } }));
+    await assertSucceeds(set({ 'notificationPrefs.quietHours': { from: '20:30', to: '09:45' } }));
+    await assertSucceeds(set({ 'notificationPrefs.quietHours': deleteField() }));
+
+    await assertFails(set({ 'notificationPrefs.quietHours': { from: '22:00', to: '08:00' } }));
+    await assertFails(set({ 'notificationPrefs.quietHours': { from: '21:30', to: '08:00' } }));
+    await assertFails(set({ 'notificationPrefs.quietHours': { from: '21:00', to: '07:00' } }));
+    await assertFails(set({ 'notificationPrefs.quietHours': { from: '11:59', to: '08:00' } }));
+    await assertFails(set({ 'notificationPrefs.quietHours': { from: '21:00', to: '12:30' } }));
+    await assertFails(set({ 'notificationPrefs.quietHours': { from: '9:00 pm', to: '08:00' } }));
+    await assertFails(set({ 'notificationPrefs.quietHours': { from: '21:00' } }));
+    await assertFails(set({ 'notificationPrefs.quietHours': { from: '21:00', to: '08:00', tz: 'UTC' } }));
+    await assertFails(set({ 'notificationPrefs.quietHours': { from: 2100, to: 800 } }));
+  });
+
+  test('settle reminders: a day, a time 08:00–21:00 and 7, 14 or 30 days', async () => {
+    await assertSucceeds(set({ 'notificationPrefs.settle': { day: 0, time: '19:00', minDays: 14 } }));
+    await assertSucceeds(set({ 'notificationPrefs.settle': { day: 6, time: '08:00', minDays: 7 } }));
+    await assertSucceeds(set({ 'notificationPrefs.settle': { day: 3, time: '21:00', minDays: 30 } }));
+    await assertSucceeds(set({ 'notificationPrefs.settle': { day: 3, time: '20:30', minDays: 30 } }));
+
+    await assertFails(set({ 'notificationPrefs.settle': { day: 7, time: '19:00', minDays: 14 } }));
+    await assertFails(set({ 'notificationPrefs.settle': { day: -1, time: '19:00', minDays: 14 } }));
+    await assertFails(set({ 'notificationPrefs.settle': { day: 1.5, time: '19:00', minDays: 14 } }));
+    await assertFails(set({ 'notificationPrefs.settle': { day: 0, time: '07:59', minDays: 14 } }));
+    await assertFails(set({ 'notificationPrefs.settle': { day: 0, time: '21:01', minDays: 14 } }));
+    await assertFails(set({ 'notificationPrefs.settle': { day: 0, time: '19:00', minDays: 10 } }));
+    await assertFails(set({ 'notificationPrefs.settle': { day: 0, time: '19:00' } }));
+    await assertFails(set({ 'notificationPrefs.settle': { day: 0, time: '19:00', minDays: 14, extra: 1 } }));
+  });
+
+  test("nobody changes someone else's v2 choices", async () => {
+    await assertFails(set({ 'notificationPrefs.bundle': 'daily' }, 'bob'));
+    await assertFails(set({ 'notificationPrefs.groups.g1': { mode: 'off' } }, 'bob'));
+  });
+});
+
 describe('push devices (R-9 AC23)', () => {
   const device = (extra = {}) => ({
     token: 'fcm-token',
@@ -623,6 +752,26 @@ describe('push devices (R-9 AC23)', () => {
     await assertFails(put(device({ appVersion: 'x'.repeat(41) })));
     await assertFails(put(device({ updatedAt: 1 })));
     await assertFails(setDoc(doc(fs, `users/alice/devices/${'d'.repeat(65)}`), device()));
+  });
+
+  test('a test notification request stamps only testRequestedAt with the server time (AC33)', async () => {
+    const fs = db('alice');
+    const ref = doc(fs, 'users/alice/devices/d1');
+    await assertSucceeds(setDoc(ref, device()));
+    await assertSucceeds(updateDoc(ref, { testRequestedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { testRequestedAt: serverTimestamp() }));
+    // Registering again replaces the document, without the stamp.
+    await assertSucceeds(setDoc(ref, device({ locale: 'en' })));
+
+    await assertFails(updateDoc(ref, { testRequestedAt: Timestamp.fromMillis(Date.now() - 60000) }));
+    await assertFails(updateDoc(ref, { testRequestedAt: 1 }));
+    await assertFails(updateDoc(ref, { testRequestedAt: serverTimestamp(), token: 'other' }));
+    await assertFails(updateDoc(doc(db('bob'), 'users/alice/devices/d1'), { testRequestedAt: serverTimestamp() }));
+    // Only on a registered device.
+    await assertFails(setDoc(doc(fs, 'users/alice/devices/d2'), { testRequestedAt: serverTimestamp() }));
+    await assertSucceeds(setDoc(doc(fs, 'users/alice/devices/d3'), device({ testRequestedAt: serverTimestamp() })));
+    await assertFails(setDoc(doc(fs, 'users/alice/devices/d4'), device({ testRequestedAt: 1 })));
+    await assertFails(setDoc(doc(fs, 'users/alice/devices/d5'), device({ testRequestedAt: Timestamp.fromMillis(Date.now() - 60000) })));
   });
 
   test('the account deletes its devices before its profile', async () => {

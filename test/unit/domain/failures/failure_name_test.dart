@@ -46,6 +46,8 @@ const _all = <Failure>[
   MemberFailure.notInGroup(),
   MemberFailure.hasHistory(),
   NotificationFailure.tooManyMutedGroups(),
+  NotificationFailure.invalidChoice(),
+  NotificationFailure.deviceNotRegistered(),
   SettlementFailure.notFound(),
   SettlementFailure.memberHasUnsettledDebts(),
   SettlementFailure.amountExceedsDebt(),

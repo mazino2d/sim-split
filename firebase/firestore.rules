@@ -220,16 +220,83 @@ service cloud.firestore {
     }
 
     // R-9: what the account wants to be notified about. Every field is
-    // optional (a missing one is the default in crm/categories.yaml); the
-    // sender reads it at send time.
-    function validNotificationPrefs(p) {
+    // optional (a missing one is its default: crm/categories.yaml for the
+    // switches, docs/implementations/R-9-notifications-crm.md § P8 for the
+    // rest); the sender reads it at send time. `mutedGroups` is the list
+    // before settings v2 (P8): still accepted, no longer written by the app.
+    function validNotificationPrefs(p, before) {
       return p is map
-        && p.keys().hasOnly(['groupActivity', 'settleReminder', 'updates', 'mutedGroups'])
+        && p.keys().hasOnly(['groupActivity', 'settleReminder', 'updates', 'mutedGroups',
+            'activityEvents', 'onlyInvolvingMe', 'bundle', 'groups', 'pausedUntil',
+            'quietHours', 'settle'])
         && p.get('groupActivity', false) is bool
         && p.get('settleReminder', false) is bool
         && p.get('updates', false) is bool
         && p.get('mutedGroups', []) is list
-        && p.get('mutedGroups', []).size() <= 200;
+        && p.get('mutedGroups', []).size() <= 200
+        && validActivityEvents(p.get('activityEvents', {}))
+        && p.get('onlyInvolvingMe', false) is bool
+        && p.get('bundle', '10m') in ['10m', '30m', '1h', 'daily']
+        && validGroupChoices(p.get('groups', {}),
+            before is map ? before.get('groups', {}) : {})
+        // A pause is at most a week long (with a day's slack for the clock).
+        && (!('pausedUntil' in p) || (p.pausedUntil is timestamp
+          && p.pausedUntil <= request.time + duration.value(8, 'd')))
+        && (!('quietHours' in p) || validQuietHours(p.quietHours))
+        && (!('settle' in p) || validSettle(p.settle));
+    }
+
+    function validActivityEvents(e) {
+      return e is map
+        && e.keys().hasOnly(['expenseCreate', 'expenseUpdate', 'expenseDelete',
+            'settlement', 'memberJoin'])
+        && e.get('expenseCreate', true) is bool
+        && e.get('expenseUpdate', true) is bool
+        && e.get('expenseDelete', true) is bool
+        && e.get('settlement', true) is bool
+        && e.get('memberJoin', false) is bool;
+    }
+
+    // One group's choice: all, only involving me, or off (until a time).
+    function validGroupChoice(c) {
+      return c is map
+        && c.keys().hasAll(['mode'])
+        && c.keys().hasOnly(['mode', 'offUntil'])
+        && c.mode in ['all', 'involving', 'off']
+        && (!('offUntil' in c) || (c.offUntil is timestamp
+          && c.offUntil <= request.time + duration.value(2, 'd')));
+    }
+
+    // groupId -> choice, at most 200. Rules can't loop over a map, so the
+    // values this write adds or changes (those not among the values before)
+    // must all be the same one, which is checked: the app changes one group
+    // at a time, or moves muted groups, all {mode: 'off'}, at once.
+    function validGroupChoices(g, before) {
+      let added = g is map && before is map ? g.values().removeAll(before.values()) : [];
+      return g is map
+        && g.size() <= 200
+        && (added.size() == 0
+          || (added.toSet().size() == 1 && validGroupChoice(added[0])));
+    }
+
+    // Only longer than the policy's 21:00-08:00: from 12:00-21:00, to 08:00-12:00.
+    function validQuietHours(q) {
+      return q is map
+        && q.keys().hasOnly(['from', 'to'])
+        && q.keys().hasAll(['from', 'to'])
+        && q.from is string && q.from.matches('(1[2-9]|20):[0-5][0-9]|21:00')
+        && q.to is string && q.to.matches('(0[89]|1[01]):[0-5][0-9]|12:00');
+    }
+
+    // The weekly settle reminder: day 0-6 (0 = Sunday), time 08:00-21:00,
+    // debts older than 7, 14 or 30 days.
+    function validSettle(s) {
+      return s is map
+        && s.keys().hasOnly(['day', 'time', 'minDays'])
+        && s.keys().hasAll(['day', 'time', 'minDays'])
+        && s.day is int && s.day >= 0 && s.day <= 6
+        && s.time is string && s.time.matches('(0[89]|1[0-9]|20):[0-5][0-9]|21:00')
+        && s.minDays in [7, 14, 30];
     }
 
     // R-4: the account's profile and the privacy policy revision it agreed
@@ -246,7 +313,8 @@ service cloud.firestore {
             && request.resource.data.memberName.size() > 0
             && request.resource.data.memberName.size() <= 80))
         && (!('notificationPrefs' in changedKeys())
-          || validNotificationPrefs(request.resource.data.notificationPrefs))
+          || validNotificationPrefs(request.resource.data.notificationPrefs,
+            resource.data.get('notificationPrefs', {})))
         && (!('dismissedAnnouncements' in changedKeys())
           || (request.resource.data.dismissedAnnouncements is list
             && request.resource.data.dismissedAnnouncements.size() <= 100));
@@ -268,7 +336,7 @@ service cloud.firestore {
       function validDevice() {
         let d = request.resource.data;
         return d.keys().hasOnly(['token', 'platform', 'locale', 'tzName',
-            'tzOffsetMinutes', 'appVersion', 'updatedAt'])
+            'tzOffsetMinutes', 'appVersion', 'updatedAt', 'testRequestedAt'])
           && d.keys().hasAll(['token', 'platform', 'locale', 'tzName',
             'tzOffsetMinutes', 'appVersion', 'updatedAt'])
           && d.token is string && d.token.size() > 0 && d.token.size() <= 4096
@@ -278,12 +346,23 @@ service cloud.firestore {
           && d.tzOffsetMinutes is int
           && d.tzOffsetMinutes >= -720 && d.tzOffsetMinutes <= 840
           && d.appVersion is string && d.appVersion.size() > 0 && d.appVersion.size() <= 40
-          && d.updatedAt == request.time;
+          && d.updatedAt == request.time
+          && (!('testRequestedAt' in d) || d.testRequestedAt == request.time);
+      }
+
+      // R-9 AC33: "Send a test notification" stamps only this field with the
+      // server time; the sender pushes once and limits how often.
+      function testRequest() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['testRequestedAt'])
+          && request.resource.data.testRequestedAt == request.time;
       }
 
       allow read, delete: if signedIn() && request.auth.uid == uid;
-      allow create, update: if signedIn() && request.auth.uid == uid
+      allow create: if signedIn() && request.auth.uid == uid
         && deviceId.size() <= 64 && validDevice();
+      allow update: if signedIn() && request.auth.uid == uid
+        && deviceId.size() <= 64 && (validDevice() || testRequest());
     }
 
     // R-9 AC12: in-app banners, written only by services/crm (Admin SDK).
