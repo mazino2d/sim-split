@@ -1,5 +1,8 @@
 # Kinds of messages; each is one switch in Settings → Notifications and one
 # Android notification channel. Only a per-group category may default to on.
+# A per-group category may list `events`: kinds of change, each with its own
+# switch one level down (R-9 AC26). An event's pref key in
+# notificationPrefs.activityEvents is its camelCase id.
 - id: group_activity
   default: "on"
   per_group: true
@@ -9,6 +12,32 @@
   description:
     en: When friends add, edit or settle expenses in your groups
     vi: Khi bạn bè thêm, sửa hoặc thanh toán khoản chi trong nhóm của bạn
+  events:
+    - id: expense_create
+      default: "on"
+      name:
+        en: New expenses
+        vi: Khoản chi mới
+    - id: expense_update
+      default: "on"
+      name:
+        en: Edited expenses
+        vi: Sửa khoản chi
+    - id: expense_delete
+      default: "on"
+      name:
+        en: Deleted expenses
+        vi: Xoá khoản chi
+    - id: settlement
+      default: "on"
+      name:
+        en: Settlements
+        vi: Thanh toán
+    - id: member_join
+      default: "off"
+      name:
+        en: Members joining
+        vi: Thành viên mới vào nhóm
 
 - id: settle_reminder
   default: "off"

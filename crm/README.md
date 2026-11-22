@@ -8,7 +8,7 @@ Every message SimSplit sends, who gets it and the limits that keep it calm.
 | Path | What it holds |
 | --- | --- |
 | `policy.yaml` | Kill switch, quiet hours, weekly cap. Can be stricter than `services/crm/src/calm.ts`, never looser |
-| `categories.yaml` | Kinds of messages. Each is a switch in Settings → Notifications and an Android channel |
+| `categories.yaml` | Kinds of messages. Each is a switch in Settings → Notifications and an Android channel; a per-group one may list `events`, kinds of change with their own switch |
 | `traits.yaml` | The user traits audiences may use (dbt model `simsplit_crm.user_traits`) |
 | `triggers/` | Messages sent when something happens in a group (activity entries) |
 | `schedules/` | Recurring messages, in device time, at most weekly |

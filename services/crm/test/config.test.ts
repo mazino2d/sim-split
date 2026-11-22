@@ -87,6 +87,26 @@ test('only per-group categories may default to on', () => {
   assert.match(problemsOf({ 'categories.yaml': categories }).join('\n'), /updates: only a per-group category/);
 });
 
+test('event switches: unique, known, and only in a per-group category (AC26)', () => {
+  const { config } = loadConfig(REPO_CRM);
+  const events = config!.categories.find((c) => c.id === 'group_activity')!.events!;
+  assert.deepEqual(
+    events.map((e) => [e.id, e.default]),
+    [['expense_create', 'on'], ['expense_update', 'on'], ['expense_delete', 'on'], ['settlement', 'on'], ['member_join', 'off']],
+  );
+  const event = (id: string) => `    - { id: ${id}, default: "on", name: { en: X, vi: X } }\n`;
+  const categories = (perGroup: boolean, ids: string[]) =>
+    `- id: group_activity\n  default: "on"\n  per_group: true\n  name: { en: G, vi: G }\n  description: { en: G, vi: G }\n` +
+    `- id: settle_reminder\n  default: "off"\n  per_group: ${perGroup}\n  name: { en: S, vi: S }\n  description: { en: S, vi: S }\n` +
+    `  events:\n${ids.map(event).join('')}` +
+    `- id: updates\n  default: "off"\n  per_group: false\n  name: { en: U, vi: U }\n  description: { en: U, vi: U }\n`;
+  const notPerGroup = problemsOf({ 'categories.yaml': categories(false, ['settlement']) }).join('\n');
+  assert.match(notPerGroup, /settle_reminder: only a per-group category may have events/);
+  const twice = problemsOf({ 'categories.yaml': categories(true, ['settlement', 'settlement', 'coffee']) }).join('\n');
+  assert.match(twice, /event "settlement" is defined twice/);
+  assert.match(twice, /unknown event "coffee"/);
+});
+
 test('schema problems name the file and line', () => {
   const template = 'id: group-activity\nvars: [group]\npush:\n  en:\n    title: "{group}"\n    body: Hi\n';
   const problems = problemsOf({ 'templates/group-activity.yaml': template });

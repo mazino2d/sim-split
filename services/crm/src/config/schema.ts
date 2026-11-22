@@ -19,6 +19,15 @@ export const policySchema = z
   })
   .strict();
 
+/** A kind of change within a category, with its own switch (R-9 AC26). */
+export const categoryEventSchema = z
+  .object({
+    id,
+    default: z.enum(['on', 'off']),
+    name: localized,
+  })
+  .strict();
+
 export const categorySchema = z
   .object({
     id,
@@ -26,6 +35,7 @@ export const categorySchema = z
     per_group: z.boolean(),
     name: localized,
     description: localized,
+    events: z.array(categoryEventSchema).min(1).optional(),
   })
   .strict();
 export const categoriesSchema = z.array(categorySchema).min(1);
@@ -47,6 +57,14 @@ export const traitsSchema = z.array(traitSchema);
 
 export const ENTITIES = ['group', 'member', 'expense', 'settlement'] as const;
 export const ACTIONS = ['create', 'update', 'delete', 'join'] as const;
+/**
+ * Kinds of group activity a user can switch on or off (R-9 AC26), as ids in
+ * crm/categories.yaml. The pref key in `notificationPrefs.activityEvents` is
+ * the camelCase id (`expense_create` → `expenseCreate`).
+ */
+export const ACTIVITY_EVENTS = ['expense_create', 'expense_update', 'expense_delete', 'settlement', 'member_join'] as const;
+export type ActivityEvent = (typeof ACTIVITY_EVENTS)[number];
+
 export const CHANNELS = ['push', 'inapp'] as const;
 
 export const triggerSchema = z
@@ -124,6 +142,7 @@ export const templateSchema = z
 
 export type Policy = z.infer<typeof policySchema>;
 export type Category = z.infer<typeof categorySchema>;
+export type CategoryEvent = z.infer<typeof categoryEventSchema>;
 export type Trait = z.infer<typeof traitSchema>;
 export type Trigger = z.infer<typeof triggerSchema>;
 export type Schedule = z.infer<typeof scheduleSchema>;
