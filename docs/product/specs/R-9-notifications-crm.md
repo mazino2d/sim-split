@@ -1,6 +1,6 @@
 # R-9 Notifications and CRM as code
 
-Status: draft   ·   Serves: UC-4, UC-9, all UCs   ·   Roadmap: Next
+Status: draft (P8 settings added 2026-11-22)   ·   Serves: UC-4, UC-9, all UCs   ·   Roadmap: Next
 
 ## Problem
 
@@ -136,7 +136,44 @@ code in the repo, reviewed in a pull request like the rest of the app.
   traits from usage data choose who gets a notice, before the first notification is sent
   on production.
 
-## Edge cases checklist
+### More control, same calm defaults (P8, 2026-11-22)
+
+Notification settings grow from three switches to a few choices per kind. Every new
+choice starts at today's behaviour, so nobody who never opens the screen notices a
+change, and none of them can make notifications louder than the calm limits allow.
+
+- **AC26** Group activity has a detail screen with one switch per kind of change:
+  new expenses, edited expenses, deleted expenses, settlements (all on) and members
+  joining (off). Only the kinds that are on are notified.
+- **AC27** "Only changes that involve me" (off by default): when on, an expense
+  change is notified only if the user's member paid it or has a share in it, and a
+  settlement only if it is from or to that member.
+- **AC28** Bundling: "Every 10 minutes" (default), "Every 30 minutes", "Every hour"
+  or "Once a day at 19:00". A longer choice never delays a message less than the
+  default does; the daily summary counts the day's changes per group.
+- **AC29** Per group, from the group menu and from Settings → Notifications →
+  Groups: "All activity" (default), "Only changes that involve me", "Off", or
+  "Off until tomorrow 08:00". This replaces Mute / Unmute; groups muted before keep
+  "Off".
+- **AC30** Pause all notifications: "1 hour", "Until tomorrow 08:00" or "1 week".
+  While paused, nothing is pushed and nothing is kept for later, except group
+  activity, which arrives as one summary when the pause ends. Settings shows when
+  the pause ends and a Resume button.
+- **AC31** Quiet hours can be made longer (start earlier than 21:00, end later than
+  08:00) but never shorter; the screen only offers longer ranges.
+- **AC32** Settle reminders, when on, let the user pick the day of the week
+  (default Sunday), the time (default 19:00, between 08:00 and 21:00) and how old a
+  debt must be (7, 14 (default) or 30 days). Still at most one per week, sharing the
+  weekly cap with updates (AC13).
+- **AC33** "Send a test notification", on the Diagnostics screen (with the other debug
+  tools, not in Settings → Notifications), sends one push to this device within a
+  minute, outside the weekly cap and quiet hours, at most once every 10 minutes.
+- **AC34** All choices sync to every device of the account and are read by the
+  sender at send time, like the switches today (AC3, AC22).
+- **AC35** Every new string exists in EN and VI, and the screens follow the design
+  system: one level of detail per kind, no dialogs except the time picker.
+
+
 
 - Offline / sync: a preference changed offline applies once synced; a notification about a
   record the device has not synced yet opens the group and shows the record once synced.
