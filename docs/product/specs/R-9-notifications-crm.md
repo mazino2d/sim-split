@@ -1,6 +1,6 @@
 # R-9 Notifications and CRM as code
 
-Status: draft (P8 settings added 2026-11-22)   ·   Serves: UC-4, UC-9, all UCs   ·   Roadmap: Next
+Status: shipped in 2026.11.23 (P8 settings added 2026-11-22)   ·   Serves: UC-4, UC-9, all UCs   ·   Roadmap: Next
 
 ## Problem
 
