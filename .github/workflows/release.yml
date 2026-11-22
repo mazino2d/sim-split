@@ -1,7 +1,8 @@
 name: Release
 
 # Every job that deploys runs in the prd GitHub Environment (set in the
-# called workflows), so each one waits for the maintainer's approval.
+# called workflows). There is no approval step: pushing the tag ships the
+# release, and only the maintainer can push v* tags (a tag ruleset).
 on:
   push:
     tags:

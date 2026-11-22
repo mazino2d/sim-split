@@ -67,8 +67,8 @@ main ──► PR "chore(release): YYYY.M.D" (pubspec bump, whatsnew, docs, list
          simsplit.web.app, Firestore rules and indexes)
                       validate-version → telemetry_deploy.yml (R-4 endpoint on
          Cloud Run)
-         each prd job waits for approval in the prd environment     (user approves)
-     ──► approved: live for 100 % (managed publishing is off; no staged
+         no approval step: the tag push is the go-ahead
+     ──► Play review approved: live for 100 % (managed publishing is off; no staged
          rollout while the user base is small)
 ```
 
@@ -153,7 +153,7 @@ git push origin vYYYY.M.D-rc.N              # only after the user's yes
 `release_candidate.yml` checks the tag format (`vYYYY.M.D-rc.N`, no zero padding,
 N from 1), builds with `--flavor prd`, uploads to `alpha` as completed with the
 `whatsnew/` notes, and creates a GitHub pre-release. The upload waits in the
-`prd` environment for the user's approval, like a production job. An RC build
+`prd` environment, like a production job, with no approval step. An RC build
 is not promoted to production by tagging; see § Known pitfalls.
 
 ## 5. Ship (irreversible — ask first)
@@ -169,13 +169,14 @@ GH_TOKEN=$(gh auth token --user mazino2d) gh run watch \
   $(GH_TOKEN=$(gh auth token --user mazino2d) gh run list --workflow release.yml --limit 1 --json databaseId -q '.[0].databaseId')
 ```
 
-Every job in the `prd` GitHub Environment (the Android upload, then the Firebase
-deploy, and the telemetry deploy) waits for the maintainer's approval. The user
-approves each one in the run UI (GitHub → Actions → the run → **Review
-deployments**). **Never approve a `prd` deployment yourself**, by any route (see
-`AGENTS.md` § Destructive and production actions): give the user the run URL and
-wait. The Firebase deploy starts only after the upload succeeded. Release
-candidates (`-rc.N` tags) wait for approval the same way.
+The jobs in the `prd` GitHub Environment (the Android upload, then the Firebase
+deploy, and the telemetry deploy) run as soon as the tag is pushed: the `prd`
+environment has no approval step, so **the tag push itself is the production
+go-ahead** and needs the user's explicit yes (see `AGENTS.md` § Destructive and
+production actions). Give the user the run URL and watch it. The Firebase deploy
+starts only after the upload succeeded. Release candidates (`-rc.N` tags) run the
+same way. Only the maintainer may create `v*` tags (a tag ruleset in
+everything-as-code).
 
 If `validate-version` fails, the tag and pubspec disagree: delete the tag
 (`git push origin :refs/tags/vYYYY.M.D`, with the user's OK), fix, re-tag.

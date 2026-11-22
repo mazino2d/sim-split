@@ -12,7 +12,8 @@ name: Build Android
 #       - release_candidate.yml (vYYYY.M.D-rc.N tag → alpha, completed).
 # The job runs in the GitHub Environment of the same name (managed in
 # mazino2d/everything-as-code): dev admits main only, so manual runs work from
-# main; prd admits v* tags and waits for the maintainer's approval.
+# main; a prd build runs only from its release tag (checked below), with no
+# approval step: pushing the tag is the go-ahead.
 on:
   push:
     branches: [main]
@@ -103,6 +104,17 @@ jobs:
       PACKAGE_NAME: ${{ inputs.release_tag != '' && 'com.mazino2d.simsplit' || 'com.mazino2d.simsplit.dev' }}
 
     steps:
+      # prd has no approval step and also admits main (for crm_apply.yml), so a
+      # prd build must come from its own release tag.
+      - name: Check the release ref
+        if: inputs.release_tag != ''
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [ "$GITHUB_REF" != "refs/tags/$RELEASE_TAG" ]; then
+            echo "::error::a prd build runs only from refs/tags/$RELEASE_TAG, not $GITHUB_REF"
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:

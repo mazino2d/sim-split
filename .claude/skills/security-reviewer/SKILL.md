@@ -39,7 +39,7 @@ The repo lives under the `mazino2d` GitHub account: prefix `gh` with
 | Accounts (name, email, uid) | other users, scrapers | Firebase Auth, rules on `users/` |
 | The maintainer's bill | anyone scripting the API | App Check (enforced), budgets and the billing kill switch (everything-as-code), telemetry limits in `services/telemetry/src/limits.ts` |
 | Usage and error data in the warehouse | anyone posting to the endpoint | `services/telemetry` auth, schema validation, scrubbing |
-| The release pipeline (Play, Hosting, Cloud Run) | a malicious PR, a compromised action | GitHub Environments (`prd` approval), Workload Identity scoped to `main` and `v*`, pinned actions |
+| The release pipeline (Play, Hosting, Cloud Run) | a malicious PR, a compromised action | GitHub Environments (`prd`: no approval step; v* tags only the maintainer can push, `crm apply` only from a repo admin), Workload Identity scoped to `main` and `v*`, pinned actions |
 | Users' devices | a crafted link or file | deep links, the Drift database, share and save |
 
 ## Mode: scan (default)
@@ -126,8 +126,12 @@ that can be run, and note findings. Areas are ordered by blast radius.
   only where Workload Identity is used.
 - Third-party actions pinned to a full commit SHA; reusable workflows from
   `mazino2d/github-workflows` pinned to a tag the maintainer controls.
-- Deploy jobs run in the `dev`, `prd` or `store` Environment; `prd` needs
-  approval and admits `v*` tags only (check `release.yml`, `telemetry_deploy.yml`).
+- Deploy jobs run in the `dev`, `prd` or `store` Environment. `prd` has no
+  approval step and admits `v*` tags and `main`: every app deploy must check it
+  runs from its `vYYYY.M.D` tag (`release.yml`, `telemetry_deploy.yml`,
+  `firebase_deploy.yml`, `build_android.yml`), and `crm_apply.yml` must only act
+  for a repo admin, on a green, same-repo PR. A tag ruleset limits `v*` to the
+  maintainer.
 - Secrets: never echoed, never passed to steps that run PR code; signing keys
   only in `build_android.yml` / `build_ios.yml`.
 - Dependencies: `npm audit --prefix services/telemetry --omit=dev`,

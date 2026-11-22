@@ -24,10 +24,12 @@ Each file under a folder holds one item, and its name is the item's `id`.
 2. The **CRM config** check validates every file and comments the plan on the PR:
    what changes, a preview of each changed message in EN and VI, and each audience
    in plain words.
-3. Merging deploys to **dev**. A campaign goes out on dev at the next tick (within
-   15 minutes), so check it on SimSplit [Dev] or the dev web app.
-4. **CRM Deploy → prd** waits for approval in the `crm-prd` environment, then runs
-   the same image on production. Campaigns there follow `send_at`.
+3. To ship it, comment **`crm apply`** on the PR (a repo admin, once every check is
+   green). `crm_apply.yml` squash-merges it and deploys the same image to **dev**, then
+   **prd**, and comments the result on the PR. A refused apply says why.
+4. A plain merge deploys to **dev** only. A campaign goes out on dev at the next tick
+   (within 15 minutes); on prd it follows `send_at`. To ship what is already on main,
+   comment `crm apply` on any merged PR: it deploys the latest main.
 
 To stop everything, set `kill_switch: true` in a PR. In an emergency, move the
 Cloud Run service `crm` to its previous revision instead.

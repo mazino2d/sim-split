@@ -1,12 +1,14 @@
 name: CRM Deploy
 
 # Ships the R-9 notifications service (services/crm) with the config in crm/
-# baked into the image. The image is built once and the same digest runs on
-# dev, then on prd after the maintainer approves in the crm-prd environment.
+# baked into the image, built once per commit; the same digest runs on dev and
+# then prd.
+#   - push to main: dev only.
+#   - crm_apply.yml (a maintainer comments "crm apply" on the PR) calls this
+#     with the merged commit and prd: true, so the same run goes on to prd.
+#   - manual run: dev, or dev then prd.
 # The service, its triggers and the deployers are managed in
 # mazino2d/everything-as-code (terraform/gcp/simsplit-as-se1-<env>/crm.tf).
-# App deploys stay tag-only (release.yml); crm-prd admits main only, and prd's
-# Workload Identity lets only that environment use the crm deployer.
 # PRs validate and plan the config in pr_validate.yml.
 on:
   push:
@@ -16,6 +18,21 @@ on:
       - services/crm/**
       - .github/workflows/crm_deploy.yml
   workflow_dispatch:
+    inputs:
+      prd:
+        description: "Also deploy to prd after dev"
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      sha:
+        description: "The commit on main to deploy"
+        type: string
+        required: true
+      prd:
+        description: "Also deploy to prd after dev"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,14 +41,30 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      sha: ${{ steps.ref.outputs.sha }}
     steps:
+      # Every path deploys a commit that is on main.
       - name: Check ref
+        id: ref
+        env:
+          SHA_INPUT: ${{ inputs.sha }}
         run: |
           if [ "$GITHUB_REF" != "refs/heads/main" ]; then
             echo "::error::crm deploys only from main, not $GITHUB_REF"
             exit 1
           fi
+          echo "sha=${SHA_INPUT:-$GITHUB_SHA}" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.ref.outputs.sha }}
+          fetch-depth: 0
+      - name: Check the commit is on main
+        env:
+          SHA: ${{ steps.ref.outputs.sha }}
+        run: |
+          git fetch -q origin main
+          git merge-base --is-ancestor "$SHA" origin/main || { echo "::error::$SHA is not on main"; exit 1; }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "26"
@@ -40,56 +73,66 @@ jobs:
       - run: npm ci --prefix services/crm
       - run: npm --prefix services/crm test
       - name: Compile crm/ into the image
-        run: npm --prefix services/crm run -s crm -- compile --out config.json --version "$GITHUB_SHA"
+        env:
+          SHA: ${{ steps.ref.outputs.sha }}
+        run: npm --prefix services/crm run -s crm -- compile --out config.json --version "$SHA"
       - name: Build the image
+        env:
+          SHA: ${{ steps.ref.outputs.sha }}
         run: |
-          docker build -t "crm:$GITHUB_SHA" services/crm
-          docker save "crm:$GITHUB_SHA" | gzip > "$RUNNER_TEMP/crm.tar.gz"
+          docker build -t "crm:$SHA" services/crm
+          docker save "crm:$SHA" | gzip > "$RUNNER_TEMP/crm.tar.gz"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: crm-image
           path: ${{ runner.temp }}/crm.tar.gz
           retention-days: 3
 
-  # dev first; prd only once dev runs the same image, after approval.
   dev:
     needs: build
     runs-on: ubuntu-latest
-    # Per job, so a prd deploy waiting for approval never holds up dev.
+    timeout-minutes: 15
+    environment: dev
     concurrency:
       group: crm-deploy-dev
       cancel-in-progress: false
-    timeout-minutes: 15
-    environment: dev
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build.outputs.sha }}
       - uses: ./.github/actions/crm-deploy
         with:
+          sha: ${{ needs.build.outputs.sha }}
           expected-project: simsplit-as-se1-dev
           image-repository: ${{ vars.CRM_IMAGE_REPOSITORY }}
           deployer: ${{ vars.GCP_CRM_DEPLOYER }}
           workload-identity-provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           traits-table: dataplatform-as-se1-dev.simsplit_crm.user_traits
 
+  # Only when asked ("crm apply", or a manual run with prd), and only once dev
+  # runs the same image.
   prd:
-    needs: dev
+    needs: [build, dev]
+    if: inputs.prd
     runs-on: ubuntu-latest
-    # A newer run's prd job replaces an older one still waiting for approval.
+    timeout-minutes: 15
+    environment: prd
     concurrency:
       group: crm-deploy-prd
       cancel-in-progress: false
-    timeout-minutes: 15
-    environment: crm-prd
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build.outputs.sha }}
       - uses: ./.github/actions/crm-deploy
         with:
+          sha: ${{ needs.build.outputs.sha }}
           expected-project: simsplit-as-se1-prd
           image-repository: ${{ vars.CRM_IMAGE_REPOSITORY }}
           deployer: ${{ vars.GCP_CRM_DEPLOYER }}

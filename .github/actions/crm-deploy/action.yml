@@ -3,6 +3,9 @@ description: >-
   Pushes the image built by crm_deploy.yml's build job to one environment's
   registry and deploys it to the Cloud Run service `crm` (R-9).
 inputs:
+  sha:
+    description: The commit the image was built from (its tag)
+    required: true
   expected-project:
     description: The GCP project the environment must point at
     required: true
@@ -66,12 +69,13 @@ runs:
       env:
         IMAGE: ${{ inputs.image-repository }}/crm
         REGION: asia-southeast1
+        SHA: ${{ inputs.sha }}
       run: |
         gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
         docker load < "$RUNNER_TEMP/crm.tar.gz"
-        docker tag "crm:$GITHUB_SHA" "$IMAGE:$GITHUB_SHA"
-        docker push "$IMAGE:$GITHUB_SHA"
-        digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE:$GITHUB_SHA")
+        docker tag "crm:$SHA" "$IMAGE:$SHA"
+        docker push "$IMAGE:$SHA"
+        digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE:$SHA")
         echo "DIGEST=$digest" >> "$GITHUB_ENV"
         echo "Image: \`$digest\`" >> "$GITHUB_STEP_SUMMARY"
     # Only the image changes; scaling, limits and env stay as Terraform set them.

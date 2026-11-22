@@ -20,8 +20,8 @@ device registration, a Notifications settings screen, per-group mute and in-app 
 | Preferences are authoritative at send time | The service reads `users/{uid}.notificationPrefs`, group mutes and devices from Firestore for every recipient. Traits only pick the candidates | Traits are up to a day old, while a switch the user just turned off must win (AC22) |
 | Traits | data-platform builds the dbt model `simsplit_crm.user_traits`: one row per existing uid, with the dbt contract enforced. Only this dataset is shared with the crm service account (`roles/bigquery.dataViewer` on the dataset, plus `jobUser` in the simsplit project). `crm/traits.yaml` lists the columns, and the dev deploy job checks it against the table's schema before deploying | Audiences without SQL (AC20). The crm service sees traits only, never names, emails or raw events. A deleted account's row disappears on the next daily run |
 | Audience compiler | `crm/audiences/*.yaml` hold `all`/`any` rules with one level of nesting. The compiler validates them against `traits.yaml` and emits one parameterised query with `maximumBytesBilled` | No injection is possible, the cost per query is bounded, and the rules read as plain words in a PR (AC17) |
-| Prd path | `crm_deploy.yml` builds the image once, deploys it to dev, then its prd job waits in one new GitHub Environment, `crm-prd` (maintainer approval, `main` only), and deploys the same image digest. Workload Identity for `crm-prd` can only deploy `simsplit-crm` | App deploys stay tag-only (R-5), while a typo in a notice doesn't need an app release. One approval, and prd runs exactly what dev ran |
-| No audience counts | Neither the PR nor the approval counts audiences; the PR shows the rules in plain words and the rendered messages. Dev shows what users get | Counting on prd before approval would need a second, read-only prd identity; the calm limits cap the damage of a too-wide audience anyway |
+| Prd path | A repo admin comments `crm apply` on the PR: `crm_apply.yml` checks the PR is green and from this repo, squash-merges it and calls `crm_deploy.yml`, which builds the image once and deploys the same digest to dev, then prd (environment `prd`, no approval step). A plain merge deploys dev only. Changed 2026-11-22 from a `crm-prd` environment with a required reviewer | Approving in the Actions UI was awkward on a phone; a PR comment is not. A typo in a notice doesn't need an app release, and prd runs exactly what dev ran. App deploys still check their `vYYYY.M.D` tag |
+| No audience counts | Neither the PR nor `crm apply` counts audiences; the PR shows the rules in plain words and the rendered messages. Dev shows what users get | Counting on prd before applying would need a second, read-only prd identity; the calm limits cap the damage of a too-wide audience anyway |
 | Campaign timing | On dev, a campaign goes out at the next tick after deploy, so it can be checked on SimSplit [Dev]. On prd it follows `send_at`; approved after `send_at` but before `ends_at`, it goes out at the next tick; after `ends_at`, never. `crm validate` warns when `send_at` is less than an hour after the PR is opened | Dev is for looking at the real message; prd timing stays what the PR says |
 | Rollback | Revert the PR (same path), or a one-line `kill_switch: true` PR; in an emergency, move Cloud Run traffic to the previous revision in the console | Every revision is one config commit |
 | Android channels | One channel per category, named in EN/VI, and created on first launch after update | The system settings mirror the app's switches (AC5) |
@@ -120,7 +120,7 @@ the sender sets `webpush.fcm_options.link` to the web app's origin plus that rou
 
 | Phase | Repo | Scope | ACs | Effort |
 | --- | --- | --- | --- | --- |
-| P1 Foundation | sim-split, everything-as-code | `crm/` schemas and starter files; `services/crm` CLI (`validate`, `render`, `plan`) with tests; PR check and comment; `crm_deploy.yml` (dev on merge, then prd behind `crm-prd`); the service skeleton (`/events`, `/flush`, `/tick` return 204, kill switch). Infra on dev and prd: Cloud Run service (min 0, max 1), service account, Eventarc triggers, Cloud Tasks queue, Scheduler tick, `crm-prd` environment and WIF binding | AC15–AC17, AC18 (dev) | 3 days |
+| P1 Foundation | sim-split, everything-as-code | `crm/` schemas and starter files; `services/crm` CLI (`validate`, `render`, `plan`) with tests; PR check and comment; `crm_deploy.yml` (dev on merge; prd through `crm_apply.yml` since 2026-11-22); the service skeleton (`/events`, `/flush`, `/tick` return 204, kill switch). Infra on dev and prd: Cloud Run service (min 0, max 1), service account, Eventarc triggers, Cloud Tasks queue, Scheduler tick, deploy environment and WIF binding | AC15–AC17, AC18 (dev) | 3 days |
 | P2 Devices and settings | sim-split | `firebase_messaging` on Android and web; device registration and token refresh; permission timing (AC1–AC2); Settings → Notifications; group Mute; Android channels; tap → deep link; usage events; rules and emulator tests for `devices` and prefs. Privacy policy, Data safety and strategy updated in the same release (AC25) | AC1–AC5, AC8, AC23, AC25 | 3 days |
 | P3 Group activity | sim-split | Trigger on activity entries for expenses and settlements (create, edit, delete); batching; recipients (members except actor, not muted, not archived); localisation and money formatting shared with the app's rules (golden tests against `MoneyFormatter` output); FCM send, removal of invalid tokens; quiet hours (held back in `crm_deferred`, delivered by the tick) and ledger | AC6–AC10, AC14, AC19 | 3 days |
 | P4 Traits and audiences | data-platform, sim-split, everything-as-code | dbt `user_traits` (platform, language, app version, signup days, last active days, sessions 30 d, open groups, multi-member groups, owes / owed, oldest unsettled days, prefs); dataset `simsplit_crm` and its grant; `traits.yaml`; audience compiler with tests; freshness guard and alert | AC20–AC22 | 2.5 days |
@@ -169,8 +169,8 @@ P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.
 
 - P1: Firebase console → Cloud Messaging: create the Web Push certificate (VAPID) for each
   project and put the public key in the app's env config.
-- P1: create the `crm-prd` environment with the maintainer as required reviewer (in
-  `terraform/github`, if the provider supports it there, else by hand).
+- P1: the deploy environment is in `terraform/github` (since 2026-11-22 the shared
+  `prd`, with no reviewer).
 - P2: Play Console → Data safety: add Device or other IDs (token) and App activity (for
   notifications); mirror the change in `data_safety.csv`.
 - P3 and P5: test on dev with two accounts, two devices and the web app, including quiet
@@ -180,7 +180,7 @@ P2. P4 can run in parallel with P3. P5 and P6 need P4. Total about 17 days.
 
 | Risk | Mitigation |
 | --- | --- |
-| A wrong rule or template spams real users | Dev first, with the same image; prd behind one approval; caps enforced in code, not config; kill switch; `rollout` % on triggers |
+| A wrong rule or template spams real users | Dev first, with the same image; prd only on an admin's `crm apply` after a green plan; caps enforced in code, not config; kill switch; `rollout` % on triggers |
 | Eventarc delivers twice or out of order | Pending items keyed by the activity entry ID, which the event names; a batch reads the entries from Firestore, not event payloads |
 | Notifications hurt Calm (users mute everything) | Group activity batched, others opt-in, quiet hours; success check tracks mute rate; adjust defaults before widening |
 | Cross-project BigQuery access leaks more than traits | Grant on the `simsplit_crm` dataset only; the traits model has no names or emails; R-8 security review in PR mode for P1 and P4 |

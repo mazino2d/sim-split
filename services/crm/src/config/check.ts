@@ -145,7 +145,7 @@ export const checkConfig = (config: Config, options: CheckOptions = {}): { probl
     if (options.now && c.enabled && end <= options.now.getTime()) {
       warnings.push({ file, message: 'ends_at has passed; it will never be sent' });
     } else if (options.now && c.enabled && start - options.now.getTime() < 60 * 60 * 1000) {
-      warnings.push({ file, message: 'send_at is less than an hour away; it goes out at the first tick after approval' });
+      warnings.push({ file, message: 'send_at is less than an hour away; it goes out at the first tick after `crm apply`' });
     }
   }
 
