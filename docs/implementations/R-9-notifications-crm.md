@@ -189,7 +189,7 @@ Settings → Notifications                     Group activity
 │ Quiet hours   21:00 – 08:00   › │        │                                  │
 │ Groups                        › │        │ BUNDLE CHANGES                   │
 │                                  │        │ (•) Every 10 minutes             │
-│ Send a test notification         │        │ ( ) Every 30 minutes             │
+│                                  │        │ ( ) Every 30 minutes             │
 │ ⓘ Notifications are on for this  │        │ ( ) Every hour                   │
 │   device.                        │        │ ( ) Once a day at 19:00          │
 └──────────────────────────────────┘        └──────────────────────────────────┘
@@ -212,6 +212,9 @@ Settle reminders (when on)                   Groups / group menu → Notificatio
   involve me" shows no mark.
 - Pause uses a short list (1 hour, until tomorrow 08:00, 1 week); the subtitle
   shows the end time.
+- "Send a test notification" sits on the Diagnostics screen (wrench icon in Settings),
+  with the other debug tools, not in Settings → Notifications.
+- Clickable demo reviewed 2026-11-22: https://claude.ai/artifact/4JCB4eef6MgFtNoRB31iwm.
 
 ### Data (`users/{uid}.notificationPrefs`, version 2)
 
@@ -258,7 +261,7 @@ A missing field is its default, so old builds and old documents keep working.
 | Phase | Repo | Scope | ACs | Effort |
 | --- | --- | --- | --- | --- |
 | P8a Prefs and sender | sim-split, everything-as-code | Prefs v2 in rules with emulator tests; `crm/categories.yaml` events; sender filters (events, involvement, bundle, pause, per-group modes, quiet hours, settle prefs); test-notification trigger (Eventarc on devices) and ledger; unit tests for each | AC26–AC34 (server) | 2 days |
-| P8b Screens | sim-split | Settings → Notifications redesign, Group activity, Settle reminders, Groups, quiet hours sheet, pause, test button; group menu modes; migration from `mutedGroups`; EN/VI copy; widget tests; usage events for every choice | AC26–AC35 (app) | 2.5 days |
+| P8b Screens | sim-split | Settings → Notifications redesign, Group activity, Settle reminders, Groups, quiet hours sheet, pause; test button on Diagnostics; group menu modes; migration from `mutedGroups`; EN/VI copy; widget tests; usage events for every choice | AC26–AC35 (app) | 2.5 days |
 
 P8a ships first: the sender honours v2 fields, and old builds keep working because
 every new field has a default. P8b then writes them.
